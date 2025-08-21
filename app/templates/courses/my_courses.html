@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>My Courses</h1>
+<div class="row">
+    {% for enrollment in enrollments %}
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            {% if enrollment.course.image %}
+            <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" height="200">
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">{{ enrollment.course.title }}</h5>
+                <p class="card-text">{{ enrollment.course.description|truncatewords:20 }}</p>
+                <p class="text-muted">Enrolled on: {{ enrollment.enrolled_at|date:"M d, Y" }}</p>
+                <p>Status: {% if enrollment.completed %}Completed{% else %}In Progress{% endif %}</p>
+                <a href="{% url 'course_detail' enrollment.course.id %}" class="btn btn-primary">Continue Learning</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <p>You haven't enrolled in any courses yet.</p>
+        <a href="{% url 'course_list' %}" class="btn btn-primary">Browse Courses</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
