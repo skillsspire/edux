@@ -52,12 +52,12 @@ class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200)
-    video_url = models.URLField(blank=True, null=True)  # Для вставки с YouTube/Vimeo
-    content = models.TextField(blank=True)  # Текстовая информация, описание
-    order = models.PositiveIntegerField(default=0)  # Порядок урока в курсе
+    video_url = models.URLField(blank=True, null=True)
+    content = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ['order']  # Уроки всегда будут упорядочены по полю `order`
+        ordering = ['order']
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -71,7 +71,6 @@ class Enrollment(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     date_joined = models.DateTimeField(auto_now_add=True)
-    # Прогресс можно считать динамически, но для MVP храним как число пройденных уроков
     completed_lessons = models.ManyToManyField(Lesson, blank=True)
     completed = models.BooleanField(default=False)
 
@@ -98,9 +97,3 @@ class Answer(models.Model):
 
     def __str__(self):
         return self.text
-
-# Модель Certificate пока опустим для MVP, добавим после реализации основного функционала.
-# class Certificate(models.Model):
-#     enrollment = models.OneToOneField(Enrollment, on_delete=models.CASCADE)
-#     issued_at = models.DateTimeField(auto_now_add=True)
-#     pdf = models.FileField(upload_to="certificates/")

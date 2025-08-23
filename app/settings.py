@@ -1,27 +1,12 @@
-"""
-Django settings for app project.
-"""
-
 import os
 from pathlib import Path
-from decouple import config, Csv
+import dj_database_url
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = 'ваш-секретный-ключ-здесь-измените-на-уникальный'  # поменяйте на уникальный!
-DEBUG = False
-
-ALLOWED_HOSTS = [
-    'skillsspire.com',
-    'www.skillsspire.com',
-    'render.com',
-    '*.onrender.com',
-    '127.0.0.1',
-    'localhost',
-    '.onrender.com'
-]
+SECRET_KEY = 't=1wk1l7ly3k!ue^qe!u5ntb8fu5r%&z$)@pfdv0o0u4zs)'
+DEBUG = True
+ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = [
     'https://skillsspire.com',
@@ -29,23 +14,20 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com'
 ]
 
-# Application definition
 INSTALLED_APPS = [
-    'jazzmin',  # Красивая админка - ДОЛЖНА БЫТЬ ПЕРВОЙ!
-
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'app',  # ваше основное приложение
+    'app',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ДЛЯ СТАТИЧЕСКИХ ФАЙЛОВ
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -54,7 +36,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'app.urls'
+ROOT_URLCONF = 'edux.urls'
 
 TEMPLATES = [
     {
@@ -72,9 +54,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'app.wsgi.application'
+WSGI_APPLICATION = 'edux.wsgi.application'
 
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -82,7 +63,6 @@ DATABASES = {
     }
 }
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -98,59 +78,45 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
 LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# STATICFILES_DIRS = [BASE_DIR / 'static']  # закомментируйте если нет папки static
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Login redirect
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Serving static files with Whitenoise
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_BROWSER_XSS_FILTER = False
+SECURE_CONTENT_TYPE_NOSNIFF = False
 
-# Security settings for production
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
-# ==================== JAZZMIN НАСТРОЙКИ ====================
 JAZZMIN_SETTINGS = {
     "site_title": "SkillsSpire Admin",
     "site_header": "SkillsSpire Academy",
     "site_brand": "🎓 SkillsSpire",
     "welcome_sign": "Добро пожаловать в панель управления!",
     "copyright": "SkillsSpire Academy",
-
     "search_model": ["app.Course", "auth.User"],
-
     "topmenu_links": [
         {"name": "Главная", "url": "admin:index", "permissions": ["auth.view_user"]},
         {"name": "На сайт", "url": "/", "new_window": True},
         {"model": "auth.User"},
     ],
-
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
     "hide_models": [],
-
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -160,7 +126,6 @@ JAZZMIN_SETTINGS = {
         "app.Lesson": "fas fa-book-open",
         "app.Enrollment": "fas fa-user-graduate",
     },
-
     "show_ui_builder": True,
     "related_modal_active": True,
     "default_icon_parents": "fas fa-chevron-circle-right",
