@@ -3,6 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.http import HttpResponse
 from .models import Course, Category, Lesson, Enrollment
+from django.shortcuts import render
+
+def about(request):
+    return render(request, 'about.html')
 
 
 def home(request):
