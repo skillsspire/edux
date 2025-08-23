@@ -7,7 +7,7 @@
         <div>
             <h1>{% trans "Discover Your Potential with EduX" %}</h1>
             <p>{% trans "Learn from the best instructors around the world and advance your career today." %}</p>
-            <a href="{% url 'courses:list' %}" class="btn btn-primary">{% trans "Browse All Courses" %}</a>
+            <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse All Courses" %}</a>
         </div>
         <div class="hero-image d-none-mobile">
             <div class="card" style="height:250px; display:flex; align-items:center; justify-content:center;">
@@ -24,7 +24,7 @@
             {% for category in categories %}
             <div class="card text-center">
                 <h3>{{ category.name }}</h3>
-                <a href="{% url 'courses:list' %}?category={{ category.slug }}" class="btn btn-outline">{% trans "View Courses" %}</a>
+                <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="btn btn-outline">{% trans "View Courses" %}</a>
             </div>
             {% endfor %}
         </div>
