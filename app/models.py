@@ -1,51 +1,106 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    bio = models.TextField(blank=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+
+    def __str__(self):
+        return f'Profile of {self.user.username}'
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
-    description = models.TextField()
+    slug = models.SlugField(unique=True, max_length=100)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
 
-
 class Course(models.Model):
+    LEVEL_CHOICES = [
+        ("beginner", "Новичок"),
+        ("intermediate", "Средний уровень"),
+        ("advanced", "Продвинутый"),
+    ]
+
     title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True, max_length=200)
     description = models.TextField()
-    instructor = models.ForeignKey(User, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    duration = models.IntegerField(help_text="Duration in hours", default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    image = models.ImageField(upload_to='course_images/', blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="courses")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authored_courses")
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="beginner")
+    students = models.ManyToManyField(User, through='Enrollment', related_name="courses_joined", blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
 
-
 class Lesson(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
-    content = models.TextField()
-    order = models.IntegerField(default=1)
-    video_url = models.URLField(blank=True, null=True)
+    slug = models.SlugField(max_length=200)
+    video_url = models.URLField(blank=True, null=True)  # Для вставки с YouTube/Vimeo
+    content = models.TextField(blank=True)  # Текстовая информация, описание
+    order = models.PositiveIntegerField(default=0)  # Порядок урока в курсе
 
     class Meta:
-        ordering = ['order']
+        ordering = ['order']  # Уроки всегда будут упорядочены по полю `order`
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
-
 class Enrollment(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    enrolled_at = models.DateTimeField(auto_now_add=True)
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
+    date_joined = models.DateTimeField(auto_now_add=True)
+    # Прогресс можно считать динамически, но для MVP храним как число пройденных уроков
+    completed_lessons = models.ManyToManyField(Lesson, blank=True)
     completed = models.BooleanField(default=False)
 
-    class Meta:
-        unique_together = ['student', 'course']
+    def progress_percentage(self):
+        total_lessons = self.course.lessons.count()
+        if total_lessons > 0:
+            return (self.completed_lessons.count() / total_lessons) * 100
+        return 0
 
     def __str__(self):
-        return f"{self.student.username} - {self.course.title}"
+        return f"{self.student.username} enrolled in {self.course.title}"
+
+class Question(models.Model):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="questions")
+    text = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.text
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")
+    text = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.text
+
+# Модель Certificate пока опустим для MVP, добавим после реализации основного функционала.
+# class Certificate(models.Model):
+#     enrollment = models.OneToOneField(Enrollment, on_delete=models.CASCADE)
+#     issued_at = models.DateTimeField(auto_now_add=True)
+#     pdf = models.FileField(upload_to="certificates/")

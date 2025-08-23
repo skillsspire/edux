@@ -10,10 +10,9 @@ from decouple import config, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-12345-change-in-production')
-DEBUG = False  # прямое значение вместо config()
+SECRET_KEY = 'ваш-секретный-ключ-здесь-измените-на-уникальный'  # поменяйте на уникальный!
+DEBUG = False
 
-# === ИСПРАВЛЕННЫЙ БЛОК ===
 ALLOWED_HOSTS = [
     'skillsspire.com',
     'www.skillsspire.com',
@@ -29,7 +28,6 @@ CSRF_TRUSTED_ORIGINS = [
     'https://www.skillsspire.com',
     'https://*.onrender.com'
 ]
-# === КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ===
 
 # Application definition
 INSTALLED_APPS = [
@@ -47,6 +45,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ДЛЯ СТАТИЧЕСКИХ ФАЙЛОВ
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -107,8 +106,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+# STATICFILES_DIRS = [BASE_DIR / 'static']  # закомментируйте если нет папки static
 
 # Media files
 MEDIA_URL = '/media/'
@@ -121,13 +120,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+# Serving static files with Whitenoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Security settings for production
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # ==================== JAZZMIN НАСТРОЙКИ ====================
 JAZZMIN_SETTINGS = {

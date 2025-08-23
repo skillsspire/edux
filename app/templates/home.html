@@ -1,9 +1,50 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="hero-section text-center py-5 bg-light">
-    <h1>Welcome to SkillsSpire</h1>
-    <p>Learn from the best courses online</p>
-    <a href="/courses/" class="btn btn-primary">Browse Courses</a>
+<div class="row">
+    <div class="col-md-8 offset-md-2 text-center">
+        <h1>Добро пожаловать на EduX</h1>
+        <p class="lead">Платформа для онлайн-обучения</p>
+
+        <!-- Поиск -->
+        <form class="d-flex mb-4" action="{% url 'courses_list' %}" method="GET">
+            <input class="form-control me-2" type="search" name="q" placeholder="Найти курс..." aria-label="Search">
+            <button class="btn btn-outline-success" type="submit">Искать</button>
+        </form>
+    </div>
+</div>
+
+<!-- Категории -->
+<h2 class="mb-3">Категории</h2>
+<div class="row mb-5">
+    {% for category in categories %}
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ category.name }}</h5>
+                <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="btn btn-sm btn-primary">Смотреть курсы</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Популярные курсы -->
+<h2 class="mb-3">Популярные курсы</h2>
+<div class="row">
+    {% for course in popular_courses %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ course.title }}</h5>
+                <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+                <p class="text-muted">Автор: {{ course.author.get_full_name }}</p>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">Подробнее</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
