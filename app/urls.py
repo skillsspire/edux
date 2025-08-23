@@ -30,4 +30,6 @@ urlpatterns = [
 
     # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
+
+    path('i18n/', include('django.conf.urls.i18n')),
 ]
