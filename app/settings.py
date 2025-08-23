@@ -11,25 +11,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-12345-change-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
-# Замените эту строку:
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+DEBUG = False  # прямое значение вместо config()
 
-# На эту:
+# === ИСПРАВЛЕННЫЙ БЛОК ===
 ALLOWED_HOSTS = [
     'skillsspire.com',
     'www.skillsspire.com',
     'render.com',
     '*.onrender.com',
     '127.0.0.1',
-    'localhost'
+    'localhost',
+    '.onrender.com'
 ]
 
-# И добавьте CSRF:
 CSRF_TRUSTED_ORIGINS = [
     'https://skillsspire.com',
-    'https://www.skillsspire.com'
+    'https://www.skillsspire.com',
+    'https://*.onrender.com'
 ]
+# === КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ===
+
 # Application definition
 INSTALLED_APPS = [
     'jazzmin',  # Красивая админка - ДОЛЖНА БЫТЬ ПЕРВОЙ!
@@ -119,13 +120,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Login redirect
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
-
-# CSRF protection
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='http://127.0.0.1:8000,http://localhost:8000',
-    cast=Csv()
-)
 
 # Security settings for production
 if not DEBUG:
