@@ -36,7 +36,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'edux.urls'
+ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
     {

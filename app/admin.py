@@ -15,23 +15,23 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['title', 'get_instructor', 'get_category', 'price', 'get_duration', 'created_at']
-    list_filter = ['category', 'created_at']
+    list_display = ['title', 'get_instructor', 'get_category', 'price', 'get_duration', 'created']
+    list_filter = ['category', 'created']
     search_fields = ['title', 'description']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created']
 
     def get_instructor(self, obj):
-        return obj.instructor.username
+        return obj.author.username
 
     get_instructor.short_description = 'Инструктор'
 
     def get_category(self, obj):
-        return obj.category.name
+        return obj.category.name if obj.category else ''
 
     get_category.short_description = 'Категория'
 
     def get_duration(self, obj):
-        return f"{obj.duration} часов"
+        return f"{obj.lessons.count()} уроков"
 
     get_duration.short_description = 'Длительность'
 
@@ -51,10 +51,10 @@ class LessonAdmin(admin.ModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['get_student', 'get_course', 'get_enrolled_at', 'completed']
-    list_filter = ['completed', 'enrolled_at']
+    list_display = ['get_student', 'get_course', 'get_date_joined', 'completed']
+    list_filter = ['completed', 'date_joined']
     search_fields = ['student__username', 'course__title']
-    readonly_fields = ['enrolled_at']
+    readonly_fields = ['date_joined']
 
     def get_student(self, obj):
         return obj.student.username
@@ -66,7 +66,7 @@ class EnrollmentAdmin(admin.ModelAdmin):
 
     get_course.short_description = 'Курс'
 
-    def get_enrolled_at(self, obj):
-        return obj.enrolled_at.strftime('%d.%m.%Y %H:%M')
+    def get_date_joined(self, obj):
+        return obj.date_joined.strftime('%d.%m.%Y %H:%M')
 
-    get_enrolled_at.short_description = 'Записан'
+    get_date_joined.short_description = 'Записан'
