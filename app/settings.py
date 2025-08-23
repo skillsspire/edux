@@ -5,7 +5,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 't=1wk1l7ly3k!ue^qe!u5ntb8fu5r%&z$)@pfdv0o0u4zs)'
 DEBUG = True
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'skillsspire.com',
+    'www.skillsspire.com',
+    '.onrender.com',
+]
+
 
 CSRF_TRUSTED_ORIGINS = [
     'https://skillsspire.com',
@@ -108,8 +113,9 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # 🚧 SSL (для прода включить True)
-SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 SECURE_BROWSER_XSS_FILTER = False
 SECURE_CONTENT_TYPE_NOSNIFF = False
