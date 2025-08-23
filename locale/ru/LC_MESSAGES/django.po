@@ -1,0 +1,54 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+#: templates/base.html
+msgid "Home"
+msgstr "Главная"
+
+msgid "Courses"
+msgstr "Курсы"
+
+msgid "Contacts"
+msgstr "Контакты"
+
+msgid "Login"
+msgstr "Войти"
+
+msgid "Register"
+msgstr "Регистрация"
+
+# Django system messages
+msgid "Username"
+msgstr "Имя пользователя"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Password (again)"
+msgstr "Пароль (ещё раз)"
+
+msgid "This field is required."
+msgstr "Это поле обязательно для заполнения."
+
+msgid "Enter a valid email address."
+msgstr "Введите корректный адрес электронной почты."
+
+msgid "Log out"
+msgstr "Выйти"
+
+msgid "Forgot password?"
+msgstr "Забыли пароль?"
+
+msgid "Invalid username or password."
+msgstr "Неверное имя пользователя или пароль."
+
+msgid "Confirm"
+msgstr "Подтвердить"
+
+msgid "Submit"
+msgstr "Отправить"
+
+msgid "Cancel"
+msgstr "Отмена"

@@ -1,0 +1,52 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: kk\n"
+
+msgid "Home"
+msgstr "Басты бет"
+
+msgid "Courses"
+msgstr "Курстар"
+
+msgid "Contacts"
+msgstr "Байланыстар"
+
+msgid "Login"
+msgstr "Кіру"
+
+msgid "Register"
+msgstr "Тіркелу"
+
+msgid "Username"
+msgstr "Пайдаланушы аты"
+
+msgid "Password"
+msgstr "Құпиясөз"
+
+msgid "Password (again)"
+msgstr "Құпиясөз (қайта)"
+
+msgid "This field is required."
+msgstr "Бұл өрісті толтыру қажет."
+
+msgid "Enter a valid email address."
+msgstr "Жарамды электрондық пошта енгізіңіз."
+
+msgid "Log out"
+msgstr "Шығу"
+
+msgid "Forgot password?"
+msgstr "Құпиясөзді ұмыттыңыз ба?"
+
+msgid "Invalid username or password."
+msgstr "Пайдаланушы аты немесе құпиясөз қате."
+
+msgid "Confirm"
+msgstr "Растау"
+
+msgid "Submit"
+msgstr "Жіберу"
+
+msgid "Cancel"
+msgstr "Бас тарту"
