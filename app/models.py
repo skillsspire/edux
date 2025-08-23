@@ -15,6 +15,7 @@ class Profile(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, max_length=100)
+    description = models.TextField(blank=True, null=True)  # ✅ добавил описание
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -113,3 +114,30 @@ class Answer(models.Model):
 
     def __str__(self):
         return self.text
+
+
+# =============================
+# 💳 Платежи и подписки
+# =============================
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="subscriptions")
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.user.username} — до {self.end_date}"
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Покупатель")
+    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Курс")
+    subscription = models.ForeignKey(Subscription, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Подписка")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
+    transaction_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="ID транзакции")
+    success = models.BooleanField(default=False, verbose_name="Успешно?")
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} — {self.amount}₸ ({'OK' if self.success else 'FAIL'})"
