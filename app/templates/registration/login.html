@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<section class="section">
+    <div class="container" style="max-width: 400px;">
+        <div class="card">
+            <h2 class="text-center">{% trans "Login" %}</h2>
+            <form method="post" class="form">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <div class="form-group">
+                    <label for="id_username">{% trans "Email" %}</label>
+                    {{ form.username }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_password">{% trans "Password" %}</label>
+                    {{ form.password }}
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">{% trans "Login" %}</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="{% url 'password_reset' %}">{% trans "Forgot your password?" %}</a>
+                <p>{% trans "Don't have an account?" %} <a href="{% url 'signup' %}">{% trans "Sign Up" %}</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

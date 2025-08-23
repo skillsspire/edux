@@ -1,109 +1,134 @@
 {% load static i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
+<html lang="{% if request.LANGUAGE_CODE == 'ru' %}ru{% else %}en{% endif %}" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}EduX{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>{% block title %}EduX - Learn Anything{% endblock %}</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block meta_description %}Online learning platform with professional courses{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}courses, learning, education, online{% endblock %}">
+
+    <!-- OpenGraph -->
+    <meta property="og:title" content="{% block og_title %}EduX - Learn Anything{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Online learning platform with professional courses{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicon/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
+
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white custom-navbar">
+    <!-- Header -->
+    <header class="header">
         <div class="container">
-            <a class="navbar-brand custom-brand" href="{% url 'home' %}">
-                <strong>EduX</strong>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'home' %}">{% trans "Home" %}</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'courses_list' %}">{% trans "Courses" %}</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            {% get_current_language as LANGUAGE_CODE %}
-                            {% if LANGUAGE_CODE == 'ru' %}🇷🇺{% else %}🇬🇧{% endif %}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'set_language' %}?language=en&next={{ request.get_full_path|urlencode }}">🇬🇧 English</a></li>
-                            <li><a class="dropdown-item" href="{% url 'set_language' %}?language=ru&next={{ request.get_full_path|urlencode }}">🇷🇺 Русский</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <button class="btn btn-link nav-link" id="theme-toggle">
-                            <span id="theme-icon">🌙</span>
-                        </button>
-                    </li>
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'logout' %}">{% trans "Logout" %}</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">{% trans "Login" %}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-primary custom-btn-primary ms-2" href="{% url 'signup' %}">{% trans "Sign Up" %}</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
+            <nav class="nav">
+                <a href="{% url 'home' %}" class="logo">
+                    <span class="logo-icon">🎓</span>
+                    <span class="logo-text">EduX</span>
+                </a>
 
-    <main>
-        {% block content %}
-        {% endblock %}
+                <div class="nav-menu" id="navMenu">
+                    <a href="{% url 'home' %}" class="nav-link">{% trans "Home" %}</a>
+                    <a href="{% url 'courses:list' %}" class="nav-link">{% trans "Courses" %}</a>
+                    <a href="{% url 'about' %}" class="nav-link">{% trans "About" %}</a>
+                    <a href="{% url 'contact' %}" class="nav-link">{% trans "Contact" %}</a>
+
+                    <div class="nav-actions">
+                        <button class="theme-toggle" id="themeToggle">🌙</button>
+
+                        <div class="language-switcher">
+                            <form action="{% url 'set_language' %}" method="post" id="languageForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <select name="language" onchange="document.getElementById('languageForm').submit()">
+                                    <option value="en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>🇬🇧 EN</option>
+                                    <option value="ru" {% if request.LANGUAGE_CODE == 'ru' %}selected{% endif %}>🇷🇺 RU</option>
+                                </select>
+                            </form>
+                        </div>
+
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'dashboard' %}" class="btn btn-secondary">{% trans "Dashboard" %}</a>
+                            <a href="{% url 'logout' %}" class="btn btn-outline">{% trans "Logout" %}</a>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="btn btn-secondary">{% trans "Login" %}</a>
+                            <a href="{% url 'signup' %}" class="btn btn-primary">{% trans "Sign Up" %}</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button class="nav-toggle" id="navToggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        {% block content %}{% endblock %}
     </main>
 
-    <footer class="custom-footer mt-5">
-        <div class="container py-4">
-            <div class="text-center">
-                <p class="mb-0">&copy; {% now "Y" %} EduX. {% trans "All rights reserved." %}</p>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <span class="logo-icon">🎓</span>
+                        <span class="logo-text">EduX</span>
+                    </div>
+                    <p class="footer-description">
+                        {% trans "Learn from the best instructors and advance your career." %}
+                    </p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>{% trans "Quick Links" %}</h4>
+                    <a href="{% url 'courses:list' %}">{% trans "All Courses" %}</a>
+                    <a href="{% url 'about' %}">{% trans "About Us" %}</a>
+                    <a href="{% url 'contact' %}">{% trans "Contact" %}</a>
+                </div>
+
+                <div class="footer-section">
+                    <h4>{% trans "Support" %}</h4>
+                    <a href="#">{% trans "Help Center" %}</a>
+                    <a href="#">{% trans "FAQ" %}</a>
+                    <a href="#">{% trans "Privacy Policy" %}</a>
+                </div>
+
+                <div class="footer-section">
+                    <h4>{% trans "Connect" %}</h4>
+                    <div class="social-links">
+                        <a href="#" class="social-link">📘</a>
+                        <a href="#" class="social-link">🐦</a>
+                        <a href="#" class="social-link">📸</a>
+                        <a href="#" class="social-link">📽️</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 EduX. {% trans "All rights reserved." %}</p>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
-
-        const toggleButton = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
-        const currentTheme = localStorage.getItem('theme') || 'light';
-
-        if (currentTheme === 'dark') {
-            themeIcon.textContent = '🌞';
-        } else {
-            themeIcon.textContent = '🌙';
-        }
-
-        toggleButton.addEventListener('click', function() {
-            let theme = document.documentElement.getAttribute('data-theme');
-            if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-                themeIcon.textContent = '🌞';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-                localStorage.setItem('theme', 'light');
-                themeIcon.textContent = '🌙';
-            }
-        });
-    </script>
+    <!-- Scripts -->
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

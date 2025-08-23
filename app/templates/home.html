@@ -2,58 +2,48 @@
 {% load i18n %}
 
 {% block content %}
-<section class="hero-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1>{% trans "Discover Your Potential with EduX" %}</h1>
-                <p class="lead mb-4">{% trans "Learn from the best instructors around the world and advance your career today." %}</p>
-                <a href="{% url 'courses_list' %}" class="btn custom-btn-primary btn-lg">{% trans "Browse All Courses" %}</a>
-            </div>
-            <div class="col-lg-6 d-none d-lg-block">
-                <div class="ps-5">
-                    <div style="height: 250px; background-color: #e0f2fe; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
-                        <span class="text-primary">[Hero Image]</span>
-                    </div>
-                </div>
+<section class="hero-section section">
+    <div class="container grid">
+        <div>
+            <h1>{% trans "Discover Your Potential with EduX" %}</h1>
+            <p>{% trans "Learn from the best instructors around the world and advance your career today." %}</p>
+            <a href="{% url 'courses:list' %}" class="btn btn-primary">{% trans "Browse All Courses" %}</a>
+        </div>
+        <div class="hero-image d-none-mobile">
+            <div class="card" style="height:250px; display:flex; align-items:center; justify-content:center;">
+                <span>{% trans "[Hero Image]" %}</span>
             </div>
         </div>
     </div>
 </section>
 
-<div class="container">
-    <h2 class="text-center mb-4">{% trans "Explore Categories" %}</h2>
-    <div class="row mb-5">
-        {% for category in categories %}
-        <div class="col-md-3 mb-3">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{ category.name }}</h5>
-                </div>
-                <div class="card-footer bg-white border-0 pb-3">
-                    <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="btn btn-sm btn-outline-primary">{% trans "View Courses" %}</a>
-                </div>
+<section class="section">
+    <div class="container">
+        <h2 class="text-center">{% trans "Explore Categories" %}</h2>
+        <div class="grid grid-4">
+            {% for category in categories %}
+            <div class="card text-center">
+                <h3>{{ category.name }}</h3>
+                <a href="{% url 'courses:list' %}?category={{ category.slug }}" class="btn btn-outline">{% trans "View Courses" %}</a>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
+</section>
 
-    <h2 class="text-center mb-4">{% trans "Popular Courses" %}</h2>
-    <div class="row">
-        {% for course in popular_courses %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ course.title }}</h5>
-                    <p class="card-text">{{ course.description|truncatewords:20 }}</p>
-                    <p class="text-muted">{% trans "By:" %} {{ course.author.get_full_name|default:course.author.username }}</p>
-                </div>
-                <div class="card-footer bg-white">
-                    <a href="{% url 'course_detail' course.slug %}" class="btn btn-accent w-100">{% trans "Explore" %}</a>
-                </div>
+<section class="section">
+    <div class="container">
+        <h2 class="text-center">{% trans "Popular Courses" %}</h2>
+        <div class="grid grid-3">
+            {% for course in popular_courses %}
+            <div class="card">
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.description|truncatewords:20 }}</p>
+                <p class="text-muted">{% trans "By:" %} {{ course.author.get_full_name|default:course.author.username }}</p>
+                <a href="{% url 'course_detail' course.slug %}" class="btn btn-secondary w-100">{% trans "Explore" %}</a>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-</div>
+</section>
 {% endblock %}

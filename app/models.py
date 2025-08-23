@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     bio = models.TextField(blank=True)
@@ -9,6 +10,7 @@ class Profile(models.Model):
 
     def __str__(self):
         return f'Profile of {self.user.username}'
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -21,6 +23,7 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Course(models.Model):
     LEVEL_CHOICES = [
@@ -48,6 +51,7 @@ class Course(models.Model):
     def __str__(self):
         return self.title
 
+
 class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
@@ -67,6 +71,7 @@ class Lesson(models.Model):
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
+
 class Enrollment(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
@@ -83,12 +88,23 @@ class Enrollment(models.Model):
     def __str__(self):
         return f"{self.student.username} enrolled in {self.course.title}"
 
+
+class Certificate(models.Model):
+    enrollment = models.OneToOneField(Enrollment, on_delete=models.CASCADE, related_name="certificate")
+    issued_at = models.DateTimeField(auto_now_add=True)
+    pdf = models.FileField(upload_to="certificates/", blank=True, null=True)
+
+    def __str__(self):
+        return f"Certificate for {self.enrollment.student.username} - {self.enrollment.course.title}"
+
+
 class Question(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="questions")
     text = models.CharField(max_length=255)
 
     def __str__(self):
         return self.text
+
 
 class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")
