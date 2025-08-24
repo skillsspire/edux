@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.db.models import Count, Q
 import csv
 
-from .models import Category, Course, Lesson, Enrollment, Payment, Subscription
+from .models import Category, Course, Lesson, Enrollment, Payment, Subscription, InstructorProfile, Review, Wishlist, Module, LessonProgress, ContactMessage
 
 
 # =========================
@@ -63,7 +63,7 @@ class ActiveSubscriptionFilter(admin.SimpleListFilter):
 # =========================
 class LessonInline(admin.TabularInline):
     model = Lesson
-    fields = ['title', 'order']
+    fields = ['title', 'order', 'is_active']
     extra = 0
     ordering = ['order']
     show_change_link = True
@@ -71,10 +71,10 @@ class LessonInline(admin.TabularInline):
 
 class EnrollmentInline(admin.TabularInline):
     model = Enrollment
-    fields = ['student', 'completed', 'date_joined']
-    readonly_fields = ['date_joined']
+    fields = ['user', 'completed', 'enrolled_at']
+    readonly_fields = ['enrolled_at']
     extra = 0
-    autocomplete_fields = ['student']
+    autocomplete_fields = ['user']
     show_change_link = True
 
 
@@ -83,8 +83,10 @@ class EnrollmentInline(admin.TabularInline):
 # =========================
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'description_short']
+    list_display = ['name', 'description_short', 'is_active']
+    list_filter = ['is_active']
     search_fields = ['name']
+    list_editable = ['is_active']
 
     @admin.display(description='Описание')
     def description_short(self, obj):
@@ -97,38 +99,29 @@ class CategoryAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['title_link', 'get_instructor', 'get_category', 'price', 'lessons_count', 'created']
+    list_display = ['title_link', 'instructor', 'category', 'price', 'status', 'created_at']
     list_display_links = ['title_link']
-    list_filter = ['category', 'created', PriceRangeFilter]
-    search_fields = ['title', 'description']
-    readonly_fields = ['created']
-    autocomplete_fields = ['author', 'category']
-    list_select_related = ['author', 'category']
-    date_hierarchy = 'created'
+    list_filter = ['category', 'status', 'level', 'is_featured', 'created_at']
+    search_fields = ['title', 'short_description']
+    readonly_fields = ['created_at', 'updated_at']
+    autocomplete_fields = ['instructor', 'category']
+    list_select_related = ['instructor', 'category']
+    date_hierarchy = 'created_at'
     list_per_page = 50
     inlines = [LessonInline, EnrollmentInline]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('author', 'category').annotate(_lessons_count=Count('lessons'))
+        return qs.select_related('instructor', 'category').prefetch_related('lessons')
 
     @admin.display(description='Курс', ordering='title')
     def title_link(self, obj):
-        # Кликабельная ссылка на изменение курса
         url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', args=[obj.pk])
         return format_html('<a href="{}">{}</a>', url, obj.title)
 
-    @admin.display(description='Инструктор', ordering='author__username')
-    def get_instructor(self, obj):
-        return obj.author.username if obj.author else '—'
-
-    @admin.display(description='Категория', ordering='category__name')
-    def get_category(self, obj):
-        return obj.category.name if obj.category else '—'
-
-    @admin.display(description='Длительность', ordering='_lessons_count')
+    @admin.display(description='Уроки')
     def lessons_count(self, obj):
-        return f'{obj._lessons_count} уроков'
+        return obj.lessons_count
 
 
 # =========================
@@ -136,16 +129,16 @@ class CourseAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ['title', 'get_course', 'order']
-    list_filter = ['course']
-    ordering = ['course', 'order']
+    list_display = ['title', 'module', 'order', 'is_active']
+    list_filter = ['is_active', 'is_free', 'module__course']
+    ordering = ['module__course', 'module__order', 'order']
     search_fields = ['title', 'content']
-    autocomplete_fields = ['course']
-    list_select_related = ['course']
+    autocomplete_fields = ['module']
+    list_select_related = ['module__course']
 
-    @admin.display(description='Курс', ordering='course__title')
+    @admin.display(description='Курс')
     def get_course(self, obj):
-        return obj.course.title if obj.course else '—'
+        return obj.module.course.title if obj.module and obj.module.course else '—'
 
 
 # =========================
@@ -162,13 +155,13 @@ def export_csv(modeladmin, request, queryset):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename=enrollments_export.csv'
     writer = csv.writer(response)
-    writer.writerow(['student', 'course', 'completed', 'date_joined'])
-    for e in queryset.select_related('student', 'course'):
+    writer.writerow(['user', 'course', 'completed', 'enrolled_at'])
+    for e in queryset.select_related('user', 'course'):
         writer.writerow([
-            getattr(e.student, 'username', ''),
+            getattr(e.user, 'username', ''),
             getattr(e.course, 'title', ''),
             '1' if e.completed else '0',
-            e.date_joined.strftime('%Y-%m-%d %H:%M:%S') if e.date_joined else ''
+            e.enrolled_at.strftime('%Y-%m-%d %H:%M:%S') if e.enrolled_at else ''
         ])
     return response
 
@@ -178,26 +171,14 @@ def export_csv(modeladmin, request, queryset):
 # =========================
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['get_student', 'get_course', 'get_date_joined', 'completed']
-    list_filter = ['completed', 'date_joined']
-    search_fields = ['student__username', 'course__title']
-    readonly_fields = ['date_joined']
-    autocomplete_fields = ['student', 'course']
-    list_select_related = ['student', 'course']
-    date_hierarchy = 'date_joined'
+    list_display = ['user', 'course', 'enrolled_at', 'completed']
+    list_filter = ['completed', 'enrolled_at']
+    search_fields = ['user__username', 'course__title']
+    readonly_fields = ['enrolled_at']
+    autocomplete_fields = ['user', 'course']
+    list_select_related = ['user', 'course']
+    date_hierarchy = 'enrolled_at'
     actions = [mark_completed, export_csv]
-
-    @admin.display(description='Студент', ordering='student__username')
-    def get_student(self, obj):
-        return obj.student.username if obj.student else '—'
-
-    @admin.display(description='Курс', ordering='course__title')
-    def get_course(self, obj):
-        return obj.course.title if obj.course else '—'
-
-    @admin.display(description='Записан', ordering='date_joined')
-    def get_date_joined(self, obj):
-        return obj.date_joined.strftime('%d.%m.%Y %H:%M') if obj.date_joined else '—'
 
 
 # =========================
@@ -205,31 +186,21 @@ class EnrollmentAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    """
-    Админка платежей только для просмотра:
-    - нельзя добавить/удалить/редактировать записи вручную
-    - считаем, что записи создаются автоматически
-    """
     list_display = ['user', 'course_link', 'amount', 'success', 'created']
     list_filter = ['success', 'created']
     search_fields = ['user__username', 'course__title']
     autocomplete_fields = ['user', 'course']
     list_select_related = ['user', 'course']
-    readonly_fields = []  # заполним динамически ниже
+    readonly_fields = ['user', 'course', 'amount', 'success', 'created']
     date_hierarchy = 'created'
-
-    def get_readonly_fields(self, request, obj=None):
-        # Делаем read-only все поля модели
-        return [f.name for f in self.model._meta.fields]
 
     @admin.display(description='Курс')
     def course_link(self, obj):
-        if obj.course_id and obj.course:
-            url = reverse(f'admin:{obj.course._meta.app_label}_{obj.course._meta.model_name}_change', args=[obj.course_id])
+        if obj.course:
+            url = reverse(f'admin:{obj.course._meta.app_label}_{obj.course._meta.model_name}_change', args=[obj.course.pk])
             return format_html('<a href="{}">{}</a>', url, obj.course.title)
         return '—'
 
-    # Запрещаем добавление/удаление/массовое удаление
     def has_add_permission(self, request):
         return False
 
@@ -242,9 +213,7 @@ class PaymentAdmin(admin.ModelAdmin):
             del actions['delete_selected']
         return actions
 
-    # На всякий случай: не даём сохранять изменения через админ
     def has_change_permission(self, request, obj=None):
-        # Разрешаем открывать страницу просмотра (detail), но не сохранять.
         if request.method in ('POST',):
             return False
         return super().has_change_permission(request, obj)
@@ -261,3 +230,60 @@ class SubscriptionAdmin(admin.ModelAdmin):
     readonly_fields = ['start_date']
     autocomplete_fields = ['user']
     date_hierarchy = 'start_date'
+
+
+# =========================
+# ContactMessage
+# =========================
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ['name', 'email', 'subject', 'created_at', 'is_read']
+    list_filter = ['is_read', 'created_at']
+    search_fields = ['name', 'email', 'subject']
+    readonly_fields = ['created_at']
+    list_editable = ['is_read']
+    date_hierarchy = 'created_at'
+
+
+# =========================
+# Другие модели
+# =========================
+@admin.register(InstructorProfile)
+class InstructorProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'specialization', 'experience', 'is_approved']
+    list_filter = ['is_approved']
+    search_fields = ['user__username', 'specialization']
+    autocomplete_fields = ['user']
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'rating', 'created_at', 'is_active']
+    list_filter = ['rating', 'is_active', 'created_at']
+    search_fields = ['user__username', 'course__title']
+    autocomplete_fields = ['user', 'course']
+
+
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'added_at']
+    list_filter = ['added_at']
+    search_fields = ['user__username', 'course__title']
+    autocomplete_fields = ['user', 'course']
+
+
+@admin.register(Module)
+class ModuleAdmin(admin.ModelAdmin):
+    list_display = ['title', 'course', 'order', 'is_active']
+    list_filter = ['is_active', 'course']
+    search_fields = ['title', 'course__title']
+    ordering = ['course', 'order']
+    autocomplete_fields = ['course']
+
+
+@admin.register(LessonProgress)
+class LessonProgressAdmin(admin.ModelAdmin):
+    list_display = ['user', 'lesson', 'completed', 'last_accessed']
+    list_filter = ['completed', 'last_accessed']
+    search_fields = ['user__username', 'lesson__title']
+    autocomplete_fields = ['user', 'lesson']
