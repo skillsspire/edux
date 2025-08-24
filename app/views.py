@@ -1,9 +1,25 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from .models import Course, Category, Lesson, Enrollment
-from .forms import SignUpForm
+from .forms import SignUpForm, EmailAuthenticationForm
+
+
+def custom_login(request):
+    if request.method == 'POST':
+        form = EmailAuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            email = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')
+    else:
+        form = EmailAuthenticationForm()
+
+    return render(request, 'registration/login.html', {'form': form})
 
 
 def signup(request):

@@ -3,13 +3,13 @@
 
 {% block content %}
 <section class="section">
-  <div class="container" style="max-width: 420px;">
+  <div class="container" style="max-width: 500px;">
     <div class="card p-4 shadow-sm">
       <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Create Your SkillSpire Account" %}</h2>
 
       {% if form.errors %}
       <div class="alert alert-danger">
-        <strong>Ошибки формы:</strong>
+        <strong>{% trans "Form errors:" %}</strong>
         {{ form.errors }}
       </div>
       {% endif %}
@@ -19,29 +19,47 @@
         <input type="hidden" name="next" value="{{ request.GET.next }}">
 
         <div class="mb-3">
-          <label for="id_username" class="form-label">{% trans "Username" %}</label>
-          <input type="text" name="username" class="form-control" id="id_username" required value="{{ form.username.value|default:'' }}">
+          <label for="id_first_name" class="form-label">{% trans "First Name" %} *</label>
+          <input type="text" name="first_name" class="form-control" id="id_first_name" required value="{{ form.first_name.value|default:'' }}">
         </div>
 
         <div class="mb-3">
-          <label for="id_email" class="form-label">{% trans "Email" %}</label>
+          <label for="id_last_name" class="form-label">{% trans "Last Name" %} *</label>
+          <input type="text" name="last_name" class="form-control" id="id_last_name" required value="{{ form.last_name.value|default:'' }}">
+        </div>
+
+        <div class="mb-3">
+          <label for="id_email" class="form-label">{% trans "Email Address" %} *</label>
           <input type="email" name="email" class="form-control" id="id_email" required value="{{ form.email.value|default:'' }}">
+          <div class="form-text">{% trans "We'll send a confirmation email to this address" %}</div>
         </div>
 
         <div class="mb-3">
-          <label for="id_password1" class="form-label">{% trans "Password" %}</label>
+          <label for="id_password1" class="form-label">{% trans "Password" %} *</label>
           <input type="password" name="password1" class="form-control" id="id_password1" required>
+          <div class="form-text">
+            {% trans "Password requirements:" %}
+            <ul class="small">
+              <li>{% trans "At least 8 characters" %}</li>
+              <li>{% trans "Not too common" %}</li>
+              <li>{% trans "Not entirely numeric" %}</li>
+              <li>{% trans "Include letters and numbers" %}</li>
+            </ul>
+          </div>
         </div>
 
         <div class="mb-3">
-          <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
+          <label for="id_password2" class="form-label">{% trans "Confirm Password" %} *</label>
           <input type="password" name="password2" class="form-control" id="id_password2" required>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">{% trans "Sign Up" %}</button>
+        <button type="submit" class="btn btn-primary w-100">{% trans "Create Account" %}</button>
       </form>
 
       <div class="text-center mt-3">
+        <p class="small text-muted">
+          {% trans "By creating an account, you agree to our Terms of Service and Privacy Policy" %}
+        </p>
         <p>{% trans "Already have an account?" %}
            <a href="{% url 'login' %}" class="text-info fw-bold">{% trans "Login" %}</a>
         </p>
