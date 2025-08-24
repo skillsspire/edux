@@ -1,53 +1,85 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        {% if course.image %}
-        <img src="{{ course.image.url }}" class="img-fluid mb-3" alt="{{ course.title }}">
-        {% endif %}
-        <h1>{{ course.title }}</h1>
-        <p class="text-muted">Instructor: {{ course.instructor.get_full_name }}</p>
-        <p>Category: {{ course.category.name }}</p>
-        <p>Duration: {{ course.duration }} hours</p>
-        <p>Price: ${{ course.price }}</p>
-        
-        <h3>Description</h3>
-        <p>{{ course.description }}</p>
-        
-        <h3>Lessons</h3>
-        <div class="list-group">
-            {% for lesson in course.lesson_set.all %}
-            <div class="list-group-item">
-                <h5>Lesson {{ lesson.order }}: {{ lesson.title }}</h5>
-                <p>{{ lesson.content|truncatewords:30 }}</p>
-            </div>
-            {% empty %}
-            <p>No lessons available yet.</p>
-            {% endfor %}
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Enroll Now</h5>
-                <p class="card-text">${{ course.price }}</p>
-                {% if user.is_authenticated %}
-                    {% if is_enrolled %}
-                        <button class="btn btn-success" disabled>Already Enrolled</button>
-                        <a href="{% url 'my_courses' %}" class="btn btn-primary mt-2">Go to My Courses</a>
-                    {% else %}
-                        <form method="post" action="{% url 'enroll_course' course.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary">Enroll Now</button>
-                        </form>
-                    {% endif %}
-                {% else %}
-                    <p>Please <a href="{% url 'admin:login' %}">login</a> to enroll in this course.</p>
+<section class="section">
+    <div class="container">
+        <div class="row">
+            <!-- Основная часть -->
+            <div class="col-lg-8">
+                {% if course.image %}
+                <img src="{{ course.image.url }}" class="img-fluid rounded mb-4 shadow-sm" alt="{{ course.title }}">
                 {% endif %}
+
+                <h1 class="mb-3">{{ course.title }}</h1>
+                <p class="text-muted">
+                    {% trans "Instructor:" %} {{ course.author.get_full_name|default:course.author.username }}
+                </p>
+                <p><strong>{% trans "Category:" %}</strong> {{ course.category.name }}</p>
+                <p><strong>{% trans "Level:" %}</strong> {{ course.get_level_display }}</p>
+                <p><strong>{% trans "Price:" %}</strong>
+                    {% if course.price == 0 %}
+                        <span class="text-success">{% trans "Free" %}</span>
+                    {% else %}
+                        <span class="text-primary">${{ course.price }}</span>
+                    {% endif %}
+                </p>
+
+                <h3 class="mt-4">{% trans "Description" %}</h3>
+                <p>{{ course.description }}</p>
+
+                <h3 class="mt-4">{% trans "Lessons" %}</h3>
+                <div class="list-group">
+                    {% for lesson in course.lessons.all %}
+                    <div class="list-group-item">
+                        <h5 class="mb-1">{% trans "Lesson" %} {{ lesson.order }}: {{ lesson.title }}</h5>
+                        <p class="mb-1 text-muted">{{ lesson.content|truncatewords:25 }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">{% trans "No lessons available yet." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Боковая панель -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm sticky-top" style="top: 80px;">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">{% trans "Enroll Now" %}</h5>
+                        <p class="h4 fw-bold text-primary">
+                            {% if course.price == 0 %}
+                                {% trans "Free" %}
+                            {% else %}
+                                ${{ course.price }}
+                            {% endif %}
+                        </p>
+
+                        {% if user.is_authenticated %}
+                            {% if is_enrolled %}
+                                <button class="btn btn-success w-100 mb-2" disabled>
+                                    {% trans "Already Enrolled" %}
+                                </button>
+                                <a href="{% url 'my_courses' %}" class="btn btn-primary w-100">
+                                    {% trans "Go to My Courses" %}
+                                </a>
+                            {% else %}
+                                <form method="post" action="{% url 'enroll_course' course.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        {% trans "Enroll Now" %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted mt-3">
+                                {% trans "Please" %} <a href="{% url 'login' %}">{% trans "login" %}</a>
+                                {% trans "to enroll in this course." %}
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}

@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="row">
+            <!-- Основная часть -->
+            <div class="col-lg-8">
+                <h1 class="mb-3">{{ lesson.title }}</h1>
+                <p class="text-muted">
+                    {% trans "Course:" %}
+                    <a href="{% url 'course_detail' course.slug %}">{{ course.title }}</a>
+                </p>
+
+                <!-- Видео -->
+                {% if lesson.video_url %}
+                <div class="ratio ratio-16x9 mb-4">
+                    <iframe src="{{ lesson.video_url }}" title="{{ lesson.title }}" frameborder="0" allowfullscreen></iframe>
+                </div>
+                {% endif %}
+
+                <!-- Контент -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <p>{{ lesson.content|linebreaks }}</p>
+                    </div>
+                </div>
+
+                <!-- Кнопка завершения урока -->
+                {% if user.is_authenticated %}
+                    {% if lesson in enrollment.completed_lessons.all %}
+                        <button class="btn btn-success mt-3" disabled>
+                            ✔ {% trans "Lesson Completed" %}
+                        </button>
+                    {% else %}
+                        <form method="post" action="{% url 'mark_lesson_complete' course.slug lesson.slug %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success mt-3">
+                                ✅ {% trans "Mark as Completed" %}
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Навигация по урокам -->
+                <div class="d-flex justify-content-between mt-4">
+                    {% if prev_lesson %}
+                        <a href="{% url 'lesson_detail' course.slug prev_lesson.slug %}" class="btn btn-outline-primary">
+                            ⬅ {% trans "Previous Lesson" %}
+                        </a>
+                    {% else %}
+                        <span></span>
+                    {% endif %}
+
+                    {% if next_lesson %}
+                        <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-primary">
+                            {% trans "Next Lesson" %} ➡
+                        </a>
+                    {% else %}
+                        <span class="text-muted">{% trans "This is the last lesson." %}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Боковая панель -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm sticky-top" style="top: 80px;">
+                    <div class="card-body">
+                        <h5 class="card-title">{% trans "Course Progress" %}</h5>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: {{ progress }}%;"
+                                 aria-valuenow="{{ progress }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{ progress }}%
+                            </div>
+                        </div>
+
+                        <h6 class="mt-3">{% trans "All Lessons" %}</h6>
+                        <ul class="list-group list-group-flush">
+                            {% for l in lessons %}
+                            <li class="list-group-item {% if l.id == lesson.id %}active{% endif %}">
+                                <a href="{% url 'lesson_detail' course.slug l.slug %}"
+                                   class="{% if l.id == lesson.id %}text-white{% else %}text-dark{% endif %}">
+                                    {{ l.order }}. {{ l.title }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
