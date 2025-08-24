@@ -35,7 +35,10 @@
                         <a href="{% url 'dashboard' %}" class="btn btn-outline-accent btn-sm">{% trans "Dashboard" %}</a>
                     </li>
                     <li class="nav-item ms-2">
-                        <a href="{% url 'logout' %}" class="btn btn-primary btn-sm">{% trans "Logout" %}</a>
+                        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">{% trans "Logout" %}</button>
+                        </form>
                     </li>
                 {% else %}
                     <li class="nav-item ms-2">
