@@ -9,7 +9,6 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
 
-    # Auth
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
     path('signup/', views.signup, name='signup'),
@@ -18,18 +17,13 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), name='password_reset_complete'),
 
-    # Courses
     path('courses/', views.courses_list, name='courses_list'),
     path('courses/<slug:course_slug>/enroll/', views.enroll_course, name='enroll_course'),
-    path('courses/<slug:course_slug>/', views.course_detail, name='course_detail'),
-
-    # Lessons
     path('courses/<slug:course_slug>/lessons/<slug:lesson_slug>/', views.lesson_detail, name='lesson_detail'),
     path('courses/<slug:course_slug>/lessons/<slug:lesson_slug>/complete/', views.mark_lesson_complete, name='mark_lesson_complete'),
+    path('courses/<slug:course_slug>/', views.course_detail, name='course_detail'),
 
-    # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
 
-    # i18n
     path('i18n/', include('django.conf.urls.i18n')),
 ]

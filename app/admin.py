@@ -8,7 +8,7 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ['name']
 
     def description_short(self, obj):
-        return obj.description[:50] + '...' if obj.description else ''
+        return (obj.description[:50] + '...') if getattr(obj, 'description', None) else ''
     description_short.short_description = 'Описание'
 
 
@@ -20,11 +20,11 @@ class CourseAdmin(admin.ModelAdmin):
     readonly_fields = ['created']
 
     def get_instructor(self, obj):
-        return obj.author.username
+        return obj.author.username if obj.author else '—'
     get_instructor.short_description = 'Инструктор'
 
     def get_category(self, obj):
-        return obj.category.name if obj.category else ''
+        return obj.category.name if obj.category else '—'
     get_category.short_description = 'Категория'
 
     def get_duration(self, obj):
@@ -40,7 +40,7 @@ class LessonAdmin(admin.ModelAdmin):
     search_fields = ['title', 'content']
 
     def get_course(self, obj):
-        return obj.course.title
+        return obj.course.title if obj.course else '—'
     get_course.short_description = 'Курс'
 
 
@@ -52,15 +52,15 @@ class EnrollmentAdmin(admin.ModelAdmin):
     readonly_fields = ['date_joined']
 
     def get_student(self, obj):
-        return obj.student.username
+        return obj.student.username if obj.student else '—'
     get_student.short_description = 'Студент'
 
     def get_course(self, obj):
-        return obj.course.title
+        return obj.course.title if obj.course else '—'
     get_course.short_description = 'Курс'
 
     def get_date_joined(self, obj):
-        return obj.date_joined.strftime('%d.%m.%Y %H:%M')
+        return obj.date_joined.strftime('%d.%m.%Y %H:%M') if obj.date_joined else '—'
     get_date_joined.short_description = 'Записан'
 
 

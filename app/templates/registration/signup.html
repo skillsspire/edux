@@ -1,6 +1,44 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block content %}
-<h1>Регистрация</h1>
-<p>Здесь будет форма регистрации. Пока это заглушка 🚀</p>
+<section class="section">
+  <div class="container" style="max-width: 420px;">
+    <div class="card p-4 shadow-sm">
+      <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Create Your SkillSpire Account" %}</h2>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="mb-3">
+          <label for="id_username" class="form-label">{% trans "Username" %}</label>
+          {{ form.username|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_email" class="form-label">{% trans "Email" %}</label>
+          {{ form.email|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_password1" class="form-label">{% trans "Password" %}</label>
+          {{ form.password1|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
+          {{ form.password2|add_class:"form-control" }}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">{% trans "Sign Up" %}</button>
+      </form>
+
+      <div class="text-center mt-3">
+        <p>{% trans "Already have an account?" %}
+           <a href="{% url 'login' %}" class="text-info fw-bold">{% trans "Login" %}</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}
