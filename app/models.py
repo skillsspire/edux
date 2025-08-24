@@ -40,6 +40,8 @@ class Course(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authored_courses")
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="beginner")
+    duration = models.PositiveIntegerField(default=0, help_text="Длительность курса в часах")
+    image = models.ImageField(upload_to="courses/", blank=True, null=True)
     students = models.ManyToManyField(User, through='Enrollment', related_name="courses_joined", blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -51,6 +53,7 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
 
 
 class Lesson(models.Model):
