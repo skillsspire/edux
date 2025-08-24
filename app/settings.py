@@ -40,12 +40,13 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
-    'ckeditor',
+
     'phonenumber_field',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ckeditor',
     'app',
 ]
 
