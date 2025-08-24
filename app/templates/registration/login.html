@@ -8,6 +8,7 @@
       <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Login to SkillSpire" %}</h2>
       <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
 
         <div class="mb-3">
           <label for="id_username" class="form-label">{% trans "Username" %}</label>

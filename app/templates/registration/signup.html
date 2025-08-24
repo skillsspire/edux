@@ -6,17 +6,26 @@
   <div class="container" style="max-width: 420px;">
     <div class="card p-4 shadow-sm">
       <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Create Your SkillSpire Account" %}</h2>
+
+      {% if form.errors %}
+      <div class="alert alert-danger">
+        <strong>Ошибки формы:</strong>
+        {{ form.errors }}
+      </div>
+      {% endif %}
+
       <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
 
         <div class="mb-3">
           <label for="id_username" class="form-label">{% trans "Username" %}</label>
-          <input type="text" name="username" class="form-control" id="id_username" required>
+          <input type="text" name="username" class="form-control" id="id_username" required value="{{ form.username.value|default:'' }}">
         </div>
 
         <div class="mb-3">
           <label for="id_email" class="form-label">{% trans "Email" %}</label>
-          <input type="email" name="email" class="form-control" id="id_email" required>
+          <input type="email" name="email" class="form-control" id="id_email" required value="{{ form.email.value|default:'' }}">
         </div>
 
         <div class="mb-3">
