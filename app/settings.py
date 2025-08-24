@@ -40,6 +40,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'ckeditor',
+    'phonenumber_field',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -128,3 +130,19 @@ AUTHENTICATION_BACKENDS = [
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'skillsspire@gmail.com'  # ваш Gmail
+EMAIL_HOST_PASSWORD = 'drie vshy okys dlmq'  # ваш пароль приложения
+DEFAULT_FROM_EMAIL = 'SkillsSpire <skillsspire@gmail.com>'
+SERVER_EMAIL = 'skillsspire@gmail.com'
+
+PHONENUMBER_DEFAULT_REGION = 'KZ'  # Для Казахстана
+PHONENUMBER_DEFAULT_FORMAT = 'INTERNATIONAL'
+# Дополнительные настройки
+EMAIL_TIMEOUT = 30
+EMAIL_USE_SSL = False  # Используем TLS, не SSL

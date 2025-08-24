@@ -1,42 +1,31 @@
 from django import forms
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Course, Lesson  # ДОБАВЬТЕ этот импорт
+from .models import ContactMessage, Review
 
-class EmailAuthenticationForm(AuthenticationForm):
-    username = forms.EmailField(
-        label='Email',
-        widget=forms.EmailInput(attrs={'autofocus': True})
-    )
-
-class SignUpForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-    first_name = forms.CharField(required=True, max_length=30)
-    last_name = forms.CharField(required=True, max_length=30)
-
+class ContactForm(forms.ModelForm):
     class Meta:
-        model = User
-        fields = ("first_name", "last_name", "email", "password1", "password2")
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = self.cleaned_data['email']
-        if commit:
-            user.save()
-        return user
-
-class CourseForm(forms.ModelForm):
-    class Meta:
-        model = Course
-        fields = ['title', 'description', 'category', 'price', 'level']
+        model = ContactMessage
+        fields = ['name', 'email', 'subject', 'message']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 4}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ваше имя'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Ваш email'}),
+            'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Тема сообщения'}),
+            'message': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ваше сообщение', 'rows': 5}),
         }
 
-class LessonForm(forms.ModelForm):
+class ReviewForm(forms.ModelForm):
     class Meta:
-        model = Lesson
-        fields = ['title', 'content', 'order', 'video_url']
+        model = Review
+        fields = ['rating', 'comment']
         widgets = {
-            'content': forms.Textarea(attrs={'rows': 6}),
+            'rating': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+                'max': 5,
+                'placeholder': 'Оценка от 1 до 5'
+            }),
+            'comment': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ваш отзыв о курсе',
+                'rows': 4
+            }),
         }

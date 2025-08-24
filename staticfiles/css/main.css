@@ -1,11 +1,15 @@
+/* static/css/main.css */
+/* ===== MAIN STYLES ===== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+
 html {
     scroll-behavior: smooth;
 }
+
 body {
     font-family: 'Poppins', sans-serif;
     background: #f9fafb;
@@ -13,258 +17,330 @@ body {
     line-height: 1.6;
     font-size: 16px;
 }
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
+
 .section {
     padding: 60px 0;
 }
+
 .grid {
     display: grid;
     gap: 24px;
 }
+
 .grid-3 {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
+
 .grid-4 {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
-h1, h2, h3 {
+
+h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     color: #0046ad;
     line-height: 1.2;
 }
+
 h1 {
     font-size: clamp(40px, 5vw, 48px);
     margin-bottom: 20px;
 }
+
 h2 {
     font-size: clamp(28px, 3vw, 32px);
     margin-bottom: 16px;
 }
+
 h3 {
     font-size: 22px;
     margin-bottom: 12px;
 }
+
 p {
     font-size: 16px;
     font-weight: 400;
     color: #374151;
 }
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 16px;
-    font-weight: 500;
-    border-radius: 6px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.btn-primary {
-    background: #0046ad;
-    color: #fff;
-    border: none;
-}
-.btn-primary:hover {
-    background: #06b6d4;
-}
-.btn-secondary {
-    background: transparent;
-    border: 2px solid #06b6d4;
-    color: #06b6d4;
-}
-.btn-secondary:hover {
-    background: #06b6d4;
-    color: #fff;
-}
-.btn-outline {
-    background: transparent;
-    border: 2px solid #0046ad;
-    color: #0046ad;
-}
-.btn-outline:hover {
-    background: #0046ad;
-    color: #fff;
-}
-.btn-outline-accent {
-    border: 2px solid #6366f1;
-    color: #6366f1;
-    background: transparent;
-}
-.btn-outline-accent:hover {
-    background: #6366f1;
-    color: #fff;
-}
-.card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    padding: 20px;
-    transition: transform 0.2s;
-}
-.card:hover {
-    transform: translateY(-4px);
-}
-.header {
-    background: #fff;
-    padding: 16px 0;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-.nav-menu {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-.nav-link {
-    color: #0046ad;
-    font-weight: 500;
-    text-decoration: none;
-}
-.nav-link:hover {
-    color: #06b6d4;
-}
-.nav-toggle {
-    display: none;
-    flex-direction: column;
-    cursor: pointer;
-}
-.nav-toggle span {
-    width: 24px;
-    height: 2px;
-    background: #0046ad;
-    margin: 4px 0;
-}
-.footer {
-    background: #0046ad;
-    color: #fff;
-    padding: 40px 20px;
-}
-.footer h5 {
-    font-size: 16px;
-    font-weight: 600;
-}
-.footer a {
-    color: #fff;
-    text-decoration: none;
-    font-size: 14px;
-}
-.footer a:hover {
-    text-decoration: underline;
-    color: #06b6d4;
-}
-.footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
-    gap: 24px;
-    margin-bottom: 20px;
-}
-.footer-bottom {
-    text-align: center;
-    font-size: 14px;
-    border-top: 1px solid rgba(255,255,255,0.2);
-    padding-top: 10px;
-}
 
-.progress {
-    height: 8px;
-    border-radius: 4px;
-    background: #e5e7eb;
+/* ===== COURSE HERO SECTION ===== */
+.course-hero {
+    background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%);
+    color: white;
+    padding: 80px 0;
+    position: relative;
     overflow: hidden;
 }
-.progress-bar {
-    height: 100%;
-    background: #22c55e;
-    width: 0%;
-    transition: width 0.3s ease;
-}
-.alert {
-    padding: 12px 20px;
-    border-radius: 6px;
-    margin: 12px 0;
-    font-size: 14px;
-}
-.alert-success {
-    background: #d1fae5;
-    color: #065f46;
-}
-.alert-error {
-    background: #fee2e2;
-    color: #991b1b;
-}
-.avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-body.dark {
-    background: #111827;
-    color: #f9fafb;
-}
-body.dark .header {
-    background: #1f2937;
-}
-body.dark .nav-link {
-    color: #f9fafb;
-}
-body.dark .nav-link:hover {
-    color: #06b6d4;
-}
-body.dark .card {
-    background: #1f2937;
-    color: #f9fafb;
-}
-body.dark .footer {
-    background: #1f2937;
-}
-body.loading::after {
-    content: "";
-    position: fixed;
+
+.course-hero::before {
+    content: '';
+    position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.course-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    display: inline-block;
+}
+
+.course-title {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.course-subtitle {
+    font-size: 1.3rem;
+    font-weight: 400;
+    margin-bottom: 32px;
+    opacity: 0.9;
+    max-width: 600px;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+}
+
+.hero-btn {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hero-btn-primary {
+    background: white;
+    color: #0046ad;
+    border: none;
+}
+
+.hero-btn-primary:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.hero-btn-secondary {
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+}
+
+.hero-btn-secondary:hover {
+    background: white;
+    color: #0046ad;
+    transform: translateY(-2px);
+}
+
+.hero-stats {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.stat-icon {
+    width: 20px;
+    height: 20px;
+    color: #06b6d4;
+}
+
+/* ===== BENEFITS SECTION ===== */
+.benefits-section {
+    padding: 80px 0;
+    background: #fff;
+}
+
+.benefit-card {
+    text-align: center;
+    padding: 32px 24px;
+    border-radius: 16px;
+    transition: all 0.3s ease;
     height: 100%;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(2px);
-    z-index: 9999;
 }
-body.loading::before {
-    content: "";
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    width: 40px;
-    height: 40px;
-    margin: -20px 0 0 -20px;
-    border: 4px solid #0046ad;
-    border-top: 4px solid transparent;
+
+.benefit-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.benefit-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #0046ad, #06b6d4);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+}
+
+.benefit-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #0046ad;
+}
+
+.benefit-description {
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+/* ===== EXPERT SECTION ===== */
+.expert-section {
+    background: #f8f9fa;
+    padding: 80px 0;
+}
+
+.expert-card {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.expert-image {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    z-index: 10000;
+    object-fit: cover;
+    border: 4px solid #0046ad;
 }
-@keyframes spin {
-    to { transform: rotate(360deg); }
+
+.expert-info {
+    flex: 1;
 }
+
+.expert-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0046ad;
+    margin-bottom: 8px;
+}
+
+.expert-title {
+    color: #06b6d4;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.expert-bio {
+    color: #6b7280;
+    line-height: 1.7;
+    margin-bottom: 20px;
+}
+
+.expert-stats {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.expert-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0046ad;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
-    .nav-menu {
-        display: none;
+    .hero-cta {
+        flex-direction: column;
+    }
+
+    .hero-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .expert-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .expert-stats {
+        justify-content: center;
+    }
+
+    .course-hero {
+        padding: 60px 0;
+    }
+
+    .section {
+        padding: 40px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .hero-stats {
         flex-direction: column;
         gap: 16px;
-        background: #fff;
-        padding: 20px;
-        position: absolute;
-        top: 60px;
-        right: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    .nav-menu.open {
-        display: flex;
+
+    .stat-item {
+        justify-content: center;
     }
-    .nav-toggle {
-        display: flex;
+
+    .benefit-card {
+        padding: 24px 16px;
     }
 }
