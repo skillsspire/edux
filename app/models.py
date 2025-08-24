@@ -241,3 +241,34 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
+    success = models.BooleanField(default=False, verbose_name="Успешно")
+    created = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
+
+    class Meta:
+        verbose_name = "Платеж"
+        verbose_name_plural = "Платежи"
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title} - {self.amount}"
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    start_date = models.DateTimeField(auto_now_add=True, verbose_name="Начало")
+    end_date = models.DateTimeField(verbose_name="Окончание")
+    active = models.BooleanField(default=True, verbose_name="Активна")
+
+    class Meta:
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.start_date.date()}"
