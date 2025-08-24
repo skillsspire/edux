@@ -8,26 +8,25 @@
       <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Create Your SkillSpire Account" %}</h2>
       <form method="post">
         {% csrf_token %}
-        {{ form.non_field_errors }}
 
         <div class="mb-3">
-          <label for="id_username" class="form-label">{% trans "Username" %}</label>
-          {{ form.username|add_class:"form-control" }}
+          <label for="username" class="form-label">{% trans "Username" %}</label>
+          <input type="text" name="username" class="form-control" id="username" required>
         </div>
 
         <div class="mb-3">
-          <label for="id_email" class="form-label">{% trans "Email" %}</label>
-          {{ form.email|add_class:"form-control" }}
+          <label for="email" class="form-label">{% trans "Email" %}</label>
+          <input type="email" name="email" class="form-control" id="email" required>
         </div>
 
         <div class="mb-3">
-          <label for="id_password1" class="form-label">{% trans "Password" %}</label>
-          {{ form.password1|add_class:"form-control" }}
+          <label for="password1" class="form-label">{% trans "Password" %}</label>
+          <input type="password" name="password1" class="form-control" id="password1" required>
         </div>
 
         <div class="mb-3">
-          <label for="id_password2" class="form-label">{% trans "Confirm Password" %}</label>
-          {{ form.password2|add_class:"form-control" }}
+          <label for="password2" class="form-label">{% trans "Confirm Password" %}</label>
+          <input type="password" name="password2" class="form-control" id="password2" required>
         </div>
 
         <button type="submit" class="btn btn-primary w-100">{% trans "Sign Up" %}</button>

@@ -1,16 +1,31 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
+from django.contrib.auth import login
 from .models import Course, Category, Lesson, Enrollment
+from .forms import SignUpForm
+
+
+def signup(request):
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('home')
+    else:
+        form = SignUpForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+
 
 def contact(request):
     return render(request, 'contact.html')
 
-def signup(request):
-    return render(request, 'signup.html')
 
 def about(request):
     return render(request, 'about.html')
+
 
 def home(request):
     popular_courses = Course.objects.annotate(
@@ -21,6 +36,7 @@ def home(request):
         'popular_courses': popular_courses,
         'categories': categories,
     })
+
 
 def courses_list(request):
     courses = Course.objects.all().select_related("category", "author")
@@ -47,6 +63,7 @@ def courses_list(request):
         'categories': categories,
     })
 
+
 def course_detail(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
     lessons = course.lessons.all().order_by('order')
@@ -62,6 +79,7 @@ def course_detail(request, course_slug):
         'is_enrolled': is_enrolled,
     })
 
+
 @login_required
 def enroll_course(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
@@ -70,6 +88,7 @@ def enroll_course(request, course_slug):
         course=course,
     )
     return redirect('course_detail', course_slug=course.slug)
+
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
@@ -92,6 +111,7 @@ def lesson_detail(request, course_slug, lesson_slug):
         'next_lesson': next_lesson,
     })
 
+
 @login_required
 def mark_lesson_complete(request, course_slug, lesson_slug):
     course = get_object_or_404(Course, slug=course_slug)
@@ -103,6 +123,7 @@ def mark_lesson_complete(request, course_slug, lesson_slug):
         enrollment.completed = True
         enrollment.save()
     return redirect('lesson_detail', course_slug=course.slug, lesson_slug=lesson.slug)
+
 
 @login_required
 def dashboard(request):

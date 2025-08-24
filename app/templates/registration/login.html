@@ -8,16 +8,15 @@
       <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Login to SkillSpire" %}</h2>
       <form method="post">
         {% csrf_token %}
-        {{ form.non_field_errors }}
 
         <div class="mb-3">
-          <label for="id_username" class="form-label">{% trans "Email or Username" %}</label>
-          {{ form.username|add_class:"form-control" }}
+          <label for="username" class="form-label">{% trans "Username" %}</label>
+          <input type="text" name="username" class="form-control" id="username" required>
         </div>
 
         <div class="mb-3">
-          <label for="id_password" class="form-label">{% trans "Password" %}</label>
-          {{ form.password|add_class:"form-control" }}
+          <label for="password" class="form-label">{% trans "Password" %}</label>
+          <input type="password" name="password" class="form-control" id="password" required>
         </div>
 
         <button type="submit" class="btn btn-primary w-100">{% trans "Login" %}</button>
