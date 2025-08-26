@@ -1,7 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from . import views
-from .forms import CustomUserCreationForm  # Создадим эту форму
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -23,7 +22,12 @@ urlpatterns = [
     # Аутентификация
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('signup/', views.signup, name='signup'),  # Добавляем этот путь
+    path('signup/', views.signup, name='signup'),
+
+    # Язык - добавьте эту строку
+    path('i18n/', include('django.conf.urls.i18n')),
+
+    # Сброс пароля (опционально)
     path('password-reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
