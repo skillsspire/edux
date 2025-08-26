@@ -8,16 +8,8 @@ import csv
 
 from .models import Category, Course, Lesson, Enrollment, Payment, Subscription, InstructorProfile, Review, Wishlist, Module, LessonProgress, ContactMessage
 
-
-# =========================
-# Глобальные мелочи
-# =========================
 admin.site.empty_value_display = '—'
 
-
-# =========================
-# Вспомогательные фильтры
-# =========================
 class PriceRangeFilter(admin.SimpleListFilter):
     title = 'Цена'
     parameter_name = 'price_range'
@@ -42,7 +34,6 @@ class PriceRangeFilter(admin.SimpleListFilter):
             return qs.filter(price__gt=500)
         return qs
 
-
 class ActiveSubscriptionFilter(admin.SimpleListFilter):
     title = 'Статус подписки'
     parameter_name = 'sub_active'
@@ -57,17 +48,12 @@ class ActiveSubscriptionFilter(admin.SimpleListFilter):
             return qs.filter(Q(active=False) | Q(end_date__lt=now().date()))
         return qs
 
-
-# =========================
-# Инлайны
-# =========================
 class ModuleInline(admin.TabularInline):
     model = Module
     fields = ['title', 'order', 'is_active']
     extra = 0
     ordering = ['order']
     show_change_link = True
-
 
 class EnrollmentInline(admin.TabularInline):
     model = Enrollment
@@ -77,10 +63,6 @@ class EnrollmentInline(admin.TabularInline):
     autocomplete_fields = ['user']
     show_change_link = True
 
-
-# =========================
-# Category
-# =========================
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'description_short', 'is_active']
@@ -93,10 +75,6 @@ class CategoryAdmin(admin.ModelAdmin):
         desc = getattr(obj, 'description', '')
         return (desc[:50] + '...') if desc else ''
 
-
-# =========================
-# Course
-# =========================
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ['title_link', 'instructor', 'category', 'price', 'status', 'created_at']
@@ -108,7 +86,7 @@ class CourseAdmin(admin.ModelAdmin):
     list_select_related = ['instructor', 'category']
     date_hierarchy = 'created_at'
     list_per_page = 50
-    inlines = [ModuleInline, EnrollmentInline]  # Только ModuleInline и EnrollmentInline
+    inlines = [ModuleInline, EnrollmentInline]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -119,14 +97,6 @@ class CourseAdmin(admin.ModelAdmin):
         url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', args=[obj.pk])
         return format_html('<a href="{}">{}</a>', url, obj.title)
 
-    @admin.display(description='Уроки')
-    def lessons_count(self, obj):
-        return obj.lessons_count
-
-
-# =========================
-# Lesson
-# =========================
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = ['title', 'module', 'order', 'is_active']
@@ -140,15 +110,10 @@ class LessonAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.module.course.title if obj.module and obj.module.course else '—'
 
-
-# =========================
-# Массовые действия Enrollment
-# =========================
 @admin.action(description='Отметить выбранные записи как завершённые')
 def mark_completed(modeladmin, request, queryset):
     updated = queryset.update(completed=True)
     messages.success(request, f'Отмечено завершёнными: {updated}')
-
 
 @admin.action(description='Экспортировать в CSV')
 def export_csv(modeladmin, request, queryset):
@@ -165,10 +130,6 @@ def export_csv(modeladmin, request, queryset):
         ])
     return response
 
-
-# =========================
-# Enrollment
-# =========================
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
     list_display = ['user', 'course', 'enrolled_at', 'completed']
@@ -180,10 +141,6 @@ class EnrollmentAdmin(admin.ModelAdmin):
     date_hierarchy = 'enrolled_at'
     actions = [mark_completed, export_csv]
 
-
-# =========================
-# Payment (read-only, создаются сайтом/платёжкой)
-# =========================
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ['user', 'course_link', 'amount', 'success', 'created']
@@ -218,10 +175,6 @@ class PaymentAdmin(admin.ModelAdmin):
             return False
         return super().has_change_permission(request, obj)
 
-
-# =========================
-# Subscription
-# =========================
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ['user', 'start_date', 'end_date', 'active']
@@ -231,10 +184,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
     autocomplete_fields = ['user']
     date_hierarchy = 'start_date'
 
-
-# =========================
-# ContactMessage
-# =========================
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
     list_display = ['name', 'email', 'subject', 'created_at', 'is_read']
@@ -244,17 +193,12 @@ class ContactMessageAdmin(admin.ModelAdmin):
     list_editable = ['is_read']
     date_hierarchy = 'created_at'
 
-
-# =========================
-# Другие модели
-# =========================
 @admin.register(InstructorProfile)
 class InstructorProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'specialization', 'experience', 'is_approved']
     list_filter = ['is_approved']
     search_fields = ['user__username', 'specialization']
     autocomplete_fields = ['user']
-
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
@@ -263,14 +207,12 @@ class ReviewAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'course__title']
     autocomplete_fields = ['user', 'course']
 
-
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):
     list_display = ['user', 'course', 'added_at']
     list_filter = ['added_at']
     search_fields = ['user__username', 'course__title']
     autocomplete_fields = ['user', 'course']
-
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
@@ -279,7 +221,6 @@ class ModuleAdmin(admin.ModelAdmin):
     search_fields = ['title', 'course__title']
     ordering = ['course', 'order']
     autocomplete_fields = ['course']
-
 
 @admin.register(LessonProgress)
 class LessonProgressAdmin(admin.ModelAdmin):
