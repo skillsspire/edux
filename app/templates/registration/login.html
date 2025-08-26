@@ -10,7 +10,7 @@
       {% if form.errors %}
       <div class="alert alert-danger">
         <strong>{% trans "Login failed:" %}</strong>
-        {% trans "Please check your email and password." %}
+        {% trans "Please check your email/username and password." %}
       </div>
       {% endif %}
 
@@ -19,13 +19,15 @@
         <input type="hidden" name="next" value="{{ request.GET.next }}">
 
         <div class="mb-3">
-          <label for="id_username" class="form-label">{% trans "Email Address" %}</label>
-          <input type="email" name="username" class="form-control" id="id_username" required autocomplete="email">
+          <label for="id_username" class="form-label">{% trans "Email or Username" %}</label>
+          <input type="text" name="username" class="form-control" id="id_username"
+                 required autocomplete="email" placeholder="{% trans 'Enter your email or username' %}">
         </div>
 
         <div class="mb-3">
           <label for="id_password" class="form-label">{% trans "Password" %}</label>
-          <input type="password" name="password" class="form-control" id="id_password" required autocomplete="current-password">
+          <input type="password" name="password" class="form-control" id="id_password"
+                 required autocomplete="current-password" placeholder="{% trans 'Enter your password' %}">
         </div>
 
         <button type="submit" class="btn btn-primary w-100">{% trans "Login" %}</button>

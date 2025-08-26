@@ -1,10 +1,12 @@
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
+from .forms import EmailAuthenticationForm
 from . import views
 
 urlpatterns = [
+    path('admin/', admin.site.urls),  # ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
     path('', views.home, name='home'),
-    path('courses/', views.courses_list, name='courses_list'),
+    path('courses/', views.courses_list, name='course_list'),
     path('course/<slug:slug>/', views.course_detail, name='course_detail'),
     path('course/<slug:slug>/enroll/', views.enroll_course, name='enroll_course'),
     path('course/<slug:slug>/review/', views.add_review, name='add_review'),
@@ -20,7 +22,10 @@ urlpatterns = [
     path('contact/', views.contact, name='contact'),
 
     # Аутентификация
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='registration/login.html',
+        authentication_form=EmailAuthenticationForm  # используйте кастомную форму
+    ), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('signup/', views.signup, name='signup'),
 

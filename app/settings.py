@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.static',
     'ckeditor',
     'app',
 ]
@@ -111,7 +111,7 @@ LANGUAGES = [
 LOCALE_PATHS = [BASE_DIR / 'locale']
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / 'static'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
@@ -124,7 +124,8 @@ LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'app.backends.EmailOrUsernameBackend',  # ваш кастомный бэкенд
+    'django.contrib.auth.backends.ModelBackend',  # стандартный бэкенд
 ]
 
 # Настройки Whitenoise
