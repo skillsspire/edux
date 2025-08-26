@@ -61,8 +61,8 @@ class ActiveSubscriptionFilter(admin.SimpleListFilter):
 # =========================
 # Инлайны
 # =========================
-class LessonInline(admin.TabularInline):
-    model = Lesson
+class ModuleInline(admin.TabularInline):
+    model = Module
     fields = ['title', 'order', 'is_active']
     extra = 0
     ordering = ['order']
@@ -108,7 +108,7 @@ class CourseAdmin(admin.ModelAdmin):
     list_select_related = ['instructor', 'category']
     date_hierarchy = 'created_at'
     list_per_page = 50
-    inlines = [LessonInline, EnrollmentInline]
+    inlines = [ModuleInline, EnrollmentInline]  # Только ModuleInline и EnrollmentInline
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
