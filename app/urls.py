@@ -18,6 +18,8 @@ urlpatterns = [
     path('my-courses/', views.my_courses, name='my_courses'),
     path('dashboard/', views.dashboard, name='dashboard'),
 
+    path('design/', views.design_wireframe, name='design_wireframe'),
+
     # Статические страницы
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),

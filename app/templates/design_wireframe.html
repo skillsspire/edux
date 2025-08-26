@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+:root {
+  --brand: #6C5CE7;
+  --surface: #F8FAFC;
+  --text: #0B1020;
+  --border: #E5E7EB;
+}
+
+*:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--brand);
+  color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-900">
+  <!-- Simple theme bar -->
+  <div class="w-full border-b border-gray-100 bg-white/90">
+    <div class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between text-sm">
+      <div class="flex items-center gap-3">
+        <span class="text-gray-600">Тема:</span>
+        <input type="color" value="#6C5CE7" id="themeColor" class="w-8 h-8 rounded shadow-inner">
+        <span class="px-3 py-1 rounded-full bg-gray-50 border border-gray-200">--brand: #6C5CE7</span>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-gray-600">
+        <span>H1 40–48 • Text 16–18</span>
+        <span>Grid: 3/2/1</span>
+        <span>Radii: 12–16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white/90 border-b border-gray-100">
+    <div class="max-w-6xl mx-auto h-16 flex items-center justify-between px-4 md:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl border border-gray-200 grid place-items-center" style="background: var(--surface)">
+          <span class="text-xs font-bold" style="color: var(--brand)">LOGO</span>
+        </div>
+        <nav class="hidden md:flex items-center gap-5 text-sm text-gray-700">
+          <a class="hover:text-gray-900" href="#">Курсы</a>
+          <a class="hover:text-gray-900" href="#">Блог</a>
+          <a class="hover:text-gray-900" href="#">О школе</a>
+          <a class="hover:text-gray-900" href="#">Контакты</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-2">
+        <select class="hidden sm:block h-9 rounded-lg border border-gray-200 text-sm px-2 bg-white">
+          <option>RU</option>
+          <option>EN</option>
+          <option>DE</option>
+        </select>
+        <button class="h-9 px-4 rounded-lg border text-sm border-gray-200">Войти</button>
+        <button class="h-9 px-4 rounded-lg text-sm text-white" style="background: var(--brand)">Регистрация</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <div class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12 md:py-16">
+    <div class="grid md:grid-cols-2 gap-8 items-center">
+      <div>
+        <div class="text-xs uppercase tracking-widest font-semibold mb-3" style="color: var(--brand)">Образовательная платформа</div>
+        <h1 class="text-3xl md:text-5xl font-bold text-gray-900 leading-tight">Освой дизайн и продуктовые навыки с наставниками</h1>
+        <p class="mt-4 text-gray-600 max-w-prose">Проходи курсы, общайся с комьюнити и собирай портфолио. Гибкий формат, актуальные программы, поддержка до результата.</p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <button class="h-11 px-6 rounded-full text-white" style="background: var(--brand)">Начать учиться</button>
+          <button class="h-11 px-6 rounded-full border border-gray-200">Посмотреть курсы</button>
+        </div>
+        <div class="mt-6 flex items-center gap-6 text-sm text-gray-600">
+          <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background: var(--brand)"></div>Проектные задания</div>
+          <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background: var(--brand)"></div>Наставники практики</div>
+          <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background: var(--brand)"></div>Комьюнити</div>
+        </div>
+      </div>
+      <div class="relative">
+        <div class="aspect-[4/3] w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white grid place-items-center shadow-sm">
+          <div class="text-gray-400 text-sm">Иллюстрация / коллаж</div>
+        </div>
+        <div class="absolute -bottom-4 -right-4 hidden md:block bg-white rounded-xl border border-gray-200 shadow p-4">
+          <div class="text-xs text-gray-500">Подпись, метрики, бейджи</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <section class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+      <span class="inline-block w-2 h-6 rounded-full" style="background: var(--brand)"></span>
+      Преимущества
+    </h2>
+    <div class="rounded-2xl border border-gray-200 bg-white/80 shadow-sm p-6">
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {% for item in features %}
+        <div class="rounded-2xl border border-gray-200 p-5 bg-white/70">
+          <div class="w-10 h-10 rounded-xl" style="background: rgba(16,24,40,.06)"></div>
+          <div class="mt-3 font-medium text-gray-900">{{ item.title }}</div>
+          <div class="text-gray-600 text-sm">{{ item.description }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Добавьте остальные секции по аналогии -->
+
+</div>
+
+<script>
+// JavaScript для переключения темы
+document.getElementById('themeColor').addEventListener('change', function(e) {
+  document.documentElement.style.setProperty('--brand', e.target.value);
+  document.querySelector('.theme-display').textContent = '--brand: ' + e.target.value;
+});
+</script>
+{% endblock %}

@@ -299,3 +299,16 @@ def contact(request):
         'form': form,
     }
     return render(request, 'contact.html', context)
+
+
+def design_wireframe(request):
+    features = [
+        {'title': 'Практика', 'description': 'Проекты в портфолио'},
+        {'title': 'Наставник', 'description': 'Обратная связь'},
+        {'title': 'Гибкий формат', 'description': 'Онлайн и записи'},
+        {'title': 'Комьюнити', 'description': 'Чаты и ревью'},
+        {'title': 'Карьерный трек', 'description': 'Помощь с резюме'},
+        {'title': 'Сертификат', 'description': 'После защиты'},
+    ]
+
+    return render(request, 'design_wireframe.html', {'features': features})
