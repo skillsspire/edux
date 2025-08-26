@@ -5,6 +5,7 @@ from django.db.models import Q, Count, Avg
 from django.core.paginator import Paginator
 from django.http import JsonResponse, Http404
 from django.utils import timezone
+from .forms import CustomUserCreationForm  # Добавьте этот импорт
 from .models import *
 from .forms import *
 
