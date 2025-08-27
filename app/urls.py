@@ -7,7 +7,7 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),  # ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
     path('', views.home, name='home'),
-    path('courses/', views.courses_list, name='course_list'),
+    path('courses/', views.courses_list, name='courses_list'),
     path('course/<slug:slug>/', views.course_detail, name='course_detail'),
     path('course/<slug:slug>/enroll/', views.enroll_course, name='enroll_course'),
     path('course/<slug:slug>/review/', views.add_review, name='add_review'),
