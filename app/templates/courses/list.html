@@ -43,8 +43,9 @@
     </div>
 
     <div class="row">
+        <!-- Боковая панель -->
         <div class="col-md-4 col-lg-3 mb-4">
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Категории</h5>
                     <div class="list-group list-group-flush">
@@ -72,7 +73,7 @@
                 </div>
             </div>
 
-            <div class="card mt-4">
+            <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Фильтры</h5>
                     <div class="mb-3">
@@ -103,6 +104,7 @@
             </div>
         </div>
 
+        <!-- Основной контент -->
         <div class="col-md-8 col-lg-9">
             <div class="row">
                 {% for course in courses %}

@@ -7,7 +7,7 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card">
+            <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
                         <i class="bi bi-credit-card me-2"></i>
@@ -40,7 +40,7 @@
                         <!-- Контактная информация -->
                         <div class="mb-4">
                             <h5 class="mb-3">Контактная информация</h5>
-                            <div class="row">
+                            <div class="row g-3">
                                 <div class="col-md-6">
                                     {{ form.email.label_tag }}
                                     {{ form.email }}
@@ -70,7 +70,7 @@
                         <!-- Данные карты -->
                         <div class="mb-4">
                             <h5 class="mb-3">Данные банковской карты</h5>
-                            <div class="row">
+                            <div class="row g-3">
                                 <div class="col-12">
                                     {{ card_form.card_number.label_tag }}
                                     {{ card_form.card_number }}
@@ -117,9 +117,8 @@
 
 {% block extra_js %}
 <script>
-// Маска для номеров карт
+// Простые маски для карты (демо)
 document.addEventListener('DOMContentLoaded', function() {
-    // Простые маски для демо (в продакшене используйте библиотеку like Inputmask)
     const cardInput = document.querySelector('#id_card_number');
     const expiryInput = document.querySelector('#id_expiry_date');
     const cvvInput = document.querySelector('#id_cvv');
@@ -134,10 +133,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (expiryInput) {
         expiryInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 4) value = value.slice(0, 4);
+            let value = e.target.value.replace(/\D/g, '').slice(0,4);
             if (value.length > 2) {
-                e.target.value = value.slice(0, 2) + '/' + value.slice(2);
+                e.target.value = value.slice(0,2) + '/' + value.slice(2);
             } else {
                 e.target.value = value;
             }
@@ -146,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (cvvInput) {
         cvvInput.addEventListener('input', function(e) {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0,3);
         });
     }
 });

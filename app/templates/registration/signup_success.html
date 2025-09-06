@@ -5,23 +5,23 @@
 <section class="section">
   <div class="container" style="max-width: 500px;">
     <div class="card p-4 shadow-sm text-center">
-      <h2 class="text-center mb-3 text-success">{% trans "Registration Successful!" %}</h2>
+      <h2 class="text-center mb-3 text-success">Регистрация успешно завершена!</h2>
       <div class="mb-4">
         <i class="fas fa-envelope fa-4x text-primary"></i>
       </div>
       <p class="mb-3">
-        {% trans "We've sent a confirmation email to:" %}<br>
+        Мы отправили письмо с подтверждением на адрес:<br>
         <strong>{{ email }}</strong>
       </p>
       <p class="text-muted small mb-3">
-        {% trans "Please check your inbox and click the confirmation link to activate your account." %}
+        Пожалуйста, проверьте свою почту и перейдите по ссылке для активации аккаунта.
       </p>
       <p class="text-muted small">
-        {% trans "Didn't receive the email?" %}<br>
-        {% trans "Check your spam folder or" %} <a href="{% url 'signup' %}">{% trans "try again" %}</a>
+        Не получили письмо?<br>
+        Проверьте папку "Спам" или <a href="{% url 'signup' %}">попробуйте снова</a>
       </p>
       <div class="mt-3">
-        <a href="{% url 'login' %}" class="btn btn-primary">{% trans "Go to Login" %}</a>
+        <a href="{% url 'login' %}" class="btn btn-primary">Перейти к входу</a>
       </div>
     </div>
   </div>

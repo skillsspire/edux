@@ -6,39 +6,42 @@
     <h1 class="mb-4">{% trans "My Courses" %}</h1>
 
     {% if enrollments %}
-        <div class="grid grid-3">
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             {% for enrollment in enrollments %}
-                <div class="card">
-                    {% if enrollment.course.image %}
-                        <img src="{{ enrollment.course.image.url }}" class="card-img-top mb-3" alt="{{ enrollment.course.title }}">
-                    {% endif %}
+                <div class="col">
+                    <div class="card h-100">
+                        {% if enrollment.course.image %}
+                            <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ enrollment.course.title }}</h5>
+                            <p class="text-muted">
+                                {% trans "Instructor:" %} {{ enrollment.course.author.get_full_name|default:enrollment.course.author.username }}
+                            </p>
 
-                    <h3>{{ enrollment.course.title }}</h3>
-                    <p class="text-muted">
-                        {% trans "Instructor:" %} {{ enrollment.course.author.get_full_name|default:enrollment.course.author.username }}
-                    </p>
+                            <!-- Прогресс -->
+                            <div class="progress mb-2" style="height: 14px;">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     style="width: {{ enrollment.progress_percentage|floatformat:0 }}%;"
+                                     aria-valuenow="{{ enrollment.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                     {{ enrollment.progress_percentage|floatformat:0 }}%
+                                </div>
+                            </div>
 
-                    <!-- Прогресс -->
-                    <div class="progress mb-2" style="height: 14px;">
-                        <div class="progress-bar bg-success" role="progressbar"
-                             style="width: {{ enrollment.progress_percentage|floatformat:0 }}%;"
-                             aria-valuenow="{{ enrollment.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
-                            {{ enrollment.progress_percentage|floatformat:0 }}%
+                            {% if enrollment.completed %}
+                                <p class="text-success fw-bold">{% trans "Completed" %}</p>
+                                {% if enrollment.certificate %}
+                                    <a href="{{ enrollment.certificate.pdf.url }}" class="btn btn-outline-primary w-100" download>
+                                        {% trans "Download Certificate" %}
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-primary w-100">
+                                    {% trans "Continue Learning" %}
+                                </a>
+                            {% endif %}
                         </div>
                     </div>
-
-                    {% if enrollment.completed %}
-                        <p class="text-success fw-bold">{% trans "Completed" %}</p>
-                        {% if enrollment.certificate %}
-                            <a href="{{ enrollment.certificate.pdf.url }}" class="btn btn-outline-primary w-100" download>
-                                {% trans "Download Certificate" %}
-                            </a>
-                        {% endif %}
-                    {% else %}
-                        <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-primary w-100">
-                            {% trans "Continue Learning" %}
-                        </a>
-                    {% endif %}
                 </div>
             {% endfor %}
         </div>

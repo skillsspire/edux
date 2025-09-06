@@ -1,10 +1,8 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
-from .models import ContactMessage, Review
-from django import forms
-from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
+from .models import ContactMessage, Review
 
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.CharField(
@@ -37,8 +35,6 @@ class CustomUserCreationForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
             self.fields[field_name].widget.attrs.update({'class': 'form-control'})
-
-        # Добавьте placeholder для лучшего UX
         self.fields['username'].widget.attrs['placeholder'] = 'Придумайте имя пользователя'
         self.fields['email'].widget.attrs['placeholder'] = 'Ваш email'
         self.fields['first_name'].widget.attrs['placeholder'] = 'Ваше имя'
@@ -55,8 +51,6 @@ class CustomUserCreationForm(UserCreationForm):
             user.save()
         return user
 
-
-# Остальные существующие формы...
 class ContactForm(forms.ModelForm):
     class Meta:
         model = ContactMessage
@@ -68,21 +62,11 @@ class ContactForm(forms.ModelForm):
             'message': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ваше сообщение', 'rows': 5}),
         }
 
-
 class ReviewForm(forms.ModelForm):
     class Meta:
         model = Review
         fields = ['rating', 'comment']
         widgets = {
-            'rating': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 1,
-                'max': 5,
-                'placeholder': 'Оценка от 1 до 5'
-            }),
-            'comment': forms.Textarea(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ваш отзыв о курсе',
-                'rows': 4
-            }),
+            'rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5, 'placeholder': 'Оценка от 1 до 5'}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ваш отзыв о курсе', 'rows': 4}),
         }

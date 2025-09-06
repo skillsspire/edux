@@ -1,6 +1,84 @@
 {% extends 'base.html' %}
 
+{% block title %}Контакты - SkillSpire | Свяжитесь с нами{% endblock %}
+
+{% block meta_description %}Свяжитесь с SkillSpire по email, телефону или в социальных сетях. Мы всегда рады ответить на ваши вопросы о курсах и сотрудничестве.{% endblock %}
+
 {% block content %}
-<h1>Контакты</h1>
-<p>Здесь будет контактная информация. Пока это тестовая страница 😊</p>
+<section class="page-header">
+    <div class="container">
+        <h1>Свяжитесь с SkillSpire</h1>
+        <p class="lead">Мы всегда рады общению и готовы ответить на все ваши вопросы</p>
+    </div>
+</section>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="contact-info">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>Email</h3>
+                        <p>Наша основная почта для связи</p>
+                        <a href="mailto:skillsspire@gmail.com">skillsspire@gmail.com</a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>Телефон</h3>
+                        <p>Звоните нам в рабочее время</p>
+                        <a href="tel:+77012925568">+7 (701) 292-55-68</a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fab fa-instagram"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>Instagram</h3>
+                        <p>Следите за новостями и анонсами</p>
+                        <a href="https://www.instagram.com/skillsspire/" target="_blank" rel="noopener">@skillsspire</a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fab fa-linkedin"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>LinkedIn</h3>
+                        <p>Для деловых предложений и сотрудничества</p>
+                        <a href="https://www.linkedin.com/in/skillsspire" target="_blank" rel="noopener">SkillSpire Official</a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fab fa-telegram"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>Telegram</h3>
+                        <p>Быстрая связь и оперативные ответы</p>
+                        <a href="https://t.me/SkillsSpire" target="_blank" rel="noopener">@SkillsSpire</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-note mt-5">
+                <div class="alert alert-info">
+                    <h4>📅 Время ответа</h4>
+                    <p>Мы стараемся отвечать на все сообщения в течение 24 часов в рабочие дни (Пн-Пт с 9:00 до 18:00).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

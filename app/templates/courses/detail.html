@@ -40,6 +40,7 @@
                     </a>
                 </div>
             </div>
+
             <div class="col-lg-4">
                 <div class="card">
                     <div class="card-body text-center">
@@ -107,14 +108,14 @@
                         {% for module in course.modules.all %}
                         <div class="accordion-item">
                             <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <span>Модуль {{ forloop.counter }}: {{ module.title }}</span>
                                         <span class="badge bg-secondary">{{ module.lessons.count }} уроков</span>
                                     </div>
                                 </button>
                             </h2>
-                            <div id="module{{ module.id }}" class="accordion-collapse collapse show">
+                            <div id="module{{ module.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
                                 <div class="accordion-body">
                                     <div class="list-group">
                                         {% for lesson in module.lessons.all %}
@@ -148,7 +149,7 @@
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-body text-center">
-                    <img src="{{ course.instructor.avatar.url|default:'/static/img/avatars/default.jpg' }}" alt="{{ course.instructor.get_full_name }}" class="rounded-circle mb-3" width="100" height="100">
+                    <img src="{{ course.instructor.avatar.url|default:static('img/avatars/default.jpg') }}" alt="{{ course.instructor.get_full_name }}" class="rounded-circle mb-3" width="100" height="100">
                     <h5>{{ course.instructor.get_full_name }}</h5>
                     <p class="text-muted">{{ course.instructor.position }}</p>
                     <p class="small">{{ course.instructor.bio|truncatewords:20 }}</p>
@@ -163,7 +164,7 @@
                     <h5>Похожие курсы</h5>
                     {% for related_course in related_courses %}
                     <div class="d-flex mb-3">
-                        <img src="{{ related_course.thumbnail.url|default:'/static/img/courses/default-sm.jpg' }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
+                        <img src="{{ related_course.thumbnail.url|default:static('img/courses/default-sm.jpg') }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
                         <div>
                             <h6 class="mb-1">{{ related_course.title }}</h6>
                             <small class="text-muted">{{ related_course.duration }}</small>

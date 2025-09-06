@@ -1,28 +1,40 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>My Courses</h1>
-<div class="row">
-    {% for enrollment in enrollments %}
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            {% if enrollment.course.image %}
-            <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" height="200">
-            {% endif %}
-            <div class="card-body">
-                <h5 class="card-title">{{ enrollment.course.title }}</h5>
-                <p class="card-text">{{ enrollment.course.description|truncatewords:20 }}</p>
-                <p class="text-muted">Enrolled on: {{ enrollment.enrolled_at|date:"M d, Y" }}</p>
-                <p>Status: {% if enrollment.completed %}Completed{% else %}In Progress{% endif %}</p>
-                <a href="{% url 'course_detail' enrollment.course.id %}" class="btn btn-primary">Continue Learning</a>
+<div class="container py-5">
+    <h1 class="mb-4">Мои курсы</h1>
+    <div class="row">
+        {% for enrollment in enrollments %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if enrollment.course.image %}
+                <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" style="height:200px; object-fit:cover;">
+                {% else %}
+                <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="Default course image" style="height:200px; object-fit:cover;">
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ enrollment.course.title }}</h5>
+                    <p class="card-text text-muted">{{ enrollment.course.description|truncatewords:20 }}</p>
+                    <p class="mb-1"><strong>Дата записи:</strong> {{ enrollment.enrolled_at|date:"d M Y" }}</p>
+                    <p class="mb-3"><strong>Статус:</strong> 
+                        {% if enrollment.completed %}
+                            <span class="badge bg-success">Завершен</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">В процессе</span>
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-primary mt-auto">Продолжить обучение</a>
+                </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-collection display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">Вы ещё не записаны на курсы</h4>
+            <p class="text-muted">Начните обучение прямо сейчас, выбрав курс ниже.</p>
+            <a href="{% url 'course_list' %}" class="btn btn-primary">Смотреть курсы</a>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="col-12">
-        <p>You haven't enrolled in any courses yet.</p>
-        <a href="{% url 'course_list' %}" class="btn btn-primary">Browse Courses</a>
-    </div>
-    {% endfor %}
 </div>
 {% endblock %}

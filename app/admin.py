@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.timezone import now
 from django.http import HttpResponse
-from django.db.models import Count, Q
+from django.db.models import Q
 import csv
 
 from .models import Category, Course, Lesson, Enrollment, Payment, Subscription, InstructorProfile, Review, Wishlist, Module, LessonProgress, ContactMessage
@@ -23,14 +23,14 @@ class PriceRangeFilter(admin.SimpleListFilter):
         ]
 
     def queryset(self, request, qs):
-        v = self.value()
-        if v == 'free':
+        value = self.value()
+        if value == 'free':
             return qs.filter(price=0)
-        if v == 'lt100':
+        if value == 'lt100':
             return qs.filter(price__lt=100)
-        if v == '100-500':
+        if value == '100-500':
             return qs.filter(price__gte=100, price__lte=500)
-        if v == 'gt500':
+        if value == 'gt500':
             return qs.filter(price__gt=500)
         return qs
 
@@ -42,9 +42,10 @@ class ActiveSubscriptionFilter(admin.SimpleListFilter):
         return [('active', 'Активна'), ('expired', 'Истекла')]
 
     def queryset(self, request, qs):
-        if self.value() == 'active':
+        value = self.value()
+        if value == 'active':
             return qs.filter(active=True, end_date__gte=now().date())
-        if self.value() == 'expired':
+        if value == 'expired':
             return qs.filter(Q(active=False) | Q(end_date__lt=now().date()))
         return qs
 
@@ -90,7 +91,7 @@ class CourseAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('instructor', 'category').prefetch_related('lessons')
+        return qs.select_related('instructor', 'category').prefetch_related('modules')
 
     @admin.display(description='Курс', ordering='title')
     def title_link(self, obj):
@@ -101,14 +102,10 @@ class CourseAdmin(admin.ModelAdmin):
 class LessonAdmin(admin.ModelAdmin):
     list_display = ['title', 'module', 'order', 'is_active']
     list_filter = ['is_active', 'is_free', 'module__course']
-    ordering = ['module__course', 'module__order', 'order']
+    ordering = ['module__course__title', 'module__order', 'order']
     search_fields = ['title', 'content']
     autocomplete_fields = ['module']
     list_select_related = ['module__course']
-
-    @admin.display(description='Курс')
-    def get_course(self, obj):
-        return obj.module.course.title if obj.module and obj.module.course else '—'
 
 @admin.action(description='Отметить выбранные записи как завершённые')
 def mark_completed(modeladmin, request, queryset):
