@@ -6,18 +6,17 @@ from django.core.paginator import Paginator
 from django.contrib.auth import login, authenticate
 from django.http import JsonResponse, Http404
 from django.utils import timezone
-from .forms import CustomUserCreationForm  # Добавьте этот импорт
+from .forms import CustomUserCreationForm
 from .models import *
 from .forms import *
 
 
-# Добавьте эту функцию регистрации
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)  # Автоматически входим после регистрации
+            login(request, user)
             messages.success(request, 'Регистрация прошла успешно! Добро пожаловать!')
             return redirect('home')
         else:
@@ -29,17 +28,8 @@ def signup(request):
 
 
 def home(request):
-    featured_courses = Course.objects.filter(
-        status='published',
-        is_featured=True
-    )[:6]
-
-    popular_courses = Course.objects.filter(
-        status='published'
-    ).annotate(
-        students_count=Count('students')
-    ).order_by('-students_count')[:6]
-
+    featured_courses = Course.objects.filter(is_featured=True)[:6]
+    popular_courses = Course.objects.all().annotate(students_count=Count('students')).order_by('-students_count')[:6]
     categories = Category.objects.filter(is_active=True)[:8]
 
     context = {
@@ -51,7 +41,7 @@ def home(request):
 
 
 def courses_list(request):
-    courses = Course.objects.filter(status='published')
+    courses = Course.objects.all()  # Убрано filter(status='published')
 
     category_slug = request.GET.get('category')
     search_query = request.GET.get('q', '')
@@ -104,7 +94,7 @@ def courses_list(request):
 
 
 def course_detail(request, slug):
-    course = get_object_or_404(Course, slug=slug, status='published')
+    course = get_object_or_404(Course, slug=slug)  # Убрано status='published'
 
     if not request.user.is_authenticated and not course.is_free:
         messages.info(request, 'Для доступа к курсу необходимо авторизоваться')
@@ -120,8 +110,7 @@ def course_detail(request, slug):
     ).select_related('module').order_by('module__order', 'order')
 
     related_courses = Course.objects.filter(
-        category=course.category,
-        status='published'
+        category=course.category
     ).exclude(id=course.id)[:4]
 
     reviews = Review.objects.filter(course=course, is_active=True)[:10]
@@ -138,7 +127,7 @@ def course_detail(request, slug):
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
-    course = get_object_or_404(Course, slug=course_slug, status='published')
+    course = get_object_or_404(Course, slug=course_slug)  # Убрано status='published'
     lesson = get_object_or_404(
         Lesson,
         slug=lesson_slug,
@@ -176,7 +165,7 @@ def lesson_detail(request, course_slug, lesson_slug):
 
 @login_required
 def enroll_course(request, slug):
-    course = get_object_or_404(Course, slug=slug, status='published')
+    course = get_object_or_404(Course, slug=slug)  # Убрано status='published'
 
     if course.students.filter(id=request.user.id).exists():
         messages.info(request, 'Вы уже записаны на этот курс')
@@ -232,7 +221,7 @@ def dashboard(request):
 
 @login_required
 def add_review(request, slug):
-    course = get_object_or_404(Course, slug=slug, status='published')
+    course = get_object_or_404(Course, slug=slug)  # Убрано status='published'
 
     if not course.students.filter(id=request.user.id).exists():
         messages.error(request, 'Только студенты курса могут оставлять отзывы')
@@ -263,7 +252,7 @@ def add_review(request, slug):
 
 @login_required
 def toggle_wishlist(request, slug):
-    course = get_object_or_404(Course, slug=slug, status='published')
+    course = get_object_or_404(Course, slug=slug)  # Убрано status='published'
 
     wishlist_item, created = Wishlist.objects.get_or_create(
         user=request.user,
@@ -292,7 +281,7 @@ def toggle_wishlist(request, slug):
 def about(request):
     instructors = InstructorProfile.objects.filter(is_approved=True)
     stats = {
-        'total_courses': Course.objects.filter(status='published').count(),
+        'total_courses': Course.objects.all().count(),  # Убрано filter(status='published')
         'total_students': User.objects.filter(enrolled_courses__isnull=False).distinct().count(),
         'total_instructors': instructors.count(),
     }

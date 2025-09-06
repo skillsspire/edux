@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils.text import slugify
+from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
@@ -35,8 +36,8 @@ class InstructorProfile(models.Model):
     linkedin = models.URLField(blank=True, verbose_name="LinkedIn")
     twitter = models.URLField(blank=True, verbose_name="Twitter")
     is_approved = models.BooleanField(default=False, verbose_name="Подтвержден")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
 
     class Meta:
         verbose_name = "Профиль инструктора"
@@ -66,16 +67,16 @@ class Course(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название")
     slug = models.SlugField(unique=True, verbose_name="URL")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='courses', verbose_name="Категория")
-    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses_created',
-                                   verbose_name="Инструктор")
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses_created', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     short_description = models.TextField(verbose_name="Краткое описание")
     description = models.TextField(verbose_name="Полное описание")
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Цена")
-    discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
-                                         verbose_name="Цена со скидкой")
+    discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Цена со скидкой")
     duration = models.CharField(max_length=50, verbose_name="Продолжительность")
-    image = models.ImageField(upload_to='courses/images/', verbose_name="Изображение")
-    thumbnail = models.ImageField(upload_to='courses/thumbnails/', verbose_name="Миниатюра")
+    image = models.ImageField(upload_to='courses/images/', blank=True, null=True, verbose_name="Изображение")
+    thumbnail = models.ImageField(upload_to='courses/thumbnails/', blank=True, null=True, verbose_name="Миниатюра")
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner', verbose_name="Уровень")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
     is_featured = models.BooleanField(default=False, verbose_name="Рекомендуемый")
@@ -84,9 +85,7 @@ class Course(models.Model):
     what_you_learn = models.TextField(blank=True, verbose_name="Чему научитесь")
     language = models.CharField(max_length=50, default="Русский", verbose_name="Язык")
     certificate = models.BooleanField(default=True, verbose_name="Сертификат")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
@@ -152,8 +151,8 @@ class Lesson(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     is_free = models.BooleanField(default=False, verbose_name="Бесплатный")
     resources = models.FileField(upload_to='lessons/resources/', blank=True, null=True, verbose_name="Ресурсы")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
 
     class Meta:
         verbose_name = "Урок"
@@ -165,10 +164,7 @@ class Lesson(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('lesson_detail', kwargs={
-            'course_slug': self.module.course.slug,
-            'lesson_slug': self.slug
-        })
+        return reverse('lesson_detail', kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug})
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -179,7 +175,7 @@ class Lesson(models.Model):
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
-    enrolled_at = models.DateTimeField(auto_now_add=True)
+    enrolled_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
 
@@ -197,7 +193,7 @@ class LessonProgress(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress')
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
-    last_accessed = models.DateTimeField(auto_now=True)
+    last_accessed = models.DateTimeField(auto_now=True, default=timezone.now)
 
     class Meta:
         verbose_name = "Прогресс урока"
@@ -211,14 +207,11 @@ class LessonProgress(models.Model):
 class Review(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.PositiveIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        verbose_name="Рейтинг"
-    )
+    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], verbose_name="Рейтинг")
     comment = models.TextField(verbose_name="Комментарий")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
 
     class Meta:
         verbose_name = "Отзыв"
@@ -232,7 +225,7 @@ class Review(models.Model):
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='wishlisted_by')
-    added_at = models.DateTimeField(auto_now_add=True)
+    added_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
 
     class Meta:
         verbose_name = "Избранное"
@@ -248,7 +241,7 @@ class Payment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
     success = models.BooleanField(default=False, verbose_name="Успешно")
-    created = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
+    created = models.DateTimeField(auto_now_add=True, default=timezone.now, verbose_name="Создан")
 
     class Meta:
         verbose_name = "Платеж"
@@ -261,7 +254,7 @@ class Payment(models.Model):
 
 class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
-    start_date = models.DateTimeField(auto_now_add=True, verbose_name="Начало")
+    start_date = models.DateTimeField(auto_now_add=True, default=timezone.now, verbose_name="Начало")
     end_date = models.DateTimeField(verbose_name="Окончание")
     active = models.BooleanField(default=True, verbose_name="Активна")
 
@@ -279,7 +272,7 @@ class ContactMessage(models.Model):
     email = models.EmailField(verbose_name="Email")
     subject = models.CharField(max_length=200, verbose_name="Тема")
     message = models.TextField(verbose_name="Сообщение")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создано")
+    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now, verbose_name="Создано")
     is_read = models.BooleanField(default=False, verbose_name="Прочитано")
 
     class Meta:

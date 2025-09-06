@@ -17,7 +17,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
     <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- УДАЛЕН BOOTSTRAP -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
@@ -25,280 +25,221 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="{% url 'home' %}">
-            <img src="{% static 'img/logo_skillsspire.png' %}" alt="SkillsSpire" width="40" height="40" class="me-2">
-            SkillsSpire
+<!-- Новая кастомная навигация -->
+<nav class="main-nav">
+    <div class="container nav-container">
+        <a class="nav-brand" href="{% url 'home' %}">
+            <img src="{% static 'img/logo_skillsspire.png' %}" alt="SkillsSpire" width="40" height="40">
+            <span>SkillsSpire</span>
         </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
-            <span class="navbar-toggler-icon"></span>
+        <button class="nav-toggle" id="navToggle">
+            <span></span>
+            <span></span>
+            <span></span>
         </button>
 
-        <div class="collapse navbar-collapse" id="mainNavbar">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'home' %}">{% trans "Главная" %}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'courses_list' %}">{% trans "Все курсы" %}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'about' %}">{% trans "О нас" %}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'contact' %}">{% trans "Контакты" %}</a>
-                </li>
+        <div class="nav-menu" id="navMenu">
+            <div class="nav-menu-inner">
+                <ul class="nav-list">
+                    <li><a href="{% url 'home' %}">{% trans "Главная" %}</a></li>
+                    <li><a href="{% url 'courses_list' %}">{% trans "Все курсы" %}</a></li>
+                    <li><a href="{% url 'about' %}">{% trans "О нас" %}</a></li>
+                    <li><a href="{% url 'contact' %}">{% trans "Контакты" %}</a></li>
 
-                {% if user.is_authenticated and is_instructor %}
-                <li class="nav-item">
-                    <a class="nav-link text-warning" href="{% url 'course_create' %}">
-                        <i class="bi bi-plus-circle"></i> Создать курс
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+                    {% if user.is_authenticated and is_instructor %}
+                    <li class="nav-highlight">
+                        <a href="{% url 'course_create' %}">
+                            <i class="bi bi-plus-circle"></i> Создать курс
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
 
-            <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item me-3">
-                    <form class="d-flex" action="{% url 'courses_list' %}" method="get">
-                        <input class="form-control form-control-sm" type="search" name="q"
-                               placeholder="Поиск курсов..." aria-label="Search">
+                <div class="nav-actions">
+                    <form class="nav-search" action="{% url 'courses_list' %}" method="get">
+                        <input type="search" name="q" placeholder="Поиск курсов...">
+                        <button type="submit"><i class="bi bi-search"></i></button>
                     </form>
-                </li>
 
-                {% if user.is_authenticated %}
-                <li class="nav-item dropdown me-2">
-                    <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-bell fs-5"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            3
-                        </span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><h6 class="dropdown-header">Уведомления</h6></li>
-                        <li><a class="dropdown-item" href="#">Новый курс доступен</a></li>
-                        <li><a class="dropdown-item" href="#">Скидка 20% на подписку</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center" href="#">Все уведомления</a></li>
-                    </ul>
-                </li>
+                    {% if user.is_authenticated %}
+                    <div class="nav-notifications">
+                        <button class="nav-icon-btn">
+                            <i class="bi bi-bell"></i>
+                            <span class="nav-badge">3</span>
+                        </button>
+                    </div>
 
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
-                       data-bs-toggle="dropdown">
-                        {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" width="32" height="32"
-                             class="rounded-circle me-2" alt="{{ user.get_full_name }}">
-                        {% else %}
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
-                             style="width: 32px; height: 32px;">
-                            {{ user.first_name|first|default:user.email|first|upper }}
-                        </div>
-                        {% endif %}
-                        <span class="d-none d-md-inline">{{ user.first_name|default:user.email }}</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><h6 class="dropdown-header">Мой аккаунт</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'dashboard' %}">
-                            <i class="bi bi-speedometer2 me-2"></i>Дашборд
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'my_courses' %}">
-                            <i class="bi bi-book me-2"></i>Мои курсы
-                        </a></li>
-                        <li><a class="dropdown-item" href="#">
-                            <i class="bi bi-credit-card me-2"></i>Платежи
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#">
-                            <i class="bi bi-gear me-2"></i>Настройки
-                        </a></li>
-                        <li>
-                            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                    <div class="nav-user dropdown">
+                        <button class="nav-user-btn">
+                            {% if user.profile.avatar %}
+                            <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}">
+                            {% else %}
+                            <div class="nav-user-avatar">
+                                {{ user.first_name|first|default:user.email|first|upper }}
+                            </div>
+                            {% endif %}
+                            <span>{{ user.first_name|default:user.email }}</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <h6>Мой аккаунт</h6>
+                            <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i>Дашборд</a>
+                            <a href="{% url 'my_courses' %}"><i class="bi bi-book"></i>Мои курсы</a>
+                            <a href="#"><i class="bi bi-credit-card"></i>Платежи</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#"><i class="bi bi-gear"></i>Настройки</a>
+                            <form action="{% url 'logout' %}" method="post">
                                 {% csrf_token %}
-                                <button type="submit" class="dropdown-item">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Выйти
-                                </button>
+                                <button type="submit"><i class="bi bi-box-arrow-right"></i>Выйти</button>
                             </form>
-                        </li>
-                    </ul>
-                </li>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="nav-auth">
+                        <a href="{% url 'signup' %}" class="btn btn-outline">{% trans "Регистрация" %}</a>
+                        <a href="{% url 'login' %}" class="btn btn-primary">{% trans "Войти" %}</a>
+                    </div>
+                    {% endif %}
 
-                {% else %}
-                <li class="nav-item me-2">
-                    <a href="{% url 'signup' %}" class="btn btn-outline-light btn-sm">
-                        {% trans "Регистрация" %}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'login' %}" class="btn btn-primary btn-sm">
-                        {% trans "Войти" %}
-                    </a>
-                </li>
-                {% endif %}
-
-                <li class="nav-item ms-2">
-                    <form action="{% url 'set_language' %}" method="post" class="d-inline">
-                        {% csrf_token %}
-                        {% get_current_language as LANGUAGE_CODE %}
-                        <select name="language" onchange="this.form.submit()"
-                                class="form-select form-select-sm bg-dark text-light border-dark">
-                            <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
-                            <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
-                            <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
-                        </select>
-                    </form>
-                </li>
-
-                <li class="nav-item ms-2">
-                    <button id="theme-toggle" class="btn btn-sm btn-outline-light">
-                        <i class="bi bi-moon"></i>
-                    </button>
-                </li>
-            </ul>
+                    <div class="nav-utils">
+                        <form action="{% url 'set_language' %}" method="post">
+                            {% csrf_token %}
+                            {% get_current_language as LANGUAGE_CODE %}
+                            <select name="language" onchange="this.form.submit()">
+                                <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
+                                <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
+                                <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
+                            </select>
+                        </form>
+                        
+                        <button id="theme-toggle" class="theme-toggle">
+                            <i class="bi bi-moon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
 
+<!-- Сообщения -->
 {% if messages %}
-<div class="container mt-3">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        <div class="d-flex align-items-center">
-            {% if message.tags == 'success' %}
-            <i class="bi bi-check-circle-fill me-2"></i>
-            {% elif message.tags == 'error' %}
-            <i class="bi bi-exclamation-circle-fill me-2"></i>
-            {% elif message.tags == 'warning' %}
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            {% else %}
-            <i class="bi bi-info-circle-fill me-2"></i>
-            {% endif %}
-            {{ message }}
+<div class="messages-container">
+    <div class="container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            <div class="alert-content">
+                {% if message.tags == 'success' %}
+                <i class="bi bi-check-circle-fill"></i>
+                {% elif message.tags == 'error' %}
+                <i class="bi bi-exclamation-circle-fill"></i>
+                {% elif message.tags == 'warning' %}
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                {% else %}
+                <i class="bi bi-info-circle-fill"></i>
+                {% endif %}
+                <span>{{ message }}</span>
+            </div>
+            <button class="alert-close">&times;</button>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 {% endif %}
 
-<main class="{% block main_class %}{% endblock %}">
+<main>
     {% block content %}{% endblock %}
 </main>
 
-<footer class="footer bg-dark text-light pt-5">
+<!-- Новый кастомный футер -->
+<footer class="main-footer">
     <div class="container">
-        <div class="row">
-            <div class="col-lg-4 mb-4">
-                <div class="footer-about">
-                    <a class="navbar-brand fw-bold d-flex align-items-center mb-3" href="{% url 'home' %}">
-                        <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire" width="40" height="40" class="me-2">
-                        SkillsSpire
-                    </a>
-                    <p class="text-muted mb-4">Платформа для онлайн-обучения с лучшими курсами от экспертов рынка. Освойте востребованные навыки и измените свою карьеру.</p>
-                    <div class="social-links d-flex gap-3">
-                        <a href="#" class="text-light fs-5"><i class="bi bi-telegram"></i></a>
-                        <a href="#" class="text-light fs-5"><i class="bi bi-whatsapp"></i></a>
-                        <a href="#" class="text-light fs-5"><i class="bi bi-youtube"></i></a>
-                        <a href="#" class="text-light fs-5"><i class="bi bi-instagram"></i></a>
-                    </div>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <a class="footer-brand" href="{% url 'home' %}">
+                    <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire">
+                    <span>SkillsSpire</span>
+                </a>
+                <p>Платформа для онлайн-обучения с лучшими курсами от экспертов рынка. Освойте востребованные навыки и измените свою карьеру.</p>
+                <div class="footer-social">
+                    <a href="#"><i class="bi bi-telegram"></i></a>
+                    <a href="#"><i class="bi bi-whatsapp"></i></a>
+                    <a href="#"><i class="bi bi-youtube"></i></a>
+                    <a href="#"><i class="bi bi-instagram"></i></a>
                 </div>
             </div>
 
-            <div class="col-lg-2 col-md-4 mb-4">
-                <h5 class="fw-bold mb-3">Навигация</h5>
-                <ul class="list-unstyled">
-                    <li class="mb-2"><a href="{% url 'home' %}" class="text-muted text-decoration-none">Главная</a></li>
-                    <li class="mb-2"><a href="{% url 'courses_list' %}" class="text-muted text-decoration-none">Все курсы</a></li>
-                    <li class="mb-2"><a href="{% url 'about' %}" class="text-muted text-decoration-none">О нас</a></li>
-                    <li class="mb-2"><a href="{% url 'contact' %}" class="text-muted text-decoration-none">Контакты</a></li>
+            <div class="footer-col">
+                <h5>Навигация</h5>
+                <ul>
+                    <li><a href="{% url 'home' %}">Главная</a></li>
+                    <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
+                    <li><a href="{% url 'about' %}">О нас</a></li>
+                    <li><a href="{% url 'contact' %}">Контакты</a></li>
                 </ul>
             </div>
 
-            <div class="col-lg-2 col-md-4 mb-4">
-                <h5 class="fw-bold mb-3">Категории</h5>
-                <ul class="list-unstyled">
-                    <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Программирование</a></li>
-                    <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Дизайн</a></li>
-                    <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Маркетинг</a></li>
-                    <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Аналитика</a></li>
+            <div class="footer-col">
+                <h5>Категории</h5>
+                <ul>
+                    <li><a href="#">Программирование</a></li>
+                    <li><a href="#">Дизайн</a></li>
+                    <li><a href="#">Маркетинг</a></li>
+                    <li><a href="#">Аналитика</a></li>
                 </ul>
             </div>
 
-            <div class="col-lg-4 col-md-4 mb-4">
-                <h5 class="fw-bold mb-3">Подписка на рассылку</h5>
-                <p class="text-muted mb-3">Подпишитесь на нашу рассылку, чтобы получать информацию о новых курсах и акциях.</p>
-                <form class="subscribe-form">
-                    <div class="input-group">
-                        <input type="email" class="form-control bg-secondary border-0 text-light" placeholder="Ваш email" aria-label="Ваш email">
-                        <button class="btn btn-primary" type="submit">Подписаться</button>
-                    </div>
+            <div class="footer-col">
+                <h5>Подписка на рассылку</h5>
+                <p>Подпишитесь на нашу рассылку, чтобы получать информацию о новых курсах и акциях.</p>
+                <form class="footer-subscribe">
+                    <input type="email" placeholder="Ваш email">
+                    <button type="submit">Подписаться</button>
                 </form>
             </div>
         </div>
 
-        <hr class="my-4 bg-secondary">
-
-        <div class="row align-items-center py-3">
-            <div class="col-md-6">
-                <p class="text-muted mb-0">&copy; 2025 SkillsSpire. Все права защищены.</p>
+        <div class="footer-bottom">
+            <div class="footer-copyright">
+                <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
             </div>
-            <div class="col-md-6 text-md-end">
-                <div class="d-flex gap-3 justify-content-md-end">
-                    <img src="{% static 'img/payments/visa.png' %}" alt="Visa" height="24">
-                    <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard" height="24">
-                    <img src="{% static 'img/payments/mir.png' %}" alt="Mir" height="24">
-                </div>
+            <div class="footer-payments">
+                <img src="{% static 'img/payments/visa.png' %}" alt="Visa">
+                <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard">
+                <img src="{% static 'img/payments/mir.png' %}" alt="Mir">
             </div>
         </div>
     </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- УДАЛЕН BOOTSTRAP JS -->
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
+<script src="{% static 'js/main.js' %}"></script>
 
 <script>
-document.getElementById("theme-toggle").addEventListener("click", function() {
-    document.body.classList.toggle("dark-theme");
-    const icon = this.querySelector("i");
-    if (document.body.classList.contains("dark-theme")) {
-        icon.classList.remove("bi-moon");
-        icon.classList.add("bi-sun");
-        localStorage.setItem("theme", "dark");
-    } else {
-        icon.classList.remove("bi-sun");
-        icon.classList.add("bi-moon");
-        localStorage.setItem("theme", "light");
-    }
-});
-
-if (localStorage.getItem("theme") === "dark") {
-    document.body.classList.add("dark-theme");
-    document.getElementById("theme-toggle").querySelector("i").classList.replace("bi-moon", "bi-sun");
-}
-
-new PureCounter();
-
+// Базовый функционал
 document.addEventListener('DOMContentLoaded', function() {
-    const animatedElements = document.querySelectorAll('.benefit-card, .card, .expert-card');
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('animate-fade-in-up');
-                observer.unobserve(entry.target);
-            }
+    // Переключение мобильного меню
+    const navToggle = document.getElementById('navToggle');
+    const navMenu = document.getElementById('navMenu');
+    
+    if (navToggle && navMenu) {
+        navToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('active');
+            navToggle.classList.toggle('active');
         });
-    }, {
-        threshold: 0.1
+    }
+
+    // Закрытие сообщений
+    document.querySelectorAll('.alert-close').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.alert').style.display = 'none';
+        });
     });
 
-    animatedElements.forEach(element => {
-        observer.observe(element);
-    });
-
-    const subscribeForm = document.querySelector('.subscribe-form');
+    // Подписка на рассылку
+    const subscribeForm = document.querySelector('.footer-subscribe');
     if (subscribeForm) {
         subscribeForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -309,37 +250,56 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Инициализация счетчиков
+    new PureCounter();
 });
+
+// Аналитика (оставить как есть)
+(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+ym(00000000, "init", {
+     clickmap:true,
+     trackLinks:true,
+     accurateTrackBounce:true
+});
+
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', 'YOUR_PIXEL_ID');
+fbq('track', 'PageView');
 </script>
 
 {% block extra_js %}{% endblock %}
-
-<script type="text/javascript" >
-   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-   m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-   ym(00000000, "init", {
-        clickmap:true,
-        trackLinks:true,
-        accurateTrackBounce:true
-   });
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/00000000" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+</body>
 
 <script>
-   !function(f,b,e,v,n,t,s)
-   {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-   n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-   if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-   n.queue=[];t=b.createElement(e);t.async=!0;
-   t.src=v;s=b.getElementsByTagName(e)[0];
-   s.parentNode.insertBefore(t,s)}(window, document,'script',
-   'https://connect.facebook.net/en_US/fbevents.js');
-   fbq('init', 'YOUR_PIXEL_ID');
-   fbq('track', 'PageView');
+// FAQ functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const faqQuestions = document.querySelectorAll('.faq-question');
+    
+    faqQuestions.forEach(question => {
+        question.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const answer = this.nextElementSibling;
+            
+            if (this.classList.contains('active')) {
+                answer.style.display = 'block';
+                this.setAttribute('aria-expanded', 'true');
+            } else {
+                answer.style.display = 'none';
+                this.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
+});
 </script>
-<noscript><img height="1" width="1" style="display:none"
-   src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"
-/></noscript>
-</body>
+
 </html>

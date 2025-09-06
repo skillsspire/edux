@@ -1,346 +1,626 @@
-/* static/css/main.css */
-/* ===== MAIN STYLES ===== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* ===== NEW STYLES ===== */
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
 }
-
-html {
-    scroll-behavior: smooth;
-}
-
-body {
-    font-family: 'Poppins', sans-serif;
-    background: #f9fafb;
-    color: #111827;
-    line-height: 1.6;
-    font-size: 16px;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-.section {
-    padding: 60px 0;
-}
-
-.grid {
-    display: grid;
-    gap: 24px;
-}
-
-.grid-3 {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-}
-
-.grid-4 {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-}
-
-h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
-    color: #0046ad;
-    line-height: 1.2;
-}
-
-h1 {
-    font-size: clamp(40px, 5vw, 48px);
-    margin-bottom: 20px;
-}
-
-h2 {
-    font-size: clamp(28px, 3vw, 32px);
-    margin-bottom: 16px;
-}
-
-h3 {
-    font-size: 22px;
-    margin-bottom: 12px;
-}
-
-p {
-    font-size: 16px;
-    font-weight: 400;
-    color: #374151;
-}
-
-/* ===== COURSE HERO SECTION ===== */
-.course-hero {
-    background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%);
-    color: white;
-    padding: 80px 0;
-    position: relative;
-    overflow: hidden;
-}
-
-.course-hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-    opacity: 0.3;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-}
-
-.course-badge {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 20px;
-    border-radius: 25px;
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 24px;
-    display: inline-block;
-}
-
-.course-title {
-    font-size: clamp(2.5rem, 5vw, 3.5rem);
-    font-weight: 700;
-    line-height: 1.1;
-    margin-bottom: 20px;
-    color: white;
-}
-
-.course-subtitle {
-    font-size: 1.3rem;
-    font-weight: 400;
-    margin-bottom: 32px;
-    opacity: 0.9;
+.section-header p {
+    color: var(--color-text-tertiary);
+    font-size: 1.1rem;
     max-width: 600px;
+    margin: 0 auto;
 }
 
-.hero-cta {
+/* Course Cards */
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.course-card {
+    background: var(--color-bg-white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
     display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 40px;
+    flex-direction: column;
+    height: 100%;
+}
+.course-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
-.hero-btn {
-    padding: 16px 32px;
+.course-card-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.course-card-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.course-category {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    background: var(--color-primary);
+    color: white;
+}
+.course-category-design { background: var(--color-accent-cyan); }
+.course-category-marketing { background: var(--color-accent-warm); }
+
+.course-card-title {
+    font-size: 1.25rem;
+    color: var(--color-primary);
+    margin-bottom: 0.75rem;
+}
+
+.course-card-text {
+    color: var(--color-text-tertiary);
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.course-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.course-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-accent-warm);
+    font-weight: 600;
+}
+
+.course-reviews {
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+}
+
+.course-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.course-card-footer {
+    padding: 1rem 1.5rem;
+    background: rgba(1, 52, 157, 0.03);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.btn-full {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-full:hover {
+    background: #002b7a;
+    transform: translateY(-2px);
+}
+
+/* Testimonials */
+.testimonials-section {
+    background: var(--color-bg-section);
+    padding: 5rem 0;
+}
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.testimonial-card {
+    background: var(--color-bg-white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.testimonial-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.testimonial-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.testimonial-user h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-primary);
+}
+
+.testimonial-user p {
+    font-size: 0.9rem;
+    color: var(--color-text-tertiary);
+    margin: 0;
+}
+
+.testimonial-rating {
+    color: var(--color-accent-warm);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.testimonial-text {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* FAQ */
+.faq-section {
+    padding: 5rem 0;
+}
+
+.faq-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: var(--color-bg-white);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.faq-question {
+    width: 100%;
+    padding: 1.5rem;
+    background: none;
+    border: none;
+    text-align: left;
     font-size: 1.1rem;
     font-weight: 600;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    display: inline-flex;
+    color: var(--color-primary);
+    cursor: pointer;
+    display: flex;
+    justify-content: between;
     align-items: center;
-    gap: 8px;
+    gap: 1rem;
 }
 
-.hero-btn-primary {
-    background: white;
-    color: #0046ad;
-    border: none;
+.faq-question::after {
+    content: '+';
+    font-size: 1.5rem;
+    margin-left: auto;
 }
 
-.hero-btn-primary:hover {
-    background: #f8f9fa;
+.faq-question[aria-expanded="true"]::after {
+    content: '-';
+}
+
+.faq-answer {
+    padding: 0 1.5rem 1.5rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+/* CTA Section */
+.cta-section {
+    background: var(--color-primary);
+    color: white;
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.cta-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.cta-text {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.cta-button {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: var(--color-accent-warm);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+.cta-button:hover {
+    background: #e59415;
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-.hero-btn-secondary {
-    background: transparent;
-    border: 2px solid white;
-    color: white;
+/* Utility Classes */
+.text-center { text-align: center; }
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+.mb-5 { margin-bottom: 3rem; }
+.mt-4 { margin-top: 2rem; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cta-title {
+        font-size: 2rem;
+    }
+    
+    .testimonials-grid,
+    .courses-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .faq-question {
+        padding: 1rem;
+        font-size: 1rem;
+    }
+    
 }
 
-.hero-btn-secondary:hover {
-    background: white;
-    color: #0046ad;
-    transform: translateY(-2px);
-}
-
-.hero-stats {
-    display: flex;
-    gap: 32px;
-    flex-wrap: wrap;
-}
-
-.stat-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-}
-
-.stat-icon {
-    width: 20px;
-    height: 20px;
-    color: #06b6d4;
-}
-
-/* ===== BENEFITS SECTION ===== */
-.benefits-section {
-    padding: 80px 0;
-    background: #fff;
-}
-
-.benefit-card {
+/* ===== Section Header ===== */
+.section-header {
     text-align: center;
-    padding: 32px 24px;
+    margin-bottom: 3rem;
+}
+
+.section-header p {
+    color: var(--color-text-tertiary);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* ===== Courses Section ===== */
+.courses-section {
+    background: var(--color-bg-section);
+    padding: 5rem 0;
+}
+
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.course-card {
+    background: var(--color-bg-white);
     border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
     height: 100%;
 }
 
-.benefit-card:hover {
+.course-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
-.benefit-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 20px;
-    background: linear-gradient(135deg, #0046ad, #06b6d4);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-}
-
-.benefit-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #0046ad;
-}
-
-.benefit-description {
-    color: #6b7280;
-    line-height: 1.6;
-}
-
-/* ===== EXPERT SECTION ===== */
-.expert-section {
-    background: #f8f9fa;
-    padding: 80px 0;
-}
-
-.expert-card {
-    display: flex;
-    gap: 32px;
-    align-items: center;
-    background: white;
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-.expert-image {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
+.course-card-img {
+    width: 100%;
+    height: 200px;
     object-fit: cover;
-    border: 4px solid #0046ad;
 }
 
-.expert-info {
-    flex: 1;
-}
-
-.expert-name {
-    font-size: 28px;
-    font-weight: 700;
-    color: #0046ad;
-    margin-bottom: 8px;
-}
-
-.expert-title {
-    color: #06b6d4;
-    font-weight: 500;
-    margin-bottom: 16px;
-}
-
-.expert-bio {
-    color: #6b7280;
-    line-height: 1.7;
-    margin-bottom: 20px;
-}
-
-.expert-stats {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-}
-
-.expert-stat {
+.course-card-content {
+    padding: 1.5rem;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
+}
+
+.course-category {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    background: var(--color-primary);
+    color: white;
+}
+
+.course-category-design { 
+    background: var(--color-accent-cyan); 
+}
+
+.course-category-marketing { 
+    background: var(--color-accent-warm); 
+}
+
+.course-card-title {
+    font-size: 1.25rem;
+    color: var(--color-primary);
+    margin-bottom: 0.75rem;
+}
+
+.course-card-text {
+    color: var(--color-text-tertiary);
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.course-card-meta {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 1.5rem;
 }
 
-.stat-number {
-    font-size: 24px;
+.course-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-accent-warm);
+    font-weight: 600;
+}
+
+.course-reviews {
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+}
+
+.course-price {
+    font-size: 1.25rem;
     font-weight: 700;
-    color: #0046ad;
+    color: var(--color-primary);
 }
 
-.stat-label {
-    font-size: 14px;
-    color: #6b7280;
+.course-card-footer {
+    padding: 1rem 1.5rem;
+    background: rgba(1, 52, 157, 0.03);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+.btn-full {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-full:hover {
+    background: #002b7a;
+    transform: translateY(-2px);
+}
+
+/* ===== Testimonials ===== */
+.testimonials-section {
+    background: var(--color-bg-section);
+    padding: 5rem 0;
+}
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.testimonial-card {
+    background: var(--color-bg-white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.testimonial-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.testimonial-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.testimonial-user h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-primary);
+}
+
+.testimonial-user p {
+    font-size: 0.9rem;
+    color: var(--color-text-tertiary);
+    margin: 0;
+}
+
+.testimonial-rating {
+    color: var(--color-accent-warm);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.testimonial-text {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ===== FAQ ===== */
+.faq-section {
+    padding: 5rem 0;
+}
+
+.faq-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: var(--color-bg-white);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.faq-question {
+    width: 100%;
+    padding: 1.5rem;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.faq-question::after {
+    content: '+';
+    font-size: 1.5rem;
+}
+
+.faq-question[aria-expanded="true"]::after {
+    content: '-';
+}
+
+.faq-answer {
+    padding: 0 1.5rem 1.5rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    display: none;
+}
+
+.faq-question.active + .faq-answer {
+    display: block;
+}
+
+/* ===== CTA Section ===== */
+.cta-section {
+    background: var(--color-primary);
+    color: white;
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.cta-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.cta-text {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.cta-button {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: var(--color-accent-warm);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+    background: #e59415;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== Utility Classes ===== */
+.text-center { 
+    text-align: center; 
+}
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+.mb-5 { margin-bottom: 3rem; }
+.mt-4 { margin-top: 2rem; }
+
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
-    .hero-cta {
-        flex-direction: column;
+    .courses-grid,
+    .testimonials-grid {
+        grid-template-columns: 1fr;
     }
-
-    .hero-btn {
-        width: 100%;
-        justify-content: center;
+    
+    .cta-title {
+        font-size: 2rem;
     }
-
-    .expert-card {
-        flex-direction: column;
-        text-align: center;
+    
+    .faq-question {
+        padding: 1rem;
+        font-size: 1rem;
     }
-
-    .expert-stats {
-        justify-content: center;
-    }
-
-    .course-hero {
-        padding: 60px 0;
-    }
-
-    .section {
-        padding: 40px 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .container {
-        padding: 0 16px;
-    }
-
-    .hero-stats {
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .stat-item {
-        justify-content: center;
-    }
-
-    .benefit-card {
-        padding: 24px 16px;
+    
+    .section-header {
+        margin-bottom: 2rem;
     }
 }
