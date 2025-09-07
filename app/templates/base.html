@@ -152,7 +152,109 @@
 {% endif %}
 
 <main>
-    {% block content %}{% endblock %}
+    {% block content %}
+    <!-- КОНТЕЙНЕР ДОБАВЛЕН ВО ВСЕ СЕКЦИИ -->
+    {% block courses_section %}
+    <section class="courses-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Наши курсы</h2>
+                <p>Выберите курс, который подходит именно вам</p>
+            </div>
+            
+            <div class="courses-grid">
+                <!-- Карточки курсов -->
+                {% for course in courses %}
+                <div class="course-card">
+                    <img src="{{ course.image.url }}" alt="{{ course.title }}" class="course-card-img">
+                    <div class="course-card-content">
+                        <span class="course-category course-category-{{ course.category.slug }}">
+                            {{ course.category.name }}
+                        </span>
+                        <h3 class="course-card-title">{{ course.title }}</h3>
+                        <p class="course-card-text">{{ course.short_description }}</p>
+                        <div class="course-card-meta">
+                            <div class="course-rating">
+                                <i class="bi bi-star-fill"></i>
+                                {{ course.rating }}
+                                <span class="course-reviews">({{ course.reviews_count }})</span>
+                            </div>
+                            <div class="course-price">{{ course.price }} ₸</div>
+                        </div>
+                    </div>
+                    <div class="course-card-footer">
+                        <a href="{{ course.get_absolute_url }}" class="btn-full">Подробнее</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endblock %}
+
+    {% block testimonials_section %}
+    <section class="testimonials-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Отзывы студентов</h2>
+                <p>Что говорят наши ученики о курсах</p>
+            </div>
+            
+            <div class="testimonials-grid">
+                {% for testimonial in testimonials %}
+                <div class="testimonial-card">
+                    <div class="testimonial-header">
+                        <img src="{{ testimonial.user.profile.avatar.url }}" alt="{{ testimonial.user.get_full_name }}" class="testimonial-avatar">
+                        <div class="testimonial-user">
+                            <h3>{{ testimonial.user.get_full_name }}</h3>
+                            <p>Студент курса "{{ testimonial.course.title }}"</p>
+                        </div>
+                    </div>
+                    <div class="testimonial-rating">
+                        {% for i in "12345" %}
+                        <i class="bi bi-star-fill{% if forloop.counter > testimonial.rating %}-empty{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <p class="testimonial-text">{{ testimonial.text }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endblock %}
+
+    {% block faq_section %}
+    <section class="faq-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Часто задаваемые вопросы</h2>
+                <p>Ответы на популярные вопросы о наших курсах</p>
+            </div>
+            
+            <div class="faq-container">
+                {% for faq in faqs %}
+                <div class="faq-item">
+                    <button class="faq-question">{{ faq.question }}</button>
+                    <div class="faq-answer">{{ faq.answer }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endblock %}
+
+    {% block cta_section %}
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Готовы начать обучение?</h2>
+                <p class="cta-text">Присоединяйтесь к тысячам студентов, которые уже изменили свою карьеру с помощью наших курсов</p>
+                <a href="{% url 'courses_list' %}" class="cta-button">Выбрать курс</a>
+            </div>
+        </div>
+    </section>
+    {% endblock %}
+    {% endblock %}
 </main>
 
 <!-- Футер -->
