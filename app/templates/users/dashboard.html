@@ -22,7 +22,7 @@
                             <!-- Прогресс -->
                             <div class="progress mb-2" style="height: 14px;">
                                 <div class="progress-bar bg-success" role="progressbar"
-                                     style="width: {{ enrollment.progress_percentage|floatformat:0 }}%;"
+                                     style="width: {{ enrollment.progress_percentage|default_if_none:'0'|floatformat:0 }}%"
                                      aria-valuenow="{{ enrollment.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
                                      {{ enrollment.progress_percentage|floatformat:0 }}%
                                 </div>

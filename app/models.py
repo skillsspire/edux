@@ -236,11 +236,19 @@ class Wishlist(models.Model):
 
 
 class Payment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'В ожидании'),
+        ('success', 'Успешно'),
+        ('failed', 'Неудачно'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
-    success = models.BooleanField(default=False, verbose_name="Успешно")
+    kaspi_invoice_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="ID платежа Kaspi")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
     created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Платеж"
@@ -248,7 +256,7 @@ class Payment(models.Model):
         ordering = ['-created']
 
     def __str__(self):
-        return f"{self.user.username} - {self.course.title} - {self.amount}"
+        return f"{self.user.username} - {self.course.title} - {self.amount} - {self.status}"
 
 
 class Subscription(models.Model):
