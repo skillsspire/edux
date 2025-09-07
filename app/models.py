@@ -4,9 +4,14 @@ from django.urls import reverse
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+# Добавляем свойство для проверки, является ли пользователь инструктором
 User.add_to_class('is_instructor', 
     property(lambda self: hasattr(self, 'instructor_profile') and 
                          getattr(self.instructor_profile, 'is_approved', False)))
+
+# ==========================
+# Категории курсов
+# ==========================
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
     slug = models.SlugField(unique=True, verbose_name="URL")
@@ -23,10 +28,17 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
     def get_absolute_url(self):
         return reverse('courses_by_category', kwargs={'slug': self.slug})
 
-
+# ==========================
+# Профиль инструктора
+# ==========================
 class InstructorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='instructor_profile')
     bio = models.TextField(verbose_name="Биография")
@@ -51,7 +63,9 @@ class InstructorProfile(models.Model):
     def courses_count(self):
         return self.user.courses_created.count()
 
-
+# ==========================
+# Курсы
+# ==========================
 class Course(models.Model):
     LEVEL_CHOICES = [
         ('beginner', 'Начинающий'),
@@ -124,7 +138,9 @@ class Course(models.Model):
             return round(reviews.aggregate(models.Avg('rating'))['rating__avg'], 1)
         return 4.5
 
-
+# ==========================
+# Модули и уроки
+# ==========================
 class Module(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
     title = models.CharField(max_length=200, verbose_name="Название")
@@ -164,14 +180,13 @@ class Lesson(models.Model):
     def __str__(self):
         return self.title
 
-    def get_absolute_url(self):
-        return reverse('lesson_detail', kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug})
-
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
+    def get_absolute_url(self):
+        return reverse('lesson_detail', kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug})
 
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
