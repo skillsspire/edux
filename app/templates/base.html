@@ -1,395 +1,238 @@
-{% load static i18n %}
-<!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}SkillsSpire - Онлайн-курсы{% endblock %}</title>
+{% extends 'base.html' %}
+{% load static %}
 
-    <!-- Подключение Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+{% block extra_css %}
+<style>
+:root {
+  --brand: #6C5CE7;
+  --surface: #F8FAFC;
+  --text: #0B1020;
+  --border: #E5E7EB;
+}
 
-    <meta property="og:title" content="{% block og_title %}SkillsSpire - Онлайн-курсы{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Освойте востребованные навыки с лучшими экспертами. Практические курсы с гарантией результата.{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% static 'img/og-default.jpg' %}{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
-    <meta property="og:type" content="website">
+*:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
 
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicon/apple-touch-icon.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon/favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
-    <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
+::selection {
+  background: var(--brand);
+  color: white;
+}
+</style>
+{% endblock %}
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
-
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-
-<!-- Навигация -->
-<nav class="main-nav">
-    <div class="container nav-container">
-        <a class="nav-brand" href="{% url 'home' %}">
-            <img src="{% static 'img/logo_skillsspire.png' %}" alt="SkillsSpire" width="40" height="40">
-            <span>SkillsSpire</span>
-        </a>
-
-        <button class="nav-toggle" id="navToggle">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-
-        <div class="nav-menu" id="navMenu">
-            <div class="nav-menu-inner">
-                <ul class="nav-list">
-                    <li><a href="{% url 'home' %}">{% trans "Главная" %}</a></li>
-                    <li><a href="{% url 'courses_list' %}">{% trans "Все курсы" %}</a></li>
-                    <li><a href="{% url 'about' %}">{% trans "О нас" %}</a></li>
-                    <li><a href="{% url 'contact' %}">{% trans "Контакты" %}</a></li>
-
-                    {% if user.is_authenticated and is_instructor %}
-                    <li class="nav-highlight">
-                        <a href="{% url 'course_create' %}">
-                            <i class="bi bi-plus-circle"></i> Создать курс
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-
-                <div class="nav-actions">
-                    <form class="nav-search" action="{% url 'courses_list' %}" method="get">
-                        <input type="search" name="q" placeholder="Поиск курсов...">
-                        <button type="submit"><i class="bi bi-search"></i></button>
-                    </form>
-
-                    {% if user.is_authenticated %}
-                    <div class="nav-notifications">
-                        <button class="nav-icon-btn">
-                            <i class="bi bi-bell"></i>
-                            <span class="nav-badge">3</span>
-                        </button>
-                    </div>
-
-                    <div class="nav-user dropdown">
-                        <button class="nav-user-btn">
-                            {% if user.profile.avatar %}
-                            <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}">
-                            {% else %}
-                            <div class="nav-user-avatar">
-                                {{ user.first_name|first|default:user.email|first|upper }}
-                            </div>
-                            {% endif %}
-                            <span>{{ user.first_name|default:user.email }}</span>
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-menu">
-                            <h6>Мой аккаунт</h6>
-                            <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i>Дашборд</a>
-                            <a href="{% url 'my_courses' %}"><i class="bi bi-book"></i>Мои курсы</a>
-                            <a href="#"><i class="bi bi-credit-card"></i>Платежи</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="#"><i class="bi bi-gear"></i>Настройки</a>
-                            <form action="{% url 'logout' %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit"><i class="bi bi-box-arrow-right"></i>Выйти</button>
-                            </form>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="nav-auth">
-                        <a href="{% url 'signup' %}" class="btn btn-outline">{% trans "Регистрация" %}</a>
-                        <a href="{% url 'login' %}" class="btn btn-primary">{% trans "Войти" %}</a>
-                    </div>
-                    {% endif %}
-
-                    <div class="nav-utils">
-                        <form action="{% url 'set_language' %}" method="post">
-                            {% csrf_token %}
-                            {% get_current_language as LANGUAGE_CODE %}
-                            <select name="language" onchange="this.form.submit()">
-                                <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
-                                <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
-                                <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
-                            </select>
-                        </form>
-                        
-                        <button id="theme-toggle" class="theme-toggle">
-                            <i class="bi bi-moon"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-900">
+  <!-- Simple theme bar -->
+  <div class="w-full border-b border-gray-100 bg-white/90">
+    <div class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between text-sm">
+      <div class="flex items-center gap-3">
+        <span class="text-gray-600">Тема:</span>
+        <input type="color" value="#6C5CE7" id="themeColor" class="w-8 h-8 rounded shadow-inner">
+        <span class="px-3 py-1 rounded-full bg-gray-50 border border-gray-200 theme-display">--brand: #6C5CE7</span>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-gray-600">
+        <span>H1 40–48 • Text 16–18</span>
+        <span>Grid: 3/2/1</span>
+        <span>Radii: 12–16</span>
+      </div>
     </div>
-</nav>
+  </div>
 
-<!-- Сообщения -->
-{% if messages %}
-<div class="messages-container">
-    <div class="container">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            <div class="alert-content">
-                {% if message.tags == 'success' %}
-                <i class="bi bi-check-circle-fill"></i>
-                {% elif message.tags == 'error' %}
-                <i class="bi bi-exclamation-circle-fill"></i>
-                {% elif message.tags == 'warning' %}
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                {% else %}
-                <i class="bi bi-info-circle-fill"></i>
-                {% endif %}
-                <span>{{ message }}</span>
-            </div>
-            <button class="alert-close">&times;</button>
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white/90 border-b border-gray-100">
+    <div class="max-w-6xl mx-auto h-16 flex items-center justify-between px-4 md:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl border border-gray-200 grid place-items-center" style="background: var(--surface)">
+          <span class="text-xs font-bold" style="color: var(--brand)">LOGO</span>
+        </div>
+        <nav class="hidden md:flex items-center gap-5 text-sm text-gray-700">
+          <a class="hover:text-gray-900" href="#">Курсы</a>
+          <a class="hover:text-gray-900" href="#">Блог</a>
+          <a class="hover:text-gray-900" href="#">О школе</a>
+          <a class="hover:text-gray-900" href="#">Контакты</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-2">
+        <select class="hidden sm:block h-9 rounded-lg border border-gray-200 text-sm px-2 bg-white">
+          <option>RU</option>
+          <option>EN</option>
+          <option>DE</option>
+        </select>
+        <button class="h-9 px-4 rounded-lg border text-sm border-gray-200">Войти</button>
+        <button class="h-9 px-4 rounded-lg text-sm text-white" style="background: var(--brand)">Регистрация</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <div class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12 md:py-16">
+    <div class="grid md:grid-cols-2 gap-8 items-center">
+      <div>
+        <div class="text-xs uppercase tracking-widest font-semibold mb-3" style="color: var(--brand)">Образовательная платформа</div>
+        <h1 class="text-3xl md:text-5xl font-bold text-gray-900 leading-tight">Освой дизайн и продуктовые навыки с наставниками</h1>
+        <p class="mt-4 text-gray-600 max-w-prose">Проходи курсы, общайся с комьюнити и собирай портфолио. Гибкий формат, актуальные программы, поддержка до результата.</p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <button class="h-11 px-6 rounded-full text-white" style="background: var(--brand)">Начать учиться</button>
+          <button class="h-11 px-6 rounded-full border border-gray-200">Посмотреть курсы</button>
+        </div>
+        <div class="mt-6 flex items-center gap-6 text-sm text-gray-600">
+          <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background: var(--brand)"></div>Проектные задания</div>
+          <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background: var(--brand)"></div>Наставники практики</div>
+          <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background: var(--brand)"></div>Комьюнити</div>
+        </div>
+      </div>
+      <div class="relative">
+        <div class="aspect-[4/3] w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white grid place-items-center shadow-sm">
+          <div class="text-gray-400 text-sm">Иллюстрация / коллаж</div>
+        </div>
+        <div class="absolute -bottom-4 -right-4 hidden md:block bg-white rounded-xl border border-gray-200 shadow p-4">
+          <div class="text-xs text-gray-500">Подпись, метрики, бейджи</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <section class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+      <span class="inline-block w-2 h-6 rounded-full" style="background: var(--brand)"></span>
+      Преимущества
+    </h2>
+    <div class="rounded-2xl border border-gray-200 bg-white/80 shadow-sm p-6">
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {% for item in features %}
+        <div class="rounded-2xl border border-gray-200 p-5 bg-white/70">
+          <div class="w-10 h-10 rounded-xl" style="background: rgba(16,24,40,.06)"></div>
+          <div class="mt-3 font-medium text-gray-900">{{ item.title }}</div>
+          <div class="text-gray-600 text-sm">{{ item.description }}</div>
         </div>
         {% endfor %}
+      </div>
     </div>
+  </section>
+
+  <!-- Courses Section - ИСПРАВЛЕННАЯ СЕТКА -->
+  <section class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+      <span class="inline-block w-2 h-6 rounded-full" style="background: var(--brand)"></span>
+      Популярные курсы
+    </h2>
+    
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for course in courses %}
+      <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+        <div class="aspect-video bg-gray-100 relative">
+          <img src="{{ course.image.url }}" alt="{{ course.title }}" class="w-full h-full object-cover">
+          <div class="absolute top-3 left-3">
+            <span class="px-2 py-1 rounded-full text-xs font-medium text-white" style="background: var(--brand)">
+              {{ course.category.name }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="p-5">
+          <h3 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h3>
+          <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ course.short_description }}</p>
+          
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-1">
+              <span class="text-amber-500">★</span>
+              <span class="text-sm font-medium">{{ course.rating }}</span>
+              <span class="text-gray-400 text-sm">({{ course.reviews_count }})</span>
+            </div>
+            <div class="font-bold text-gray-900">{{ course.price }} ₸</div>
+          </div>
+          
+          <button class="w-full py-2 rounded-lg text-white text-sm font-medium" style="background: var(--brand)">
+            Подробнее
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Testimonials Section - ИСПРАВЛЕННАЯ СЕТКА -->
+  <section class="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+      <span class="inline-block w-2 h-6 rounded-full" style="background: var(--brand)"></span>
+      Отзывы студентов
+    </h2>
+    
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for testimonial in testimonials %}
+      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+            <span class="text-sm font-medium">{{ testimonial.user.first_name|first }}{{ testimonial.user.last_name|first }}</span>
+          </div>
+          <div>
+            <h4 class="font-medium text-gray-900">{{ testimonial.user.get_full_name }}</h4>
+            <p class="text-gray-500 text-sm">Курс: {{ testimonial.course.title }}</p>
+          </div>
+        </div>
+        
+        <div class="flex gap-1 mb-3">
+          {% for i in "12345" %}
+          <span class="text-amber-500">{% if forloop.counter <= testimonial.rating %}★{% else %}☆{% endif %}</span>
+          {% endfor %}
+        </div>
+        
+        <p class="text-gray-600 text-sm">{{ testimonial.text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-10">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+      <span class="inline-block w-2 h-6 rounded-full" style="background: var(--brand)"></span>
+      Частые вопросы
+    </h2>
+    
+    <div class="space-y-4">
+      {% for faq in faqs %}
+      <div class="rounded-2xl border border-gray-200 bg-white p-5">
+        <h3 class="font-medium text-gray-900 mb-2">{{ faq.question }}</h3>
+        <p class="text-gray-600 text-sm">{{ faq.answer }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-16 text-center">
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 md:p-12">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Готовы начать обучение?</h2>
+      <p class="text-gray-600 mb-6 max-w-md mx-auto">Присоединяйтесь к тысячам студентов, которые уже изменили свою карьеру</p>
+      <button class="px-8 py-3 rounded-full text-white font-medium" style="background: var(--brand)">
+        Выбрать курс
+      </button>
+    </div>
+  </section>
+
 </div>
-{% endif %}
-
-<main>
-    {% block content %}
-    <!-- КОНТЕЙНЕР ДОБАВЛЕН ВО ВСЕ СЕКЦИИ -->
-    {% block courses_section %}
-    <section class="courses-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Наши курсы</h2>
-                <p>Выберите курс, который подходит именно вам</p>
-            </div>
-            
-            <div class="courses-grid">
-                <!-- Карточки курсов -->
-                {% for course in courses %}
-                <div class="course-card">
-                    <img src="{{ course.image.url }}" alt="{{ course.title }}" class="course-card-img">
-                    <div class="course-card-content">
-                        <span class="course-category course-category-{{ course.category.slug }}">
-                            {{ course.category.name }}
-                        </span>
-                        <h3 class="course-card-title">{{ course.title }}</h3>
-                        <p class="course-card-text">{{ course.short_description }}</p>
-                        <div class="course-card-meta">
-                            <div class="course-rating">
-                                <i class="bi bi-star-fill"></i>
-                                {{ course.rating }}
-                                <span class="course-reviews">({{ course.reviews_count }})</span>
-                            </div>
-                            <div class="course-price">{{ course.price }} ₸</div>
-                        </div>
-                    </div>
-                    <div class="course-card-footer">
-                        <a href="{{ course.get_absolute_url }}" class="btn-full">Подробнее</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-    {% endblock %}
-
-    {% block testimonials_section %}
-    <section class="testimonials-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Отзывы студентов</h2>
-                <p>Что говорят наши ученики о курсах</p>
-            </div>
-            
-            <div class="testimonials-grid">
-                {% for testimonial in testimonials %}
-                <div class="testimonial-card">
-                    <div class="testimonial-header">
-                        <img src="{{ testimonial.user.profile.avatar.url }}" alt="{{ testimonial.user.get_full_name }}" class="testimonial-avatar">
-                        <div class="testimonial-user">
-                            <h3>{{ testimonial.user.get_full_name }}</h3>
-                            <p>Студент курса "{{ testimonial.course.title }}"</p>
-                        </div>
-                    </div>
-                    <div class="testimonial-rating">
-                        {% for i in "12345" %}
-                        <i class="bi bi-star-fill{% if forloop.counter > testimonial.rating %}-empty{% endif %}"></i>
-                        {% endfor %}
-                    </div>
-                    <p class="testimonial-text">{{ testimonial.text }}</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-    {% endblock %}
-
-    {% block faq_section %}
-    <section class="faq-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Часто задаваемые вопросы</h2>
-                <p>Ответы на популярные вопросы о наших курсах</p>
-            </div>
-            
-            <div class="faq-container">
-                {% for faq in faqs %}
-                <div class="faq-item">
-                    <button class="faq-question">{{ faq.question }}</button>
-                    <div class="faq-answer">{{ faq.answer }}</div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-    {% endblock %}
-
-    {% block cta_section %}
-    <section class="cta-section">
-        <div class="container">
-            <div class="cta-content">
-                <h2 class="cta-title">Готовы начать обучение?</h2>
-                <p class="cta-text">Присоединяйтесь к тысячам студентов, которые уже изменили свою карьеру с помощью наших курсов</p>
-                <a href="{% url 'courses_list' %}" class="cta-button">Выбрать курс</a>
-            </div>
-        </div>
-    </section>
-    {% endblock %}
-    {% endblock %}
-</main>
-
-<!-- Футер -->
-<footer class="main-footer">
-    <div class="container">
-        <div class="footer-grid">
-            <div class="footer-col">
-                <a class="footer-brand" href="{% url 'home' %}">
-                    <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire">
-                    <span>SkillsSpire</span>
-                </a>
-                <p>Платформа для онлайн-обучения с лучшими курсами от экспертов рынка. Освойте востребованные навыки и измените свою карьеру.</p>
-                <div class="footer-social">
-                    <a href="#"><i class="bi bi-telegram"></i></a>
-                    <a href="#"><i class="bi bi-whatsapp"></i></a>
-                    <a href="#"><i class="bi bi-youtube"></i></a>
-                    <a href="#"><i class="bi bi-instagram"></i></a>
-                </div>
-            </div>
-
-            <div class="footer-col">
-                <h5>Навигация</h5>
-                <ul>
-                    <li><a href="{% url 'home' %}">Главная</a></li>
-                    <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
-                    <li><a href="{% url 'about' %}">О нас</a></li>
-                    <li><a href="{% url 'contact' %}">Контакты</a></li>
-                </ul>
-            </div>
-
-            <div class="footer-col">
-                <h5>Категории</h5>
-                <ul>
-                    <li><a href="#">Программирование</a></li>
-                    <li><a href="#">Дизайн</a></li>
-                    <li><a href="#">Маркетинг</a></li>
-                    <li><a href="#">Аналитика</a></li>
-                </ul>
-            </div>
-
-            <div class="footer-col">
-                <h5>Подписка на рассылку</h5>
-                <p>Подпишитесь на нашу рассылку, чтобы получать информацию о новых курсах и акциях.</p>
-                <form class="footer-subscribe">
-                    <input type="email" placeholder="Ваш email">
-                    <button type="submit">Подписаться</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="footer-bottom">
-            <div class="footer-copyright">
-                <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
-            </div>
-            <div class="footer-payments">
-                <img src="{% static 'img/payments/visa.png' %}" alt="Visa">
-                <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard">
-                <img src="{% static 'img/payments/mir.png' %}" alt="Mir">
-            </div>
-        </div>
-    </div>
-</footer>
-
-<!-- Скрипты -->
-<script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
-<script src="{% static 'js/main.js' %}"></script>
 
 <script>
-// Все JS функциональности объединены
-document.addEventListener('DOMContentLoaded', function() {
-    // Мобильное меню
-    const navToggle = document.getElementById('navToggle');
-    const navMenu = document.getElementById('navMenu');
-    if (navToggle && navMenu) {
-        navToggle.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
-            navToggle.classList.toggle('active');
-        });
-    }
-
-    // Закрытие сообщений
-    document.querySelectorAll('.alert-close').forEach(button => {
-        button.addEventListener('click', function() {
-            this.closest('.alert').style.display = 'none';
-        });
-    });
-
-    // Подписка на рассылку
-    const subscribeForm = document.querySelector('.footer-subscribe');
-    if (subscribeForm) {
-        subscribeForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const emailInput = this.querySelector('input[type="email"]');
-            if (emailInput.value) {
-                alert('Спасибо за подписку! На ваш email будут приходить новости о наших курсах.');
-                emailInput.value = '';
-            }
-        });
-    }
-
-    // Инициализация счетчиков
-    new PureCounter();
-
-    // FAQ
-    const faqQuestions = document.querySelectorAll('.faq-question');
-    faqQuestions.forEach(question => {
-        question.addEventListener('click', function() {
-            this.classList.toggle('active');
-            const answer = this.nextElementSibling;
-            if (this.classList.contains('active')) {
-                answer.style.display = 'block';
-                this.setAttribute('aria-expanded', 'true');
-            } else {
-                answer.style.display = 'none';
-                this.setAttribute('aria-expanded', 'false');
-            }
-        });
-    });
+// JavaScript для переключения темы
+document.getElementById('themeColor').addEventListener('change', function(e) {
+  document.documentElement.style.setProperty('--brand', e.target.value);
+  document.querySelector('.theme-display').textContent = '--brand: ' + e.target.value;
 });
 
-// Аналитика
-(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-ym('00000000', "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true});
-
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
-(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', 'YOUR_PIXEL_ID');
-fbq('track', 'PageView');
+// Простая FAQ логика
+document.querySelectorAll('.faq-item').forEach(item => {
+  const question = item.querySelector('.faq-question');
+  const answer = item.querySelector('.faq-answer');
+  
+  question.addEventListener('click', () => {
+    const isOpen = answer.style.display === 'block';
+    answer.style.display = isOpen ? 'none' : 'block';
+    question.setAttribute('aria-expanded', !isOpen);
+  });
+});
 </script>
-
-{% block extra_js %}{% endblock %}
-</body>
-</html>
+{% endblock %}
