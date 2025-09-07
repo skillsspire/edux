@@ -38,8 +38,15 @@
             <div class="swiper-wrapper">
                 {% for category in categories %}
                 <div class="swiper-slide text-center">
-                    <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="category-card" style="display:block; padding:2rem 1rem; background:white; border-radius:12px;">{{ category.name }}</a>
+                    <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="category-card" style="display:block; padding:2rem 1rem; background:white; border-radius:12px;">
+                        {% if category.icon %}
+                        <i class="{{ category.icon }}" style="font-size:2rem; margin-bottom:0.5rem;"></i>
+                        {% endif %}
+                        <div>{{ category.name }}</div>
+                    </a>
                 </div>
+                {% empty %}
+                <p>Категории пока не добавлены.</p>
                 {% endfor %}
             </div>
             <div class="swiper-button-next"></div>
@@ -55,24 +62,38 @@
         </div>
         <div class="courses-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:2rem;">
             {% for course in popular_courses %}
-            <div class="course-card">
-                <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}">
-                <div class="course-card-content">
-                    <span class="course-category">{{ course.category.name }}</span>
-                    <h3 class="course-card-title">{{ course.title }}</h3>
-                    <p class="course-card-text">{{ course.description|truncatechars:100 }}</p>
-                    <div class="course-card-meta" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="course-rating">
-                            <i class="bi bi-star-fill"></i> {{ course.rating }}
-                            <span class="course-reviews">({{ course.reviews_count }} отзывов)</span>
+            <div class="course-card" style="background:white; border-radius:12px; box-shadow:0 5px 20px rgba(0,0,0,0.05); overflow:hidden;">
+                {% if course.image %}
+                <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" style="width:100%; height:200px; object-fit:cover;">
+                {% endif %}
+                <div class="course-card-content" style="padding:1rem;">
+                    <span class="course-category" style="font-size:0.85rem; color:#6B7280;">{{ course.category.name }}</span>
+                    <h3 class="course-card-title" style="margin:0.5rem 0;">{{ course.title }}</h3>
+                    <p class="course-card-text" style="font-size:0.9rem; color:#374151;">{{ course.description|truncatechars:100 }}</p>
+                    <div class="course-card-meta" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem;">
+                        <div class="course-rating" style="color:#F6AD55;">
+                            <i class="bi bi-star-fill"></i> {{ course.average_rating }}
+                            <span class="course-reviews" style="color:#6B7280; font-size:0.8rem;">({{ course.reviews.count }} отзывов)</span>
                         </div>
-                        <span class="course-price">{% if course.price > 0 %}{{ course.price }} ₽{% else %}Бесплатно{% endif %}</span>
+                        <span class="course-price" style="font-weight:600;">
+                            {% if course.price > 0 %}
+                                {{ course.price }} ₽
+                            {% else %}
+                                Бесплатно
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
-                <div class="course-card-footer">
-                    <a href="{% url 'course_detail' course.id %}" class="btn-full">{% if user.is_authenticated and user in course.enrolled_users.all %}Продолжить{% else %}Подробнее{% endif %}</a>
+                <div class="course-card-footer" style="padding:1rem; text-align:center;">
+                    {% if user.is_authenticated and user in course.students.all %}
+                    <a href="{{ course.get_absolute_url }}" class="btn-full" style="background:#01349D; color:white; padding:0.5rem 1rem; border-radius:8px; display:inline-block;">Продолжить</a>
+                    {% else %}
+                    <a href="{{ course.get_absolute_url }}" class="btn-full" style="background:#F6AD55; color:#0B1020; padding:0.5rem 1rem; border-radius:8px; display:inline-block;">Подробнее</a>
+                    {% endif %}
                 </div>
             </div>
+            {% empty %}
+            <p>Курсы пока не добавлены.</p>
             {% endfor %}
         </div>
     </div>
