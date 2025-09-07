@@ -4,12 +4,37 @@ from django.contrib import messages
 from django.db.models import Q, Count, Avg
 from django.core.paginator import Paginator
 from django.contrib.auth import login, authenticate
+from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, Http404
+import json
 from django.utils import timezone
 from .forms import CustomUserCreationForm
 from .models import *
 from .forms import *
 
+@csrf_exempt
+def kaspi_webhook(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        invoice_id = data.get('invoiceId')
+        status = data.get('status')  # success / failed
+
+        try:
+            payment = Payment.objects.get(kaspi_invoice_id=invoice_id)
+            if status == 'success':
+                payment.status = 'success'
+                payment.save()
+                # Добавляем пользователя в студентов курса
+                Enrollment.objects.create(user=payment.user, course=payment.course)
+                payment.course.students.add(payment.user)
+            elif status == 'failed':
+                payment.status = 'failed'
+                payment.save()
+        except Payment.DoesNotExist:
+            return JsonResponse({'error': 'Payment not found'}, status=404)
+
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'Invalid method'}, status=400)
 
 def signup(request):
     if request.method == 'POST':

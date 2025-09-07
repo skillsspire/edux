@@ -18,6 +18,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
+    path('payment/webhook/', views.kaspi_webhook, name='kaspi_webhook'),
 
     path('login/', auth_views.LoginView.as_view(
         template_name='registration/login.html',

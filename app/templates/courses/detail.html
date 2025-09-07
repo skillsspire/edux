@@ -17,7 +17,7 @@
                     </div>
                     <div class="stat-item">
                         <i class="bi bi-clock stat-icon"></i>
-                        <span>{{ course.duration }}</span>
+                        <span>{{ course.duration }} часов</span>
                     </div>
                     <div class="stat-item">
                         <i class="bi bi-star stat-icon"></i>
@@ -178,7 +178,7 @@
     </div>
 </div>
 
-<!-- Модальное окно для записи на курс -->
+<!-- Модальное окно для записи на курс с Kaspi Pay -->
 <div class="modal fade" id="enrollModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -195,8 +195,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <form action="{% url 'course_enroll' course.slug %}" method="post">
-                    {% csrf_token %}
+                <form action="{% url 'create_payment' course.slug %}" method="get">
                     <button type="submit" class="btn btn-primary">Оплатить и записаться</button>
                 </form>
             </div>
