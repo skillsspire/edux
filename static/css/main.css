@@ -1,3 +1,4 @@
+/*==================== VARIABLES ====================*/
 :root {
     --color-primary: #01349D;
     --color-primary-light: #3b5cc5;
@@ -15,12 +16,15 @@
     --color-error: #F56565;
     --color-warning: #ECC94B;
     --color-info: #4299E1;
+
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
     --radius: 8px;
     --radius-lg: 12px;
     --transition: all 0.3s ease;
+    --card-min-width: 280px; /* можно менять для адаптивных сеток */
 }
 
 [data-theme="dark"] {
@@ -32,6 +36,7 @@
     --color-border: #4A5568;
 }
 
+/*==================== BASE ====================*/
 * {
     margin: 0;
     padding: 0;
@@ -41,10 +46,11 @@
 body {
     font-family: 'Poppins', sans-serif;
     color: var(--color-text-primary);
-    background: white;
+    background: var(--color-bg-white);
     line-height: 1.6;
 }
 
+/*==================== CONTAINERS ====================*/
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -52,19 +58,22 @@ body {
     width: 100%;
 }
 
+/*==================== NAVIGATION ====================*/
 .main-nav {
-    background: white;
+    background: var(--color-bg-white);
     border-bottom: 1px solid var(--color-border);
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     position: sticky;
     top: 0;
     z-index: 100;
+    min-height: 60px;
 }
 
 .nav-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
 }
 
 .nav-brand {
@@ -88,47 +97,30 @@ body {
     text-decoration: none;
     transition: color 0.2s;
 }
+.nav-list a:hover { color: var(--color-primary); }
 
-.nav-list a:hover {
-    color: var(--color-primary);
-}
-
+/*==================== BUTTONS ====================*/
 .btn {
     display: inline-block;
     padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    text-decoration: none;
+    border-radius: var(--radius);
     font-weight: 500;
-    transition: all 0.2s;
     border: none;
     cursor: pointer;
+    transition: var(--transition);
 }
 
-.btn-primary {
-    background: var(--color-primary);
-    color: white;
-}
+.btn-primary { background: var(--color-primary); color: #fff; }
+.btn-primary:hover { background: var(--color-primary-dark); }
+.btn-outline { border: 2px solid var(--color-primary); color: var(--color-primary); background: transparent; }
+.btn-outline:hover { background: var(--color-primary); color: #fff; }
+.btn-full { display: block; width: 100%; text-align: center; }
 
-.btn-primary:hover {
-    background: #002b7a;
-}
-
-.btn-outline {
-    border: 2px solid var(--color-primary);
-    color: var(--color-primary);
-    background: transparent;
-}
-
-.btn-outline:hover {
-    background: var(--color-primary);
-    color: white;
-}
-
+/*==================== SECTION HEADER ====================*/
 .section-header {
     text-align: center;
     margin-bottom: 3rem;
 }
-
 .section-header p {
     color: var(--color-text-tertiary);
     font-size: 1.1rem;
@@ -136,46 +128,27 @@ body {
     margin: 0 auto;
 }
 
-.courses-section {
-    background: var(--color-bg-section);
-    padding: 5rem 0;
-}
-
-.courses-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-}
-
-.course-card {
+/*==================== CARDS ====================*/
+.card {
     background: var(--color-bg-white);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
     display: flex;
     flex-direction: column;
     height: 100%;
 }
 
-.course-card:hover {
+.card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
 }
 
-.course-card-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
+.card-img { width: 100%; height: 200px; object-fit: cover; }
+.card-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
 
-.course-card-content {
-    padding: 1.5rem;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
-
+/* Категории */
 .course-category {
     display: inline-block;
     padding: 0.25rem 0.75rem;
@@ -183,259 +156,28 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    color: white;
+    color: #fff;
 }
+.course-category-design { background: var(--color-accent-cyan); }
+.course-category-marketing { background: var(--color-accent-warm); }
 
-.course-category-design { 
-    background: var(--color-accent-cyan); 
-}
-
-.course-category-marketing { 
-    background: var(--color-accent-warm); 
-}
-
-.course-card-title {
-    font-size: 1.25rem;
-    color: var(--color-primary);
-    margin-bottom: 0.75rem;
-}
-
-.course-card-text {
-    color: var(--color-text-tertiary);
-    margin-bottom: 1.5rem;
-    flex-grow: 1;
-}
-
-.course-card-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.course-rating {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--color-accent-warm);
-    font-weight: 600;
-}
-
-.course-reviews {
-    color: var(--color-text-tertiary);
-    font-size: 0.9rem;
-}
-
-.course-price {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--color-primary);
-}
-
-.course-card-footer {
-    padding: 1rem 1.5rem;
-    background: rgba(1, 52, 157, 0.03);
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.btn-full {
-    display: block;
-    width: 100%;
-    text-align: center;
-    padding: 0.75rem;
-    background: var(--color-primary);
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-full:hover {
-    background: #002b7a;
-    transform: translateY(-2px);
-}
-
-.testimonials-section {
-    background: var(--color-bg-section);
-    padding: 5rem 0;
-}
-
+/*==================== GRIDS ====================*/
+.courses-grid,
 .testimonials-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
     gap: 2rem;
 }
 
-.testimonial-card {
-    background: var(--color-bg-white);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    height: 100%;
-}
-
-.testimonial-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
-}
-
-.testimonial-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.testimonial-user h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
-    color: var(--color-primary);
-}
-
-.testimonial-user p {
-    font-size: 0.9rem;
-    color: var(--color-text-tertiary);
-    margin: 0;
-}
-
-.testimonial-rating {
-    color: var(--color-accent-warm);
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-}
-
-.testimonial-text {
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-    margin: 0;
-}
-
-.faq-section {
-    padding: 5rem 0;
-}
-
-.faq-container {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.faq-item {
-    background: var(--color-bg-white);
-    border-radius: 12px;
-    margin-bottom: 1rem;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-}
-
-.faq-question {
-    width: 100%;
-    padding: 1.5rem;
-    background: none;
-    border: none;
-    text-align: left;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--color-primary);
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.faq-question::after {
-    content: '+';
-    font-size: 1.5rem;
-}
-
-.faq-question.active::after {
-    content: '-';
-}
-
-.faq-answer {
-    padding: 0 1.5rem 1.5rem;
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-    display: none;
-}
-
-.faq-question.active + .faq-answer {
-    display: block;
-}
-
-.cta-section {
-    background: var(--color-primary);
-    color: white;
-    padding: 4rem 0;
-    text-align: center;
-}
-
-.cta-title {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: white;
-}
-
-.cta-text {
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-    opacity: 0.9;
-}
-
-.cta-button {
-    display: inline-block;
-    padding: 1rem 2rem;
-    background: var(--color-accent-warm);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-}
-
-.cta-button:hover {
-    background: #e59415;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.footer {
-    background: var(--color-primary);
-    color: white;
-    padding: 2rem 0;
-    text-align: center;
-}
-
+/*==================== MEDIA QUERIES ====================*/
 @media (max-width: 768px) {
-    .nav-list {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
+    .nav-list { flex-direction: column; gap: 1rem; }
     .courses-grid,
-    .testimonials-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .cta-title {
-        font-size: 2rem;
-    }
-    
-    .faq-question {
-        padding: 1rem;
-        font-size: 1rem;
-    }
-    
-    .section-header {
-        margin-bottom: 2rem;
-    }
-    
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .cta-title { font-size: 2rem; }
+    .faq-question { padding: 1rem; font-size: 1rem; }
+    .section-header { margin-bottom: 2rem; }
     .courses-section,
     .testimonials-section,
-    .faq-section {
-        padding: 3rem 0;
-    }
+    .faq-section { padding: 3rem 0; }
 }
