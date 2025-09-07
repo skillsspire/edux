@@ -2,12 +2,14 @@ import os
 from pathlib import Path
 import dj_database_url
 
+# Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ==================== SECURITY ====================
 SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-# Настройки хостов и CSRF - ВСЕГДА в начале
+# Hosts & CSRF
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = [
     'https://www.skillsspire.com',
@@ -15,41 +17,49 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',
 ]
 
-# Критически важная настройка для работы за прокси
+# Proxy settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
-# Добавляем хост Render если он есть
+# Render host
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
     CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 
-# Безопасность - ЕДИНСТВЕННОЕ место где эти настройки объявляются
+# Security headers
 SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True") == "True"
-SESSION_COOKIE_SECURE = True  # Всегда True для HTTPS
-CSRF_COOKIE_SECURE = True     # Всегда True для HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_DOMAIN = None
 SESSION_COOKIE_DOMAIN = None
-
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-INSTALLED_APPS = [
+# ==================== APPLICATIONS ====================
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
-
-    'phonenumber_field',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+]
+
+THIRD_PARTY_APPS = [
+    'phonenumber_field',
     'ckeditor',
+]
+
+LOCAL_APPS = [
     'app',
 ]
 
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# ==================== MIDDLEWARE ====================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -62,6 +72,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ==================== URLS & TEMPLATES ====================
 ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
@@ -82,6 +93,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.wsgi.application'
 
+# ==================== DATABASE ====================
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
@@ -90,6 +102,7 @@ DATABASES = {
     )
 }
 
+# ==================== AUTHENTICATION ====================
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -97,6 +110,16 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'app.backends.EmailOrUsernameBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+LOGIN_URL = '/login/'
+
+# ==================== INTERNATIONALIZATION ====================
 LANGUAGE_CODE = 'ru'
 TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
@@ -110,6 +133,7 @@ LANGUAGES = [
 
 LOCALE_PATHS = [BASE_DIR / 'locale']
 
+# ==================== STATIC & MEDIA FILES ====================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
@@ -117,31 +141,30 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
-LOGIN_URL = '/login/'
-
-AUTHENTICATION_BACKENDS = [
-    'app.backends.EmailOrUsernameBackend',  # ваш кастомный бэкенд
-    'django.contrib.auth.backends.ModelBackend',  # стандартный бэкенд
-]
-
-# Настройки Whitenoise
+# Whitenoise settings
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
 
-# Email Configuration
+# ==================== EMAIL CONFIGURATION ====================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'skillsspire@gmail.com'  # ваш Gmail
-EMAIL_HOST_PASSWORD = 'drie vshy okys dlmq'  # ваш пароль приложения
+EMAIL_HOST_USER = 'skillsspire@gmail.com'
+EMAIL_HOST_PASSWORD = 'drie vshy okys dlmq'
 DEFAULT_FROM_EMAIL = 'SkillsSpire <skillsspire@gmail.com>'
 SERVER_EMAIL = 'skillsspire@gmail.com'
+EMAIL_TIMEOUT = 30
+EMAIL_USE_SSL = False
 
-# Подавить предупреждение CKEditor
+# ==================== THIRD-PARTY SETTINGS ====================
+# Phone number field
+PHONENUMBER_DEFAULT_REGION = 'KZ'
+PHONENUMBER_DEFAULT_FORMAT = 'INTERNATIONAL'
+
+# CKEditor
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
+
+# ==================== OTHER SETTINGS ====================
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
