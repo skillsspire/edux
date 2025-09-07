@@ -3,13 +3,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0001_initial'),
+        ('app', 'last_migration_name'),  # замените на имя последней миграции вашего app
     ]
 
     operations = [
         migrations.AddField(
             model_name='category',
-            name='icon',
-            field=models.CharField(max_length=50, blank=True, verbose_name='Иконка'),
+            name='is_active',
+            field=models.BooleanField(default=True, verbose_name='Активна'),
         ),
     ]
