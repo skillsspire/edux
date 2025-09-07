@@ -216,49 +216,70 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ================== NAV TOGGLE ==================
     const navToggle = document.getElementById('navToggle');
     const navMenu = document.getElementById('navMenu');
-    if (navToggle && navMenu) {
-        navToggle.addEventListener('click', function() {
+    if(navToggle && navMenu){
+        navToggle.addEventListener('click', () => {
             navMenu.classList.toggle('active');
             navToggle.classList.toggle('active');
         });
     }
 
+    // ================== ALERT CLOSE ==================
     document.querySelectorAll('.alert-close').forEach(button => {
         button.addEventListener('click', function() {
-            this.closest('.alert').style.display = 'none';
+            const alertEl = this.closest('.alert');
+            alertEl.classList.add('hide');
+            setTimeout(()=> alertEl.remove(), 350);
         });
     });
 
+    // ================== SUBSCRIBE FORM ==================
     const subscribeForm = document.querySelector('.footer-subscribe');
-    if (subscribeForm) {
-        subscribeForm.addEventListener('submit', function(e) {
+    if(subscribeForm){
+        subscribeForm.addEventListener('submit', function(e){
             e.preventDefault();
             const emailInput = this.querySelector('input[type="email"]');
-            if (emailInput.value) {
+            if(emailInput.value){
                 alert('Спасибо за подписку! На ваш email будут приходить новости о наших курсах.');
                 emailInput.value = '';
             }
         });
     }
 
+    // ================== PURE COUNTER ==================
     new PureCounter();
 
+    // ================== FAQ ==================
     const faqQuestions = document.querySelectorAll('.faq-question');
     faqQuestions.forEach(question => {
         question.addEventListener('click', function() {
+            faqQuestions.forEach(q => {
+                if(q !== this){
+                    q.classList.remove('active');
+                    q.nextElementSibling.style.display = 'none';
+                }
+            });
             this.classList.toggle('active');
             const answer = this.nextElementSibling;
-            if (this.classList.contains('active')) {
-                answer.style.display = 'block';
-                this.setAttribute('aria-expanded', 'true');
-            } else {
-                answer.style.display = 'none';
-                this.setAttribute('aria-expanded', 'false');
-            }
+            answer.style.display = this.classList.contains('active') ? 'block' : 'none';
         });
     });
+
+    // ================== THEME TOGGLE ==================
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark-theme');
+        if(document.documentElement.classList.contains('dark-theme')){
+            localStorage.setItem('theme','dark');
+        } else {
+            localStorage.setItem('theme','light');
+        }
+    });
+    if(localStorage.getItem('theme') === 'dark'){
+        document.documentElement.classList.add('dark-theme');
+    }
 });
 </script>
 

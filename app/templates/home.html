@@ -1,298 +1,166 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
+<style>
+.faq-answer { display: none; padding: 0 1rem 1rem; }
+.faq-item.active .faq-answer { display: block; }
+.swiper { padding: 2rem 0; }
+.swiper-slide { background:white; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:1rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="course-hero">
-    <div class="container">
-        <div class="hero-content">
-            <span class="course-badge">🚀 Самый популярный курс 2025</span>
-            <h1 class="course-title">Начни карьеру в IT с нуля</h1>
-            <p class="course-subtitle">Практические курсы от экспертов с гарантией трудоустройства. Обучайся в удобное время и получи востребованную профессию.</p>
 
-            <div class="hero-cta">
-                <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">
-                    <i class="bi bi-play-circle"></i> Начать обучение
-                </a>
-                <a href="#courses" class="hero-btn hero-btn-secondary">
-                    <i class="bi bi-eye"></i> Смотреть курсы
-                </a>
-            </div>
-
-            <div class="hero-stats">
-                <div class="stat-item">
-                    <i class="bi bi-people stat-icon"></i>
-                    <span>10,000+ студентов</span>
-                </div>
-                <div class="stat-item">
-                    <i class="bi bi-book stat-icon"></i>
-                    <span>150+ курсов</span>
-                </div>
-                <div class="stat-item">
-                    <i class="bi bi-award stat-icon"></i>
-                    <span>95% довольных студентов</span>
-                </div>
-            </div>
+<section class="course-hero" style="background: linear-gradient(135deg, #01349D 0%, #3b5cc5 100%); color:white; padding:6rem 0;">
+    <div class="container text-center">
+        <span class="course-badge">🚀 Самый популярный курс 2025</span>
+        <h1 class="course-title">Начни карьеру в IT с нуля</h1>
+        <p class="course-subtitle">Практические курсы от экспертов с гарантией трудоустройства. Обучайся в удобное время и получи востребованную профессию.</p>
+        <form action="{% url 'courses_list' %}" method="get" class="hero-search" style="margin:2rem auto; max-width:500px; display:flex;">
+            <input type="text" name="q" placeholder="Поиск курсов" style="flex:1; padding:0.75rem 1rem; border-radius:8px 0 0 8px; border:none;">
+            <button type="submit" style="padding:0.75rem 1rem; border:none; background:#F6AD55; color:#0B1020; border-radius:0 8px 8px 0; font-weight:600;">Поиск</button>
+        </form>
+        <div class="hero-cta" style="margin-top:2rem; display:flex; justify-content:center; gap:1rem;">
+            <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начать обучение</a>
+            <a href="#courses" class="hero-btn hero-btn-secondary">Смотреть курсы</a>
         </div>
     </div>
 </section>
 
-<section class="benefits-section">
+<section class="categories-section" style="padding:4rem 0; background:#F8FAFC;">
     <div class="container">
-        <div class="section-header">
-            <h2>Почему выбирают нас</h2>
-            <p>Обучение, которое действительно меняет карьеру</p>
+        <div class="section-header text-center">
+            <h2>Популярные категории</h2>
         </div>
-
-        <div class="grid grid-3">
-            <div class="benefit-card">
-                <div class="benefit-icon">
-                    <i class="bi bi-briefcase"></i>
+        <div class="swiper categories-swiper">
+            <div class="swiper-wrapper">
+                {% for category in categories %}
+                <div class="swiper-slide text-center">
+                    <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="category-card" style="display:block; padding:2rem 1rem; background:white; border-radius:12px;">{{ category.name }}</a>
                 </div>
-                <h3 class="benefit-title">Трудоустройство</h3>
-                <p class="benefit-description">Помогаем с составлением резюме и подготовкой к собеседованиям. Гарантия трудоустройства для лучших студентов.</p>
+                {% endfor %}
             </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">
-                    <i class="bi bi-clock"></i>
-                </div>
-                <h3 class="benefit-title">Гибкий график</h3>
-                <p class="benefit-description">Учитесь в удобное время. Все материалы доступны 24/7. Поддержка кураторов и сообщества.</p>
-            </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">
-                    <i class="bi bi-person-check"></i>
-                </div>
-                <h3 class="benefit-title">Эксперты-практики</h3>
-                <p class="benefit-description">Преподаватели с опытом работы в ведущих IT-компаниях. Актуальные знания и реальные кейсы.</p>
-            </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
         </div>
     </div>
 </section>
 
-<section id="courses" class="section courses-section">
+<section id="courses" class="section courses-section" style="padding:5rem 0;">
     <div class="container">
-        <div class="section-header">
+        <div class="section-header text-center">
             <h2>Популярные курсы</h2>
-            <p>Выберите направление для старта карьеры</p>
         </div>
-
-        <div class="courses-grid">
+        <div class="courses-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:2rem;">
+            {% for course in popular_courses %}
             <div class="course-card">
-                <img src="{% static 'img/courses/python.jpg' %}" class="course-card-img" alt="Python разработчик">
+                <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}">
                 <div class="course-card-content">
-                    <span class="course-category">Программирование</span>
-                    <h3 class="course-card-title">Python разработчик</h3>
-                    <p class="course-card-text">Освойте один из самых востребованных языков программирования с нуля.</p>
-                    <div class="course-card-meta">
+                    <span class="course-category">{{ course.category.name }}</span>
+                    <h3 class="course-card-title">{{ course.title }}</h3>
+                    <p class="course-card-text">{{ course.description|truncatechars:100 }}</p>
+                    <div class="course-card-meta" style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="course-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <span>4.9</span>
-                            <span class="course-reviews">(245 отзывов)</span>
+                            <i class="bi bi-star-fill"></i> {{ course.rating }}
+                            <span class="course-reviews">({{ course.reviews_count }} отзывов)</span>
                         </div>
-                        <span class="course-price">24 900 ₽</span>
+                        <span class="course-price">{% if course.price > 0 %}{{ course.price }} ₽{% else %}Бесплатно{% endif %}</span>
                     </div>
                 </div>
                 <div class="course-card-footer">
-                    <a href="#" class="btn-full">Подробнее</a>
+                    <a href="{% url 'course_detail' course.id %}" class="btn-full">{% if user.is_authenticated and user in course.enrolled_users.all %}Продолжить{% else %}Подробнее{% endif %}</a>
                 </div>
             </div>
-
-            <div class="course-card">
-                <img src="{% static 'img/courses/design.jpg' %}" class="course-card-img" alt="UX/UI дизайн">
-                <div class="course-card-content">
-                    <span class="course-category course-category-design">Дизайн</span>
-                    <h3 class="course-card-title">UX/UI дизайн</h3>
-                    <p class="course-card-text">Научитесь создавать интерфейсы, которые нравятся пользователям.</p>
-                    <div class="course-card-meta">
-                        <div class="course-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <span>4.8</span>
-                            <span class="course-reviews">(189 отзывов)</span>
-                        </div>
-                        <span class="course-price">29 900 ₽</span>
-                    </div>
-                </div>
-                <div class="course-card-footer">
-                    <a href="#" class="btn-full">Подробнее</a>
-                </div>
-            </div>
-
-            <div class="course-card">
-                <img src="{% static 'img/courses/marketing.jpg' %}" class="course-card-img" alt="Маркетинг">
-                <div class="course-card-content">
-                    <span class="course-category course-category-marketing">Маркетинг</span>
-                    <h3 class="course-card-title">Digital-маркетинг</h3>
-                    <p class="course-card-text">Освойте все каналы digital-продвижения от SMM до контекстной рекламы.</p>
-                    <div class="course-card-meta">
-                        <div class="course-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <span>4.7</span>
-                            <span class="course-reviews">(156 отзывов)</span>
-                        </div>
-                        <span class="course-price">21 900 ₽</span>
-                    </div>
-                </div>
-                <div class="course-card-footer">
-                    <a href="#" class="btn-full">Подробнее</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-center">
-            <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-secondary">Все курсы</a>
+            {% endfor %}
         </div>
     </div>
 </section>
 
-<section class="expert-section">
+<section class="testimonials-section" style="padding:5rem 0; background:#F8FAFC;">
     <div class="container">
-        <div class="expert-card">
-            <img src="{% static 'img/experts/expert1.jpg' %}" alt="Алексей Петров" class="expert-image">
-            <div class="expert-info">
-                <h3 class="expert-name">Алексей Петров</h3>
-                <p class="expert-title">Senior Developer в Яндекс</p>
-                <p class="expert-bio">Опыт работы в IT - более 12 лет. Специализируется на веб-разработке и архитектуре высоконагруженных систем. Автор 5 курсов по программированию, которые прошли более 5000 студентов.</p>
-                <div class="expert-stats">
-                    <div class="expert-stat">
-                        <span class="stat-number">12+</span>
-                        <span class="stat-label">лет опыта</span>
-                    </div>
-                    <div class="expert-stat">
-                        <span class="stat-number">5,000+</span>
-                        <span class="stat-label">студентов</span>
-                    </div>
-                    <div class="expert-stat">
-                        <span class="stat-number">4.9</span>
-                        <span class="stat-label">рейтинг</span>
+        <div class="section-header text-center">
+            <h2>Отзывы студентов</h2>
+        </div>
+        <div class="swiper testimonials-swiper">
+            <div class="swiper-wrapper">
+                {% for testimonial in testimonials %}
+                <div class="swiper-slide">
+                    <div class="testimonial-card" style="padding:2rem;">
+                        <div class="testimonial-header" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+                            <img src="{{ testimonial.avatar.url }}" class="testimonial-avatar" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                            <div class="testimonial-user">
+                                <h3>{{ testimonial.user_name }}</h3>
+                                <p>{{ testimonial.course_name }}</p>
+                            </div>
+                        </div>
+                        <div class="testimonial-rating" style="color:#F6AD55; margin-bottom:1rem;">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= testimonial.rating|floatformat:0 %}
+                                <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                <i class="bi bi-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <p>{{ testimonial.text }}</p>
                     </div>
                 </div>
+                {% endfor %}
             </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
         </div>
     </div>
 </section>
 
-<section class="testimonials-section">
+<section class="faq-section" style="padding:5rem 0;">
     <div class="container">
-        <div class="section-header">
-            <h2>Отзывы наших студентов</h2>
-            <p>Реальные истории успеха после прохождения курсов</p>
-        </div>
-
-        <div class="testimonials-grid">
-            <div class="testimonial-card">
-                <div class="testimonial-header">
-                    <img src="{% static 'img/testimonials/user1.jpg' %}" alt="Мария" class="testimonial-avatar">
-                    <div class="testimonial-user">
-                        <h3>Мария Иванова</h3>
-                        <p>Выпускница курса UX/UI дизайн</p>
-                    </div>
-                </div>
-                <div class="testimonial-rating">
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                </div>
-                <p class="testimonial-text">"Курс превзошел все ожидания! После обучения получила оффер от крупной IT-компании. Особенно ценна практика и обратная связь от менторов."</p>
-            </div>
-
-            <div class="testimonial-card">
-                <div class="testimonial-header">
-                    <img src="{% static 'img/testimonials/user2.jpg' %}" alt="Александр" class="testimonial-avatar">
-                    <div class="testimonial-user">
-                        <h3>Александр Петров</h3>
-                        <p>Выпускник курса Python разработчик</p>
-                    </div>
-                </div>
-                <div class="testimonial-rating">
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-half"></i>
-                </div>
-                <p class="testimonial-text">"Перешел с другой профессии в IT благодаря этому курсу. Обучение структурированное, много практики. Поддержка кураторов на высшем уровне!"</p>
-            </div>
-
-            <div class="testimonial-card">
-                <div class="testimonial-header">
-                    <img src="{% static 'img/testimonials/user3.jpg' %}" alt="Екатерина" class="testimonial-avatar">
-                    <div class="testimonial-user">
-                        <h3>Екатерина Смирнова</h3>
-                        <p>Выпускница курса Digital-маркетинг</p>
-                    </div>
-                </div>
-                <div class="testimonial-rating">
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                </div>
-                <p class="testimonial-text">"За 3 месяца обучения смогла запустить эффективные рекламные кампании для своего бизнеса. Курс дал именно практические знания, которые сразу можно применять."</p>
-            </div>
-        </div>
-
-        <div class="text-center">
-            <a href="#" class="hero-btn hero-btn-secondary">Все отзывы</a>
-        </div>
-    </div>
-</section>
-
-<section class="faq-section">
-    <div class="container">
-        <div class="section-header">
+        <div class="section-header text-center">
             <h2>Часто задаваемые вопросы</h2>
-            <p>Мы ответили на самые популярные вопросы</p>
         </div>
-
-        <div class="faq-container">
+        <div class="faq-container" style="max-width:800px; margin:0 auto;">
+            {% for faq in faqs %}
             <div class="faq-item">
-                <button class="faq-question">Сколько времени занимает обучение?</button>
-                <div class="faq-answer">
-                    Продолжительность курсов варьируется от 2 до 6 месяцев, в зависимости от программы. В среднем студенты уделяют обучению 8-10 часов в неделю.
-                </div>
+                <button class="faq-question" style="width:100%; padding:1.5rem; text-align:left; font-weight:600; font-size:1.1rem; cursor:pointer;">{{ faq.question }}</button>
+                <div class="faq-answer">{{ faq.answer }}</div>
             </div>
-
-            <div class="faq-item">
-                <button class="faq-question">Нужны ли начальные знания для обучения?</button>
-                <div class="faq-answer">
-                    Большинство наших курсов рассчитаны на начинающих с нуля. Для некоторых продвинутых программ могут потребоваться базовые знания, которые указаны в требованиях к курсу.
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">Как происходит трудоустройство после обучения?</button>
-                <div class="faq-answer">
-                    Мы помогаем с составлением резюме, готовим к собеседованиям и предоставляем доступ к вакансиям наших партнеров. Лучшие студенты получают гарантированное трудоустройство.
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">Можно ли оплачивать обучение в рассрочку?</button>
-                <div class="faq-answer">
-                    Да, мы предоставляем возможность беспроцентной рассрочки на большинство курсов. Вы можете разделить оплату на 2-6 месяцев.
-                </div>
-            </div>
-        </div>
-
-        <div class="text-center">
-            <p>Не нашли ответ на свой вопрос?</p>
-            <a href="{% url 'contact' %}" class="hero-btn hero-btn-secondary">Задать вопрос</a>
+            {% endfor %}
         </div>
     </div>
 </section>
 
-<section class="cta-section">
+<section class="cta-section" style="padding:4rem 0; background:linear-gradient(135deg,#F6AD55,#ECC94B); text-align:center; color:#0B1020;">
     <div class="container">
-        <div class="cta-content">
-            <h2 class="cta-title">Готовы начать карьеру в IT?</h2>
-            <p class="cta-text">Присоединяйтесь к тысячам студентов, которые уже изменили свою жизнь с помощью наших курсов</p>
-            <a href="{% url 'signup' %}" class="cta-button">Начать обучение</a>
-        </div>
+        <h2>Готовы начать карьеру в IT?</h2>
+        <p style="margin-bottom:2rem;">Присоединяйтесь к тысячам студентов, которые уже изменили свою жизнь с помощью наших курсов</p>
+        <a href="{% url 'signup' %}" class="cta-button" style="background:#01349D; color:white; padding:1rem 2rem; border-radius:8px; font-weight:600;">Начать обучение</a>
     </div>
 </section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+<script>
+var categoriesSwiper = new Swiper('.categories-swiper', {
+    slidesPerView: 'auto',
+    spaceBetween: 20,
+    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+});
+var testimonialsSwiper = new Swiper('.testimonials-swiper', {
+    slidesPerView: 1,
+    spaceBetween: 20,
+    loop:true,
+    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+    breakpoints: { 768:{ slidesPerView:2 }, 1024:{ slidesPerView:3 } }
+});
+
+document.querySelectorAll('.faq-question').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+        btn.parentElement.classList.toggle('active');
+    });
+});
+</script>
 {% endblock %}

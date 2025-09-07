@@ -11,20 +11,22 @@
     --color-bg-dark: #1a202c;
     --color-accent-warm: #F6AD55;
     --color-accent-cyan: #4FD1C5;
+    --color-accent-purple: #9F7AEA;
+    --color-accent-pink: #ED64A6;
     --color-border: #E5E7EB;
     --color-success: #48BB78;
     --color-error: #F56565;
     --color-warning: #ECC94B;
     --color-info: #4299E1;
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
 
     --radius: 8px;
     --radius-lg: 12px;
     --transition: all 0.3s ease;
-    --card-min-width: 280px; /* можно менять для адаптивных сеток */
+    --card-min-width: 280px;
 }
 
 [data-theme="dark"] {
@@ -34,6 +36,8 @@
     --color-bg-white: #2D3748;
     --color-bg-section: #1A202C;
     --color-border: #4A5568;
+    --color-accent-warm: #F6AD55;
+    --color-accent-cyan: #4FD1C5;
 }
 
 /*==================== BASE ====================*/
@@ -48,6 +52,7 @@ body {
     color: var(--color-text-primary);
     background: var(--color-bg-white);
     line-height: 1.6;
+    scroll-behavior: smooth;
 }
 
 /*==================== CONTAINERS ====================*/
@@ -67,37 +72,8 @@ body {
     top: 0;
     z-index: 100;
     min-height: 60px;
+    transition: background 0.3s;
 }
-
-.nav-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    text-decoration: none;
-}
-
-.nav-list {
-    display: flex;
-    gap: 2rem;
-    list-style: none;
-}
-
-.nav-list a {
-    color: var(--color-text-primary);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-.nav-list a:hover { color: var(--color-primary); }
 
 /*==================== BUTTONS ====================*/
 .btn {
@@ -108,6 +84,7 @@ body {
     border: none;
     cursor: pointer;
     transition: var(--transition);
+    text-decoration: none;
 }
 
 .btn-primary { background: var(--color-primary); color: #fff; }
@@ -129,7 +106,10 @@ body {
 }
 
 /*==================== CARDS ====================*/
-.card {
+.card,
+.course-card,
+.testimonial-card,
+.category-card {
     background: var(--color-bg-white);
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -140,13 +120,28 @@ body {
     height: 100%;
 }
 
-.card:hover {
+.card:hover,
+.course-card:hover,
+.testimonial-card:hover,
+.category-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0,0,0,0.12);
 }
 
-.card-img { width: 100%; height: 200px; object-fit: cover; }
-.card-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+.card-img,
+.course-card-img,
+.testimonial-avatar {
+    width: 100%;
+    object-fit: cover;
+}
+
+.card-content,
+.course-card-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
 
 /* Категории */
 .course-category {
@@ -160,6 +155,7 @@ body {
 }
 .course-category-design { background: var(--color-accent-cyan); }
 .course-category-marketing { background: var(--color-accent-warm); }
+.course-category-business { background: var(--color-accent-purple); }
 
 /*==================== GRIDS ====================*/
 .courses-grid,
@@ -168,6 +164,14 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
     gap: 2rem;
 }
+
+/*==================== FAQ ====================*/
+.faq-container { max-width: 800px; margin: 0 auto; }
+.faq-item { margin-bottom: 1rem; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--color-border); }
+.faq-question { width: 100%; text-align: left; padding: 1.25rem 1rem; font-weight:600; font-size:1rem; cursor:pointer; background: var(--color-bg-section); border:none; outline:none; transition: var(--transition); }
+.faq-item.active .faq-question { background: var(--color-primary); color: #fff; }
+.faq-answer { padding: 1rem; display:none; background: var(--color-bg-white); color: var(--color-text-primary); }
+.faq-item.active .faq-answer { display:block; }
 
 /*==================== MEDIA QUERIES ====================*/
 @media (max-width: 768px) {
