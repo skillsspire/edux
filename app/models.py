@@ -4,7 +4,9 @@ from django.urls import reverse
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-
+User.add_to_class('is_instructor', 
+    property(lambda self: hasattr(self, 'instructor_profile') and 
+                         getattr(self.instructor_profile, 'is_approved', False)))
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
     slug = models.SlugField(unique=True, verbose_name="URL")
