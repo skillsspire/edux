@@ -143,8 +143,5 @@ EMAIL_HOST_PASSWORD = 'drie vshy okys dlmq'  # ваш пароль прилож�
 DEFAULT_FROM_EMAIL = 'SkillsSpire <skillsspire@gmail.com>'
 SERVER_EMAIL = 'skillsspire@gmail.com'
 
-PHONENUMBER_DEFAULT_REGION = 'KZ'  # Для Казахстана
-PHONENUMBER_DEFAULT_FORMAT = 'INTERNATIONAL'
-# Дополнительные настройки
-EMAIL_TIMEOUT = 30
-EMAIL_USE_SSL = False  # Используем TLS, не SSL
+# Подавить предупреждение CKEditor
+SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]

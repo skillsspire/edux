@@ -140,12 +140,12 @@ class EnrollmentAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course_link', 'amount', 'success', 'created']
-    list_filter = ['success', 'created']
+    list_display = ['user', 'course_link', 'amount', 'status', 'created']
+    list_filter = ['status', 'created']
     search_fields = ['user__username', 'course__title']
     autocomplete_fields = ['user', 'course']
     list_select_related = ['user', 'course']
-    readonly_fields = ['user', 'course', 'amount', 'success', 'created']
+    readonly_fields = ['user', 'course', 'amount', 'status', 'created']
     date_hierarchy = 'created'
 
     @admin.display(description='Курс')
@@ -171,7 +171,7 @@ class PaymentAdmin(admin.ModelAdmin):
         if request.method in ('POST',):
             return False
         return super().has_change_permission(request, obj)
-
+    
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ['user', 'start_date', 'end_date', 'active']
