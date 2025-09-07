@@ -3,7 +3,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', 'last_migration_name'),  # замените на имя последней миграции вашего app
+        ('app', '0001_initial'),  # замените на имя последней миграции вашего app
     ]
 
     operations = [
