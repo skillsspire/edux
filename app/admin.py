@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.db.models import Q
 import csv
 
-from .models import Category, Course, Lesson, Enrollment, Payment, Subscription, InstructorProfile, Review, Wishlist, Module, LessonProgress, ContactMessage
+from .models import Category, Course, Lesson, Enrollment, Payment, Subscription, InstructorProfile, Review, Wishlist, Module, ContactMessage
 
 admin.site.empty_value_display = '—'
 
@@ -218,10 +218,3 @@ class ModuleAdmin(admin.ModelAdmin):
     search_fields = ['title', 'course__title']
     ordering = ['course', 'order']
     autocomplete_fields = ['course']
-
-@admin.register(LessonProgress)
-class LessonProgressAdmin(admin.ModelAdmin):
-    list_display = ['user', 'lesson', 'completed', 'last_accessed']
-    list_filter = ['completed', 'last_accessed']
-    search_fields = ['user__username', 'lesson__title']
-    autocomplete_fields = ['user', 'lesson']

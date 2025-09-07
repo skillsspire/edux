@@ -11,7 +11,7 @@ from django.conf import settings
 import hmac, hashlib, json
 
 from .forms import CustomUserCreationForm, ReviewForm, ContactForm
-from .models import Course, Category, Lesson, LessonProgress, Enrollment, Review, Wishlist, Payment, InstructorProfile, User
+from .models import Course, Category, Lesson, Enrollment, Review, Wishlist, Payment, InstructorProfile, User
 
 # ------------------------ Kaspi Webhook ------------------------
 @csrf_exempt
@@ -162,11 +162,11 @@ def lesson_detail(request, course_slug, lesson_slug):
     previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
     next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-    LessonProgress.objects.update_or_create(
-        user=request.user,
-        lesson=lesson,
-        defaults={'last_accessed': timezone.now()}
-    )
+    # LessonProgress.objects.update_or_create(
+    #     user=request.user,
+    #     lesson=lesson,
+    #     defaults={'last_accessed': timezone.now()}
+    # )
 
     return render(request, 'courses/lesson_detail.html', {
         'course': course,

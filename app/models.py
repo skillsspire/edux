@@ -5,9 +5,10 @@ from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Добавляем свойство для проверки, является ли пользователь инструктором
-User.add_to_class('is_instructor', 
-    property(lambda self: hasattr(self, 'instructor_profile') and 
-                         getattr(self.instructor_profile, 'is_approved', False)))
+User.add_to_class(
+    'is_instructor', 
+    property(lambda self: hasattr(self, 'instructor_profile') and getattr(self.instructor_profile, 'is_approved', False))
+)
 
 # ==========================
 # Категории курсов
@@ -17,7 +18,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True, verbose_name="URL")
     description = models.TextField(blank=True, verbose_name="Описание")
     icon = models.CharField(max_length=50, blank=True, verbose_name="Иконка")
-    is_active = models.BooleanField(default=True, verbose_name="Активна")
+    is_active = models.BooleanField(default=True, verbose_name="Активна")  # <- важно
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
 
     class Meta:
@@ -186,8 +187,14 @@ class Lesson(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse('lesson_detail', kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug})
+        return reverse(
+            'lesson_detail', 
+            kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug}
+        )
 
+# ==========================
+# Остальные модели: Enrollment, Review, Wishlist, Payment, Subscription, ContactMessage
+# ==========================
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
@@ -202,22 +209,6 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
-
-
-class LessonProgress(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress')
-    completed = models.BooleanField(default=False)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    last_accessed = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = "Прогресс урока"
-        verbose_name_plural = "Прогресс уроков"
-        unique_together = ['user', 'lesson']
-
-    def __str__(self):
-        return f"{self.user.username} - {self.lesson.title}"
 
 
 class Review(models.Model):
