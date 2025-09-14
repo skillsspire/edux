@@ -13,23 +13,20 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         """
-        Самовосстановление схемы БД для продакшена на Postgres.
-        Идемпотентно (IF NOT EXISTS), безопасно для повторных запусков.
-        Отключить можно переменной окружения RUN_SCHEMA_ENSURE=0.
+        Самовосстановление схемы БД на Postgres.
+        - Идемпотентно (IF NOT EXISTS), безопасно при повторных запусках.
+        - Отключается RUN_SCHEMA_ENSURE=0.
+        На SQLite/локали — ничего не делаем.
         """
         if os.environ.get('RUN_SCHEMA_ENSURE', '1') != '1':
             return
 
-        engine = settings.DATABASES['default']['ENGINE']
+        engine = settings.DATABASES['default'].get('ENGINE', '')
         if 'postgresql' not in engine:
-            # На SQLite/локали ничего не делаем — миграции покрывают всё.
             return
 
         def get_col_type(table: str, column: str = 'id', default_type: str = 'bigint') -> str:
-            """
-            Возвращает фактический тип колонки (например, 'bigint' или 'integer'),
-            чтобы FK/колонки совпадали по типам.
-            """
+            """Вернуть реальный тип колонки (bigint/integer), чтобы FK совпадали по типам."""
             with connection.cursor() as cur:
                 cur.execute(
                     """
@@ -46,7 +43,7 @@ class CoreConfig(AppConfig):
                 return (row[0] if row else default_type).lower()
 
         try:
-            # 1) app_category.is_active
+            # 1) Категории: is_active + order
             with connection.cursor() as cur:
                 cur.execute("""
                     ALTER TABLE app_category
@@ -56,9 +53,6 @@ class CoreConfig(AppConfig):
                     CREATE INDEX IF NOT EXISTS app_category_is_active_idx
                     ON app_category (is_active);
                 """)
-
-            # 2) app_category."order"
-            with connection.cursor() as cur:
                 cur.execute("""
                     ALTER TABLE app_category
                     ADD COLUMN IF NOT EXISTS "order" integer NOT NULL DEFAULT 0;
@@ -68,7 +62,7 @@ class CoreConfig(AppConfig):
                     ON app_category ("order");
                 """)
 
-            # 3) many-to-many таблица студентов: app_course_students
+            # 2) M2M студентов: app_course_students (для Course.students)
             course_pk_type = get_col_type('app_course', 'id', 'bigint')
             user_pk_type   = get_col_type('auth_user', 'id',  'bigint')
 
@@ -103,9 +97,7 @@ class CoreConfig(AppConfig):
                 cur.execute("""
                     DO $$
                     BEGIN
-                        IF NOT EXISTS (
-                            SELECT 1 FROM pg_constraint WHERE conname = 'app_course_students_course_fk'
-                        ) THEN
+                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'app_course_students_course_fk') THEN
                             ALTER TABLE app_course_students
                             ADD CONSTRAINT app_course_students_course_fk
                             FOREIGN KEY (course_id)
@@ -113,9 +105,7 @@ class CoreConfig(AppConfig):
                             ON DELETE CASCADE
                             DEFERRABLE INITIALLY DEFERRED;
                         END IF;
-                        IF NOT EXISTS (
-                            SELECT 1 FROM pg_constraint WHERE conname = 'app_course_students_user_fk'
-                        ) THEN
+                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'app_course_students_user_fk') THEN
                             ALTER TABLE app_course_students
                             ADD CONSTRAINT app_course_students_user_fk
                             FOREIGN KEY (user_id)
@@ -126,7 +116,7 @@ class CoreConfig(AppConfig):
                     END$$;
                 """)
 
-            # 4) FK на преподавателя у курса: app_course.instructor_id -> auth_user.id
+            # 3) FK на преподавателя: app_course.instructor_id -> auth_user.id
             with connection.cursor() as cur:
                 cur.execute(f"""
                     ALTER TABLE app_course
@@ -139,9 +129,7 @@ class CoreConfig(AppConfig):
                 cur.execute("""
                     DO $$
                     BEGIN
-                        IF NOT EXISTS (
-                            SELECT 1 FROM pg_constraint WHERE conname = 'app_course_instructor_id_fk'
-                        ) THEN
+                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'app_course_instructor_id_fk') THEN
                             ALTER TABLE app_course
                             ADD CONSTRAINT app_course_instructor_id_fk
                             FOREIGN KEY (instructor_id)
@@ -152,15 +140,64 @@ class CoreConfig(AppConfig):
                     END$$;
                 """)
 
-            # 5) Короткое описание курса: app_course.short_description
+            # 4) Все недостающие поля Course (чтобы ORM не падал на SELECT *)
             with connection.cursor() as cur:
-                cur.execute("""
-                    ALTER TABLE app_course
+                # тексты/числа
+                cur.execute("""ALTER TABLE app_course
                     ADD COLUMN IF NOT EXISTS short_description text NOT NULL DEFAULT '';
                 """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS description text NOT NULL DEFAULT '';
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS price numeric(10,2) NOT NULL DEFAULT 0;
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS discount_price numeric(10,2) NULL;
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS duration varchar(50) NOT NULL DEFAULT '';
+                """)
+                # файлы (пути к изображениям)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS image varchar(100) NULL;
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS thumbnail varchar(100) NULL;
+                """)
+                # статусы/флаги
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS level varchar(20) NOT NULL DEFAULT 'beginner';
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS status varchar(20) NOT NULL DEFAULT 'draft';
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS is_featured boolean NOT NULL DEFAULT false;
+                """)
+                # доп. поля
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS requirements text NOT NULL DEFAULT '';
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS what_you_learn text NOT NULL DEFAULT '';
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS language varchar(50) NOT NULL DEFAULT 'Русский';
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS certificate boolean NOT NULL DEFAULT true;
+                """)
+                # таймстемпы (на случай отсутствия)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+                """)
+                cur.execute("""ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+                """)
 
-            log.info("Schema ensure OK: categories + m2m + instructor_id + short_description готовы.")
+            log.info("Schema ensure OK: categories, m2m, instructor_id, all course columns.")
 
         except Exception as e:
-            # Не валим приложение: просто логируем, чтобы сайт продолжал работать.
+            # Не валим приложение, просто логируем.
             log.warning("Schema ensure failed/skipped: %s", e)
