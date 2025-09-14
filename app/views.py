@@ -5,13 +5,21 @@ from django.db.models import Q, Count, Avg
 from django.core.paginator import Paginator
 from django.contrib.auth import login
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
 from django.utils import timezone
 from django.conf import settings
-import hmac, hashlib, json
 
+import hmac
+import hashlib
+import json
+
+from django.contrib.auth.models import User  # Важно: берем User из django
 from .forms import CustomUserCreationForm, ReviewForm, ContactForm
-from .models import Course, Category, Lesson, Enrollment, Review, Wishlist, Payment, InstructorProfile, User
+from .models import (
+    Course, Category, Lesson, Enrollment, Review, Wishlist, Payment,
+    InstructorProfile, LessonProgress
+)
+
 
 # ------------------------ Kaspi Webhook ------------------------
 @csrf_exempt
@@ -19,12 +27,15 @@ def kaspi_webhook(request):
     if request.method != "POST":
         return JsonResponse({'error': 'Invalid method'}, status=400)
 
-    signature = request.headers.get('X-Kaspi-Signature')
+    signature = request.headers.get('X-Kaspi-Signature') or ''
     body = request.body
+    secret = getattr(settings, 'KASPI_SECRET', None)
+    if not secret:
+        return JsonResponse({'error': 'KASPI_SECRET is not set'}, status=500)
 
     # Проверка подписи
     expected_signature = hmac.new(
-        key=settings.KASPI_SECRET.encode(),
+        key=secret.encode(),
         msg=body,
         digestmod=hashlib.sha256
     ).hexdigest()
@@ -37,7 +48,7 @@ def kaspi_webhook(request):
         invoice_id = data.get('invoiceId')
         status = data.get('status')
         payment = Payment.objects.get(kaspi_invoice_id=invoice_id)
-    except (Payment.DoesNotExist, json.JSONDecodeError, KeyError):
+    except (Payment.DoesNotExist, json.JSONDecodeError, KeyError, TypeError):
         return JsonResponse({'error': 'Payment not found or invalid data'}, status=404)
 
     payment.status = status
@@ -48,6 +59,7 @@ def kaspi_webhook(request):
         payment.course.students.add(payment.user)
 
     return JsonResponse({'status': 'ok'})
+
 
 # ------------------------ User Signup ------------------------
 def signup(request):
@@ -63,31 +75,33 @@ def signup(request):
         form = CustomUserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
 
+
 # ------------------------ Home Page ------------------------
-# --- home() ---
 def home(request):
-    featured_courses = Course.objects.filter(is_featured=True).select_related('category')[:6]
+    featured_courses = (
+        Course.objects.filter(is_featured=True)
+        .select_related('category')[:6]
+    )
     popular_courses = (
-        Course.objects
-        .select_related('category')
-        .annotate(num_students=Count('students', distinct=True))  # не конфликтует с @property
+        Course.objects.select_related('category')
+        .annotate(num_students=Count('students', distinct=True))
         .order_by('-num_students')[:6]
     )
-    for c in popular_courses:
-        c.avg_rating = 4.5
-        c.reviews_count = 0
     categories = Category.objects.filter(is_active=True)[:8]
 
-    context = {
+    return render(request, 'home.html', {
         'featured_courses': featured_courses,
         'popular_courses': popular_courses,
         'categories': categories,
-    }
-    return render(request, 'home.html', context)
+    })
+
 
 # ------------------------ Courses List ------------------------
 def courses_list(request):
-    courses = Course.objects.select_related('category').prefetch_related('students', 'reviews').all()
+    courses_qs = (
+        Course.objects.select_related('category')
+        .prefetch_related('students', 'reviews')
+    )
 
     category_slug = request.GET.get('category')
     search_query = request.GET.get('q', '')
@@ -96,86 +110,121 @@ def courses_list(request):
     sort_by = request.GET.get('sort', 'newest')
 
     if category_slug:
-        courses = courses.filter(category__slug=category_slug)
+        courses_qs = courses_qs.filter(category__slug=category_slug)
+
     if search_query:
-        courses = courses.filter(
+        courses_qs = courses_qs.filter(
             Q(title__icontains=search_query) |
             Q(short_description__icontains=search_query) |
             Q(category__name__icontains=search_query)
         )
+
     if level:
-        courses = courses.filter(level=level)
+        courses_qs = courses_qs.filter(level=level)
+
     if price_filter == 'free':
-        courses = courses.filter(price=0)
+        courses_qs = courses_qs.filter(price=0)
     elif price_filter == 'paid':
-        courses = courses.filter(price__gt=0)
+        courses_qs = courses_qs.filter(price__gt=0)
 
     if sort_by == 'popular':
-        courses = courses.annotate(students_count=Count('students')).order_by('-students_count')
+        courses_qs = courses_qs.annotate(students_count=Count('students')).order_by('-students_count', '-created_at')
     elif sort_by == 'rating':
-        courses = courses.annotate(avg_rating=Avg('reviews__rating')).order_by('-avg_rating')
+        courses_qs = courses_qs.annotate(avg_rating=Avg('reviews__rating')).order_by('-avg_rating', '-created_at')
     elif sort_by == 'price_low':
-        courses = courses.order_by('price')
+        courses_qs = courses_qs.order_by('price', '-created_at')
     elif sort_by == 'price_high':
-        courses = courses.order_by('-price')
+        courses_qs = courses_qs.order_by('-price', '-created_at')
     else:
-        courses = courses.order_by('-created_at')
+        courses_qs = courses_qs.order_by('-created_at')
 
     categories = Category.objects.filter(is_active=True)
-    paginator = Paginator(courses, 12)
+
+    paginator = Paginator(courses_qs, 12)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'courses/list.html', {
-        'courses': page_obj,
+        'courses': page_obj,            # в шаблоне {% for course in courses %}
         'categories': categories,
-        'is_paginated': True,
+        'is_paginated': page_obj.has_other_pages(),
         'page_obj': page_obj,
     })
 
+
 # ------------------------ Course Detail ------------------------
 def course_detail(request, slug):
-    course = get_object_or_404(Course.objects.select_related('category').prefetch_related('students', 'reviews'), slug=slug)
-    if not request.user.is_authenticated and not course.is_free:
-        messages.info(request, 'Для доступа к курсу необходимо авторизоваться')
-        return redirect('login')
+    course = get_object_or_404(
+        Course.objects.select_related('category').prefetch_related('students', 'reviews'),
+        slug=slug
+    )
 
-    has_access = request.user.is_authenticated and (course.students.filter(id=request.user.id).exists() or course.is_free)
+    # доступ к платному курсу — только для авторизованных и записанных
+    if course.price > 0:
+        if not request.user.is_authenticated:
+            messages.info(request, 'Для доступа к курсу необходимо авторизоваться')
+            return redirect('login')
+        has_access = course.students.filter(id=request.user.id).exists()
+    else:
+        # бесплатный (price == 0)
+        has_access = True
 
-    lessons = Lesson.objects.filter(module__course=course, is_active=True).select_related('module').order_by('module__order', 'order')
-    related_courses = Course.objects.filter(category=course.category).exclude(id=course.id).select_related('category')[:4]
+    lessons = (
+        Lesson.objects.filter(module__course=course, is_active=True)
+        .select_related('module')
+        .order_by('module__order', 'order')
+    )
+    related_courses = (
+        Course.objects.filter(category=course.category)
+        .exclude(id=course.id).select_related('category')[:4]
+    )
     reviews = Review.objects.filter(course=course, is_active=True).select_related('user')[:10]
 
-    context = {
+    return render(request, 'courses/detail.html', {
         'course': course,
         'lessons': lessons,
         'related_courses': related_courses,
         'reviews': reviews,
         'has_access': has_access,
-    }
-    return render(request, 'courses/detail.html', context)
+    })
+
 
 # ------------------------ Lesson Detail ------------------------
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related('students'), slug=course_slug)
-    lesson = get_object_or_404(Lesson.objects.select_related('module'), slug=lesson_slug, module__course=course, is_active=True)
+    lesson = get_object_or_404(
+        Lesson.objects.select_related('module'),
+        slug=lesson_slug, module__course=course, is_active=True
+    )
 
-    if not course.students.filter(id=request.user.id).exists() and not course.is_free:
+    # проверка доступа (платный курс — только для записанных)
+    if course.price > 0 and not course.students.filter(id=request.user.id).exists():
         messages.error(request, 'У вас нет доступа к этому уроку')
         return redirect('course_detail', slug=course_slug)
 
-    lessons_list = Lesson.objects.filter(module__course=course, is_active=True).order_by('module__order', 'order')
-    lessons_list = list(lessons_list)
-    current_index = lessons_list.index(lesson)
+    # список уроков для навигации вперед/назад
+    lessons_list = list(
+        Lesson.objects.filter(module__course=course, is_active=True)
+        .order_by('module__order', 'order')
+    )
+    try:
+        current_index = lessons_list.index(lesson)
+    except ValueError:
+        current_index = 0
     previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
     next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-    # LessonProgress.objects.update_or_create(
-    #     user=request.user,
-    #     lesson=lesson,
-    #     defaults={'last_accessed': timezone.now()}
-    # )
+    # отметка прогресса (обновим время доступа; percent при желании можно считать отдельно)
+    LessonProgress.objects.update_or_create(
+        user=request.user,
+        lesson=lesson,
+        defaults={
+            'is_completed': False if course.price > 0 else True,  # пример авто-завершения для бесплатных
+            'percent': 0,
+            'updated_at': timezone.now(),
+        }
+    )
 
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
@@ -183,6 +232,7 @@ def lesson_detail(request, course_slug, lesson_slug):
         'previous_lesson': previous_lesson,
         'next_lesson': next_lesson,
     })
+
 
 # ------------------------ Enroll Course ------------------------
 @login_required
@@ -203,6 +253,7 @@ def enroll_course(request, slug):
     messages.success(request, f'Вы успешно записаны на курс "{course.title}"')
     return redirect('course_detail', slug=slug)
 
+
 # ------------------------ My Courses ------------------------
 @login_required
 def my_courses(request):
@@ -215,21 +266,23 @@ def my_courses(request):
         'completed': completed,
     })
 
+
 # ------------------------ Dashboard ------------------------
 @login_required
 def dashboard(request):
     user = request.user
     enrollments = Enrollment.objects.filter(user=user).select_related('course')
-    progress = LessonProgress.objects.filter(user=user).select_related('lesson')
+    progress = LessonProgress.objects.filter(user=user).select_related('lesson', 'lesson__module', 'lesson__module__course')
 
     context = {
         'total_courses': enrollments.count(),
         'completed_courses': enrollments.filter(completed=True).count(),
         'total_lessons': progress.count(),
-        'completed_lessons': progress.filter(completed=True).count(),
+        'completed_lessons': progress.filter(is_completed=True).count(),
         'recent_courses': enrollments.order_by('-enrolled_at')[:5],
     }
     return render(request, 'users/dashboard.html', context)
+
 
 # ------------------------ Add Review ------------------------
 @login_required
@@ -257,6 +310,7 @@ def add_review(request, slug):
 
     return render(request, 'courses/add_review.html', {'course': course, 'form': form})
 
+
 # ------------------------ Toggle Wishlist ------------------------
 @login_required
 def toggle_wishlist(request, slug):
@@ -277,15 +331,28 @@ def toggle_wishlist(request, slug):
     messages.success(request, message)
     return redirect('course_detail', slug=slug)
 
+
 # ------------------------ About ------------------------
 def about(request):
-    instructors = InstructorProfile.objects.filter(is_approved=True)
-    stats = {
-        'total_courses': Course.objects.count(),
-        'total_students': User.objects.filter(enrolled_courses__isnull=False).distinct().count(),
-        'total_instructors': instructors.count(),
-    }
+    # Если миграции ещё не накатывали, не уронит страницу
+    try:
+        instructors = InstructorProfile.objects.filter(is_approved=True)
+        total_instructors = instructors.count()
+    except Exception:
+        instructors = []
+        total_instructors = 0
+
+    try:
+        stats = {
+            'total_courses': Course.objects.count(),
+            'total_students': User.objects.filter(enrolled_courses__isnull=False).distinct().count(),
+            'total_instructors': total_instructors,
+        }
+    except Exception:
+        stats = {'total_courses': 0, 'total_students': 0, 'total_instructors': total_instructors}
+
     return render(request, 'about.html', {'instructors': instructors, 'stats': stats})
+
 
 # ------------------------ Contact ------------------------
 def contact(request):
@@ -298,6 +365,7 @@ def contact(request):
     else:
         form = ContactForm()
     return render(request, 'contact.html', {'form': form})
+
 
 # ------------------------ Design Wireframe ------------------------
 def design_wireframe(request):

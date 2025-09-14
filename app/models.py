@@ -4,12 +4,33 @@ from django.urls import reverse
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import DatabaseError
+from django.templatetags.static import static
 
-# Добавляем свойство для проверки, является ли пользователь инструктором
+
+# ===== Сервисные хелперы =====
+DEFAULT_COURSE_IMAGE = 'img/courses/default.jpg'
+DEFAULT_AVATAR_IMAGE = 'img/avatar-default.png'
+
+
+def safe_file_url(file_field, default_path):
+    """
+    Безопасно возвращает .url даже если файл не прикреплён.
+    Не бросает ValueError в шаблоне.
+    """
+    try:
+        if file_field and getattr(file_field, 'url', None):
+            return file_field.url
+    except Exception:
+        pass
+    return static(default_path)
+
+
+# Добавляем свойство к User: является ли инструктором
 User.add_to_class(
-    'is_instructor', 
+    'is_instructor',
     property(lambda self: hasattr(self, 'instructor_profile') and getattr(self.instructor_profile, 'is_approved', False))
 )
+
 
 # ==========================
 # Категории курсов
@@ -19,7 +40,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True, verbose_name="URL")
     description = models.TextField(blank=True, verbose_name="Описание")
     icon = models.CharField(max_length=50, blank=True, verbose_name="Иконка")
-    is_active = models.BooleanField(default=True, verbose_name="Активна")  # <- важно
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
 
     class Meta:
@@ -37,6 +58,7 @@ class Category(models.Model):
 
     def get_absolute_url(self):
         return reverse('courses_by_category', kwargs={'slug': self.slug})
+
 
 # ==========================
 # Профиль инструктора
@@ -64,6 +86,11 @@ class InstructorProfile(models.Model):
     @property
     def courses_count(self):
         return self.user.courses_created.count()
+
+    @property
+    def avatar_safe_url(self):
+        return safe_file_url(self.avatar, DEFAULT_AVATAR_IMAGE)
+
 
 # ==========================
 # Курсы
@@ -95,6 +122,7 @@ class Course(models.Model):
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner', verbose_name="Уровень")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
     is_featured = models.BooleanField(default=False, verbose_name="Рекомендуемый")
+    is_popular = models.BooleanField(default=False, verbose_name="Популярный")  # используется в шаблонах
     students = models.ManyToManyField(User, related_name='enrolled_courses', blank=True, verbose_name="Студенты")
     requirements = models.TextField(blank=True, verbose_name="Требования")
     what_you_learn = models.TextField(blank=True, verbose_name="Чему научитесь")
@@ -119,9 +147,14 @@ class Course(models.Model):
     def get_absolute_url(self):
         return reverse('course_detail', kwargs={'slug': self.slug})
 
+    # ---- свойства для шаблонов ----
+    @property
+    def has_discount(self):
+        return bool(self.discount_price and self.price and self.price > 0)
+
     @property
     def discount_percent(self):
-        if self.discount_price and self.price > 0:
+        if self.has_discount:
             return int((1 - (float(self.discount_price) / float(self.price))) * 100)
         return None
 
@@ -136,12 +169,33 @@ class Course(models.Model):
     @property
     def average_rating(self):
         try:
-            reviews = self.reviews.filter(is_active=True)
-            if reviews.exists():
-                return round(reviews.aggregate(models.Avg('rating'))['rating__avg'], 1)
+            qs = self.reviews.filter(is_active=True)
+            if qs.exists():
+                return round(qs.aggregate(models.Avg('rating'))['rating__avg'], 1)
         except DatabaseError:
             pass
         return 4.5
+
+    # чтобы {{ course.rating }} работал так же, как average_rating
+    @property
+    def rating(self):
+        return self.average_rating
+
+    @property
+    def reviews_count(self):
+        try:
+            return self.reviews.filter(is_active=True).count()
+        except DatabaseError:
+            return 0
+
+    @property
+    def image_safe_url(self):
+        return safe_file_url(self.image, DEFAULT_COURSE_IMAGE)
+
+    @property
+    def thumbnail_safe_url(self):
+        return safe_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
+
 
 # ==========================
 # Модули и уроки
@@ -192,12 +246,13 @@ class Lesson(models.Model):
 
     def get_absolute_url(self):
         return reverse(
-            'lesson_detail', 
+            'lesson_detail',
             kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug}
         )
 
+
 # ==========================
-# Остальные модели: Enrollment, Review, Wishlist, Payment, Subscription, ContactMessage
+# Запись, Отзывы, Избранное, Платежи, Подписки, Контакты
 # ==========================
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
@@ -218,7 +273,10 @@ class Enrollment(models.Model):
 class Review(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], verbose_name="Рейтинг")
+    rating = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        verbose_name="Рейтинг"
+    )
     comment = models.TextField(verbose_name="Комментарий")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -228,7 +286,6 @@ class Review(models.Model):
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
         unique_together = ['course', 'user']
-
     def __str__(self):
         return f"{self.user.username} - {self.course.title} - {self.rating}"
 
@@ -301,3 +358,23 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.subject}"
+
+
+# ==========================
+# Прогресс по урокам (для дашборда)
+# ==========================
+class LessonProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress')
+    is_completed = models.BooleanField(default=False)
+    percent = models.PositiveSmallIntegerField(default=0)  # 0..100
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Прогресс по уроку"
+        verbose_name_plural = "Прогресс по урокам"
+        unique_together = ('user', 'lesson')
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'{self.user} · {self.lesson} · {self.percent}%'

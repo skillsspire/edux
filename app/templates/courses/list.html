@@ -111,38 +111,50 @@
                 <div class="col-lg-6 col-xl-4 mb-4">
                     <div class="card h-100 course-card">
                         <div class="position-relative">
-                            <img src="{{ course.image.url|default:'/static/img/courses/default.jpg' }}" class="card-img-top" alt="{{ course.title }}">
+                            {# БЕЗОПАСНЫЙ ФОЛБЭК ДЛЯ КАРТИНКИ #}
+                            {% if course.thumbnail and course.thumbnail.name %}
+                                <img src="{{ course.thumbnail.url }}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
+                            {% elif course.image and course.image.name %}
+                                <img src="{{ course.image.url }}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
+                            {% else %}
+                                <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
+                            {% endif %}
+
                             {% if course.is_popular %}
-                            <span class="position-absolute top-0 start-0 m-2 badge bg-danger">Популярный</span>
+                                <span class="position-absolute top-0 start-0 m-2 badge bg-danger">Популярный</span>
                             {% endif %}
                             {% if course.discount_percent %}
-                            <span class="position-absolute top-0 end-0 m-2 badge bg-success">-{{ course.discount_percent }}%</span>
+                                <span class="position-absolute top-0 end-0 m-2 badge bg-success">-{{ course.discount_percent }}%</span>
                             {% endif %}
                         </div>
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-primary">{{ course.category.name }}</span>
+                                <span class="badge bg-primary">{{ course.category.name|default:"Без категории" }}</span>
                                 <div class="text-warning small">
                                     <i class="bi bi-star-fill"></i>
-                                    {{ course.rating|default:"4.8" }}
+                                    {% with r=course.average_rating|default:course.avg_rating %}
+                                        {{ r|default:"4.8" }}
+                                    {% endwith %}
                                 </div>
                             </div>
                             <h5 class="card-title">{{ course.title }}</h5>
-                            <p class="card-text text-muted">{{ course.short_description|truncatewords:15 }}</p>
+                            <p class="card-text text-muted">{{ course.short_description|default:course.description|truncatewords:15 }}</p>
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div>
-                                    {% if course.price %}
+                                    {% if course.price and course.price > 0 %}
                                         {% if course.discount_price %}
-                                        <span class="text-decoration-line-through text-muted me-2">{{ course.price }} ₽</span>
-                                        <span class="fw-bold text-primary">{{ course.discount_price }} ₽</span>
+                                            <span class="text-decoration-line-through text-muted me-2">{{ course.price }} ₽</span>
+                                            <span class="fw-bold text-primary">{{ course.discount_price }} ₽</span>
                                         {% else %}
-                                        <span class="fw-bold text-primary">{{ course.price }} ₽</span>
+                                            <span class="fw-bold text-primary">{{ course.price }} ₽</span>
                                         {% endif %}
                                     {% else %}
-                                    <span class="fw-bold text-success">Бесплатно</span>
+                                        <span class="fw-bold text-success">Бесплатно</span>
                                     {% endif %}
                                 </div>
-                                <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ course.duration }}</span>
+                                {% if course.duration %}
+                                    <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ course.duration }}</span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="card-footer bg-transparent">
@@ -165,21 +177,21 @@
             <nav aria-label="Page navigation" class="mt-5">
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
-                    </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
+                        </li>
                     {% endif %}
 
                     {% for num in page_obj.paginator.page_range %}
-                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
                     {% endfor %}
 
                     {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
-                    </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
+                        </li>
                     {% endif %}
                 </ul>
             </nav>

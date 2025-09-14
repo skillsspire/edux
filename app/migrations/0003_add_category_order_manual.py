@@ -1,17 +1,19 @@
-from django.db import migrations
+from django.db import migrations, models
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("app", "0002_add_is_active_manual"),
+        ('app', '0002_add_is_active_manual'),
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="""
-                ALTER TABLE app_category
-                ADD COLUMN IF NOT EXISTS "order" integer NOT NULL DEFAULT 0;
-                CREATE INDEX IF NOT EXISTS app_category_order_idx ON app_category ("order");
-            """,
-            reverse_sql="",
+        migrations.AddField(
+            model_name='category',
+            name='order',
+            field=models.PositiveIntegerField(default=0, verbose_name='Порядок'),
+        ),
+        migrations.AddIndex(
+            model_name='category',
+            index=models.Index(fields=['order'], name='app_category_order_idx'),
         ),
     ]
