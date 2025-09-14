@@ -1,53 +1,106 @@
 {% extends 'base.html' %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">{% trans "My Courses" %}</h1>
+<div class="container py-4">
+  <h1 class="mb-4">{% trans "My Dashboard" %}</h1>
 
-    {% if enrollments %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            {% for enrollment in enrollments %}
-                <div class="col">
-                    <div class="card h-100">
-                        {% if enrollment.course.image %}
-                            <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}">
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ enrollment.course.title }}</h5>
-                            <p class="text-muted">
-                                {% trans "Instructor:" %} {{ enrollment.course.author.get_full_name|default:enrollment.course.author.username }}
-                            </p>
-
-                            <!-- Прогресс -->
-                            <div class="progress mb-2" style="height: 14px;">
-                                <div class="progress-bar bg-success" role="progressbar"
-                                     style="width: {{ enrollment.progress_percentage|default_if_none:'0'|floatformat:0 }}%"
-                                     aria-valuenow="{{ enrollment.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
-                                     {{ enrollment.progress_percentage|floatformat:0 }}%
-                                </div>
-                            </div>
-
-                            {% if enrollment.completed %}
-                                <p class="text-success fw-bold">{% trans "Completed" %}</p>
-                                {% if enrollment.certificate %}
-                                    <a href="{{ enrollment.certificate.pdf.url }}" class="btn btn-outline-primary w-100" download>
-                                        {% trans "Download Certificate" %}
-                                    </a>
-                                {% endif %}
-                            {% else %}
-                                <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-primary w-100">
-                                    {% trans "Continue Learning" %}
-                                </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+  <!-- Статы -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="fs-4 fw-bold">{{ total_courses|default:0 }}</div>
+          <div class="text-muted">{% trans "Enrolled courses" %}</div>
         </div>
-    {% else %}
-        <p>{% trans "You are not enrolled in any courses yet." %}</p>
-        <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse Courses" %}</a>
-    {% endif %}
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="fs-4 fw-bold">{{ completed_courses|default:0 }}</div>
+          <div class="text-muted">{% trans "Completed courses" %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="fs-4 fw-bold">{{ total_lessons|default:0 }}</div>
+          <div class="text-muted">{% trans "Lessons visited" %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="fs-4 fw-bold">{{ completed_lessons|default:0 }}</div>
+          <div class="text-muted">{% trans "Lessons completed" %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="h4 mb-3">{% trans "My Courses" %}</h2>
+
+  {% if enrollments %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      {% for e in enrollments %}
+        {% with c=e.course %}
+        <div class="col">
+          <div class="card h-100">
+            <div class="ratio ratio-16x9">
+              {% if c.thumbnail and c.thumbnail.name %}
+                <img src="{{ c.thumbnail.url }}" class="card-img-top" alt="{{ c.title }}" loading="lazy">
+              {% elif c.image and c.image.name %}
+                <img src="{{ c.image.url }}" class="card-img-top" alt="{{ c.title }}" loading="lazy">
+              {% else %}
+                <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="{{ c.title }}" loading="lazy">
+              {% endif %}
+            </div>
+
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title mb-1">{{ c.title }}</h5>
+              <p class="text-muted mb-3">
+                {% trans "Instructor:" %} 
+                {% if c.instructor %}
+                  {{ c.instructor.get_full_name|default:c.instructor.username }}
+                {% else %}
+                  SkillsSpire
+                {% endif %}
+              </p>
+
+              {% with pid=c.id %}
+                {% with p=progress_map.pid|default:0 %}
+                  <div class="progress mb-2" style="height:14px;">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         style="width: {{ p }}%;" aria-valuenow="{{ p }}" aria-valuemin="0" aria-valuemax="100">
+                      {{ p }}%
+                    </div>
+                  </div>
+                {% endwith %}
+              {% endwith %}
+
+              {% if e.completed %}
+                <p class="text-success fw-semibold mb-3">{% trans "Completed" %}</p>
+              {% else %}
+                <p class="text-muted mb-3">{% trans "In progress" %}</p>
+              {% endif %}
+
+              <div class="mt-auto">
+                <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary w-100">
+                  {% if e.completed %}{% trans "View course" %}{% else %}{% trans "Continue learning" %}{% endif %}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="mb-3">{% trans "You are not enrolled in any courses yet." %}</p>
+    <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse Courses" %}</a>
+  {% endif %}
 </div>
 {% endblock %}

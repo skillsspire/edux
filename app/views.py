@@ -272,14 +272,26 @@ def my_courses(request):
 def dashboard(request):
     user = request.user
     enrollments = Enrollment.objects.filter(user=user).select_related('course')
-    progress = LessonProgress.objects.filter(user=user).select_related('lesson', 'lesson__module', 'lesson__module__course')
+
+    # Собираем лучший процент по каждому курсу из LessonProgress
+    progress_qs = LessonProgress.objects.filter(user=user).select_related(
+        'lesson__module__course'
+    )
+    progress_map = {}
+    for lp in progress_qs:
+        cid = lp.lesson.module.course_id
+        val = int(lp.percent or 0)
+        if cid not in progress_map or val > progress_map[cid]:
+            progress_map[cid] = val
 
     context = {
+        'enrollments': enrollments,
         'total_courses': enrollments.count(),
         'completed_courses': enrollments.filter(completed=True).count(),
-        'total_lessons': progress.count(),
-        'completed_lessons': progress.filter(is_completed=True).count(),
+        'total_lessons': progress_qs.count(),
+        'completed_lessons': progress_qs.filter(is_completed=True).count(),
         'recent_courses': enrollments.order_by('-enrolled_at')[:5],
+        'progress_map': progress_map,
     }
     return render(request, 'users/dashboard.html', context)
 
