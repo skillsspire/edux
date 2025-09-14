@@ -4,69 +4,118 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from .models import ContactMessage, Review
 
-class EmailAuthenticationForm(AuthenticationForm):
+
+# Универсально навешиваем Bootstrap-классы
+class BootstrapFormMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for _, field in self.fields.items():
+            w = field.widget
+            classes = w.attrs.get("class", "")
+            if isinstance(w, (forms.Select, forms.SelectMultiple)):
+                base = "form-select"
+            elif isinstance(w, forms.CheckboxInput):
+                base = "form-check-input"
+            else:
+                base = "form-control"
+            w.attrs["class"] = f"{classes} {base}".strip()
+
+
+class EmailAuthenticationForm(BootstrapFormMixin, AuthenticationForm):
     username = forms.CharField(
         label=_("Email or Username"),
         widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': _('Enter your email or username'),
-            'autocomplete': 'email'
+            "placeholder": _("Enter your email or username"),
+            "autocomplete": "username",
         })
     )
     password = forms.CharField(
         label=_("Password"),
         widget=forms.PasswordInput(attrs={
-            'class': 'form-control',
-            'placeholder': _('Enter your password'),
-            'autocomplete': 'current-password'
+            "placeholder": _("Enter your password"),
+            "autocomplete": "current-password",
         })
     )
 
-class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-    first_name = forms.CharField(max_length=30, required=True)
-    last_name = forms.CharField(max_length=30, required=True)
+
+class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
+    email = forms.EmailField(required=True, label=_("Email"))
+    first_name = forms.CharField(max_length=30, required=True, label=_("First name"))
+    last_name = forms.CharField(max_length=30, required=True, label=_("Last name"))
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2')
+        fields = ("username", "email", "first_name", "last_name", "password1", "password2")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name in self.fields:
-            self.fields[field_name].widget.attrs.update({'class': 'form-control'})
-        self.fields['username'].widget.attrs['placeholder'] = 'Придумайте имя пользователя'
-        self.fields['email'].widget.attrs['placeholder'] = 'Ваш email'
-        self.fields['first_name'].widget.attrs['placeholder'] = 'Ваше имя'
-        self.fields['last_name'].widget.attrs['placeholder'] = 'Ваша фамилия'
-        self.fields['password1'].widget.attrs['placeholder'] = 'Придумайте пароль'
-        self.fields['password2'].widget.attrs['placeholder'] = 'Повторите пароль'
+        # плейсхолдеры + autocomplete
+        self.fields["username"].widget.attrs.update({
+            "placeholder": _("Create a username"),
+            "autocomplete": "username",
+        })
+        self.fields["email"].widget.attrs.update({
+            "placeholder": _("Your email"),
+            "autocomplete": "email",
+        })
+        self.fields["first_name"].widget.attrs.update({
+            "placeholder": _("Your first name"),
+            "autocomplete": "given-name",
+        })
+        self.fields["last_name"].widget.attrs.update({
+            "placeholder": _("Your last name"),
+            "autocomplete": "family-name",
+        })
+        self.fields["password1"].widget.attrs.update({
+            "placeholder": _("Create a password"),
+            "autocomplete": "new-password",
+        })
+        self.fields["password2"].widget.attrs.update({
+            "placeholder": _("Repeat the password"),
+            "autocomplete": "new-password",
+        })
+        # убираем шум из help_text
+        for k in ("username", "password1", "password2"):
+            if k in self.fields:
+                self.fields[k].help_text = ""
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(_("A user with this email already exists."))
+        return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.email = self.cleaned_data['email']
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
+        user.email = self.cleaned_data["email"]
+        user.first_name = self.cleaned_data["first_name"]
+        user.last_name = self.cleaned_data["last_name"]
         if commit:
             user.save()
         return user
 
-class ContactForm(forms.ModelForm):
+
+class ContactForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = ContactMessage
-        fields = ['name', 'email', 'subject', 'message']
+        fields = ["name", "email", "subject", "message"]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ваше имя'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Ваш email'}),
-            'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Тема сообщения'}),
-            'message': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ваше сообщение', 'rows': 5}),
+            "name": forms.TextInput(attrs={"placeholder": _("Your name")}),
+            "email": forms.EmailInput(attrs={"placeholder": _("Your email"), "autocomplete": "email"}),
+            "subject": forms.TextInput(attrs={"placeholder": _("Subject")}),
+            "message": forms.Textarea(attrs={"rows": 5, "placeholder": _("Your message")}),
         }
 
-class ReviewForm(forms.ModelForm):
+
+class ReviewForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Review
-        fields = ['rating', 'comment']
+        fields = ["rating", "comment"]  # если в модели поле называется 'content', замените на ["rating", "content"]
         widgets = {
-            'rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5, 'placeholder': 'Оценка от 1 до 5'}),
-            'comment': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Ваш отзыв о курсе', 'rows': 4}),
+            "rating": forms.NumberInput(attrs={"min": 1, "max": 5, "placeholder": _("Rating 1–5")}),
+            "comment": forms.Textarea(attrs={"rows": 4, "placeholder": _("Your review about the course")}),
+        }
+        labels = {
+            "rating": _("Rating"),
+            "comment": _("Review"),
         }
