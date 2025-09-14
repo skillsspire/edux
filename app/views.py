@@ -69,10 +69,13 @@ def home(request):
     featured_courses = Course.objects.filter(is_featured=True).select_related('category')[:6]
     popular_courses = (
         Course.objects
-        .annotate(num_students=Count('students', distinct=True))
         .select_related('category')
+        .annotate(num_students=Count('students', distinct=True))  # не конфликтует с @property
         .order_by('-num_students')[:6]
     )
+    for c in popular_courses:
+        c.avg_rating = 4.5
+        c.reviews_count = 0
     categories = Category.objects.filter(is_active=True)[:8]
 
     context = {

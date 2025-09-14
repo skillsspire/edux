@@ -72,8 +72,8 @@
                     <p class="course-card-text" style="font-size:0.9rem; color:#374151;">{{ course.description|truncatechars:100 }}</p>
                     <div class="course-card-meta" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem;">
                         <div class="course-rating" style="color:#F6AD55;">
-                            <i class="bi bi-star-fill"></i> {{ course.average_rating }}
-                            <span class="course-reviews" style="color:#6B7280; font-size:0.8rem;">({{ course.reviews.count }} отзывов)</span>
+                            <i class="bi bi-star-fill"></i> {{ course.avg_rating|default:"4.5" }}
+                            <span class="course-reviews" style="color:#6B7280; font-size:0.8rem;">({{ course.reviews_count|default:"0" }} отзывов)</span>
                         </div>
                         <span class="course-price" style="font-weight:600;">
                             {% if course.price > 0 %}

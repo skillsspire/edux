@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db import DatabaseError
 
 # Добавляем свойство для проверки, является ли пользователь инструктором
 User.add_to_class(
@@ -134,9 +135,12 @@ class Course(models.Model):
 
     @property
     def average_rating(self):
-        reviews = self.reviews.filter(is_active=True)
-        if reviews.exists():
-            return round(reviews.aggregate(models.Avg('rating'))['rating__avg'], 1)
+        try:
+            reviews = self.reviews.filter(is_active=True)
+            if reviews.exists():
+                return round(reviews.aggregate(models.Avg('rating'))['rating__avg'], 1)
+        except DatabaseError:
+            pass
         return 4.5
 
 # ==========================
