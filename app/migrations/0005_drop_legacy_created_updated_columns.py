@@ -3,7 +3,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '<<здесь останется последняя миграция>>'),
+        ('app', '0004_course_is_popular_lessonprogress'),
     ]
 
     operations = [
