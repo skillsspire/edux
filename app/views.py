@@ -64,9 +64,15 @@ def signup(request):
     return render(request, 'registration/signup.html', {'form': form})
 
 # ------------------------ Home Page ------------------------
+# --- home() ---
 def home(request):
     featured_courses = Course.objects.filter(is_featured=True).select_related('category')[:6]
-    popular_courses = Course.objects.annotate(students_count=Count('students')).order_by('-students_count').select_related('category')[:6]
+    popular_courses = (
+        Course.objects
+        .annotate(num_students=Count('students', distinct=True))
+        .select_related('category')
+        .order_by('-num_students')[:6]
+    )
     categories = Category.objects.filter(is_active=True)[:8]
 
     context = {
