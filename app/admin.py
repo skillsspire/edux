@@ -89,6 +89,22 @@ class CourseAdmin(admin.ModelAdmin):
     list_per_page = 50
     inlines = [ModuleInline, EnrollmentInline]
 
+    # не показываем поле author в форме
+    exclude = ['author']
+
+    def save_model(self, request, obj, form, change):
+        # если автор не задан – ставим автоматически
+        if not getattr(obj, 'author_id', None):
+            # если выбран инструктор и у него есть связанный user – используем его
+            try:
+                if getattr(obj, 'instructor', None) and getattr(obj.instructor, 'user', None):
+                    obj.author = obj.instructor.user
+                else:
+                    obj.author = request.user
+            except Exception:
+                obj.author = request.user
+        super().save_model(request, obj, form, change)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('instructor', 'category').prefetch_related('modules')
