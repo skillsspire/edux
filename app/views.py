@@ -298,29 +298,43 @@ def my_courses(request):
 def dashboard(request):
     user = request.user
 
-    # Курсы пользователя
-    enrollments = (
-        Enrollment.objects.filter(user=user)
-        .select_related('course')
-        .order_by('-enrolled_at')
+    # Курсы пользователя через M2M (без Enrollment, чтобы не упасть из-за user_id)
+    my_courses = (
+        Course.objects.filter(students__id=user.id)
+        .select_related('category')
     )
 
-    # Прогресс: НЕ джоиним к module, чтобы не упасть, если таблицы нет
+    total_courses = my_courses.count()
+    recent_courses = my_courses.order_by('-created_at')[:5]
+
+    # Попытка аккуратно посчитать завершённые, если в БД есть нужные поля
+    completed_courses = 0
+    try:
+        completed_courses = Enrollment.objects.filter(user_id=user.id, completed=True).count()
+    except Exception:
+        try:
+            # вдруг поле называется иначе (например, student)
+            completed_courses = Enrollment.objects.filter(student_id=user.id, completed=True).count()
+        except Exception:
+            completed_courses = 0
+
+    # Прогресс: без join к module, чтобы не ловить "relation app_module does not exist"
     try:
         progress_qs = LessonProgress.objects.filter(user=user).select_related('lesson')
         total_lessons = progress_qs.count()
         completed_lessons = progress_qs.filter(is_completed=True).count()
-    except (ProgrammingError, DatabaseError):
-        progress_qs = LessonProgress.objects.none()
+    except Exception:
         total_lessons = 0
         completed_lessons = 0
 
     context = {
-        'total_courses': enrollments.count(),
-        'completed_courses': enrollments.filter(completed=True).count(),
+        'total_courses': total_courses,
+        'completed_courses': completed_courses,
         'total_lessons': total_lessons,
         'completed_lessons': completed_lessons,
-        'recent_courses': enrollments[:5],
+        'recent_courses': recent_courses,
+        # на случай, если шаблон что-то ждёт от enrollments — подадим None
+        'enrollments': None,
     }
     return render(request, 'users/dashboard.html', context)
 
