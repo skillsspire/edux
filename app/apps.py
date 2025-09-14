@@ -34,6 +34,8 @@ class CoreConfig(AppConfig):
                     CREATE INDEX IF NOT EXISTS app_category_is_active_idx
                     ON app_category (is_active);
                 """)
+                cur.execute('ALTER TABLE app_category ADD COLUMN IF NOT EXISTS "order" integer NOT NULL DEFAULT 0;')
+                cur.execute('CREATE INDEX IF NOT EXISTS app_category_order_idx ON app_category ("order");')
             log.info("Schema ensure ok: app_category.is_active ensured.")
         except Exception as e:
             log.warning("Schema ensure failed/skipped: %s", e)
