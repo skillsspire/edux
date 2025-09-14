@@ -1,187 +1,233 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block head %}
+{% block title %}SkillsSpire — Главная{% endblock %}
+
+{% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
-<style>
-.faq-answer { display: none; padding: 0 1rem 1rem; }
-.faq-item.active .faq-answer { display: block; }
-.swiper { padding: 2rem 0; }
-.swiper-slide { background:white; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:1rem; }
-</style>
 {% endblock %}
 
 {% block content %}
 
-<section class="course-hero" style="background: linear-gradient(135deg, #01349D 0%, #3b5cc5 100%); color:white; padding:6rem 0;">
-    <div class="container text-center">
-        <span class="course-badge">🚀 Самый популярный курс 2025</span>
-        <h1 class="course-title">Начни карьеру в IT с нуля</h1>
-        <p class="course-subtitle">Практические курсы от экспертов с гарантией трудоустройства. Обучайся в удобное время и получи востребованную профессию.</p>
-        <form action="{% url 'courses_list' %}" method="get" class="hero-search" style="margin:2rem auto; max-width:500px; display:flex;">
-            <input type="text" name="q" placeholder="Поиск курсов" style="flex:1; padding:0.75rem 1rem; border-radius:8px 0 0 8px; border:none;">
-            <button type="submit" style="padding:0.75rem 1rem; border:none; background:#F6AD55; color:#0B1020; border-radius:0 8px 8px 0; font-weight:600;">Поиск</button>
-        </form>
-        <div class="hero-cta" style="margin-top:2rem; display:flex; justify-content:center; gap:1rem;">
-            <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начать обучение</a>
-            <a href="#courses" class="hero-btn hero-btn-secondary">Смотреть курсы</a>
-        </div>
+<!-- HERO -->
+<section class="course-hero">
+  <div class="container text-center">
+    <span class="course-badge">🚀 Самый популярный курс 2025</span>
+    <h1 class="course-title">Начни карьеру в IT с нуля</h1>
+    <p class="course-subtitle">
+      Практические курсы от экспертов с гарантией трудоустройства. Обучайся в удобное время и получи востребованную профессию.
+    </p>
+
+    <form action="{% url 'courses_list' %}" method="get" class="hero-search" aria-label="Поиск по курсам">
+      <input type="text" name="q" placeholder="Поиск курсов" aria-label="Поисковый запрос">
+      <button type="submit">Поиск</button>
+    </form>
+
+    <div class="mt-3">
+      <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начать обучение</a>
+      <a href="#courses" class="hero-btn hero-btn-secondary">Смотреть курсы</a>
     </div>
+  </div>
 </section>
 
-<section class="categories-section" style="padding:4rem 0; background:#F8FAFC;">
-    <div class="container">
-        <div class="section-header text-center">
-            <h2>Популярные категории</h2>
-        </div>
-        <div class="swiper categories-swiper">
-            <div class="swiper-wrapper">
-                {% for category in categories %}
-                <div class="swiper-slide text-center">
-                    <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="category-card" style="display:block; padding:2rem 1rem; background:white; border-radius:12px;">
-                        {% if category.icon %}
-                        <i class="{{ category.icon }}" style="font-size:2rem; margin-bottom:0.5rem;"></i>
-                        {% endif %}
-                        <div>{{ category.name }}</div>
-                    </a>
-                </div>
-                {% empty %}
-                <p>Категории пока не добавлены.</p>
-                {% endfor %}
+<!-- CATEGORIES -->
+<section class="categories-section">
+  <div class="container">
+    <div class="section-header text-center">
+      <h2>Популярные категории</h2>
+    </div>
+
+    <div class="swiper categories-swiper">
+      <div class="swiper-wrapper">
+        {% for category in categories %}
+          <div class="swiper-slide">
+            <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="category-card">
+              {% if category.icon %}
+                <i class="{{ category.icon }}" aria-hidden="true"></i>
+              {% endif %}
+              <div>{{ category.name }}</div>
+            </a>
+          </div>
+        {% empty %}
+          <p>Категории пока не добавлены.</p>
+        {% endfor %}
+      </div>
+
+      <div class="swiper-button-next" aria-label="Следующие категории"></div>
+      <div class="swiper-button-prev" aria-label="Предыдущие категории"></div>
+    </div>
+  </div>
+</section>
+
+<!-- COURSES -->
+<section id="courses" class="section">
+  <div class="container">
+    <div class="section-header text-center">
+      <h2>Популярные курсы</h2>
+    </div>
+
+    <div class="courses-grid">
+      {% for course in popular_courses %}
+        <div class="course-card">
+          {% if course.image %}
+            <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}">
+          {% endif %}
+
+          <div class="course-card-content">
+            <span class="course-category">{{ course.category.name }}</span>
+            <h3 class="course-card-title">{{ course.title }}</h3>
+            <p class="course-card-text">{{ course.description|truncatechars:120 }}</p>
+
+            <div class="course-card-meta">
+              <div class="course-rating">
+                <i class="bi bi-star-fill" aria-hidden="true"></i>
+                {{ course.average_rating }}
+                <span class="course-reviews">({{ course.reviews.count }} отзывов)</span>
+              </div>
+              <span class="course-price">
+                {% if course.price > 0 %}{{ course.price }} ₽{% else %}Бесплатно{% endif %}
+              </span>
             </div>
-            <div class="swiper-button-next"></div>
-            <div class="swiper-button-prev"></div>
+          </div>
+
+          <div class="course-card-footer">
+            {% if user.is_authenticated and user in course.students.all %}
+              <a href="{{ course.get_absolute_url }}" class="btn btn-primary btn-full">Продолжить</a>
+            {% else %}
+              <a href="{{ course.get_absolute_url }}" class="btn btn-outline btn-full">Подробнее</a>
+            {% endif %}
+          </div>
         </div>
+      {% empty %}
+        <p>Курсы пока не добавлены.</p>
+      {% endfor %}
     </div>
+  </div>
 </section>
 
-<section id="courses" class="section courses-section" style="padding:5rem 0;">
-    <div class="container">
-        <div class="section-header text-center">
-            <h2>Популярные курсы</h2>
-        </div>
-        <div class="courses-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:2rem;">
-            {% for course in popular_courses %}
-            <div class="course-card" style="background:white; border-radius:12px; box-shadow:0 5px 20px rgba(0,0,0,0.05); overflow:hidden;">
-                {% if course.image %}
-                <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" style="width:100%; height:200px; object-fit:cover;">
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div class="container">
+    <div class="section-header text-center">
+      <h2>Отзывы студентов</h2>
+    </div>
+
+    <div class="swiper testimonials-swiper">
+      <div class="swiper-wrapper">
+        {% for t in testimonials %}
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+                {% if t.avatar %}
+                  <img src="{{ t.avatar }}" class="testimonial-avatar" alt="{{ t.user_name }}">
                 {% endif %}
-                <div class="course-card-content" style="padding:1rem;">
-                    <span class="course-category" style="font-size:0.85rem; color:#6B7280;">{{ course.category.name }}</span>
-                    <h3 class="course-card-title" style="margin:0.5rem 0;">{{ course.title }}</h3>
-                    <p class="course-card-text" style="font-size:0.9rem; color:#374151;">{{ course.description|truncatechars:100 }}</p>
-                    <div class="course-card-meta" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem;">
-                        <div class="course-rating" style="color:#F6AD55;">
-                            <i class="bi bi-star-fill"></i> {{ course.avg_rating|default:"4.5" }}
-                            <span class="course-reviews" style="color:#6B7280; font-size:0.8rem;">({{ course.reviews_count|default:"0" }} отзывов)</span>
-                        </div>
-                        <span class="course-price" style="font-weight:600;">
-                            {% if course.price > 0 %}
-                                {{ course.price }} ₽
-                            {% else %}
-                                Бесплатно
-                            {% endif %}
-                        </span>
-                    </div>
+                <div>
+                  <h3 style="margin:0">{{ t.user_name }}</h3>
+                  <p class="course-card-text" style="margin:0">{{ t.course_name }}</p>
                 </div>
-                <div class="course-card-footer" style="padding:1rem; text-align:center;">
-                    {% if user.is_authenticated and user in course.students.all %}
-                    <a href="{{ course.get_absolute_url }}" class="btn-full" style="background:#01349D; color:white; padding:0.5rem 1rem; border-radius:8px; display:inline-block;">Продолжить</a>
-                    {% else %}
-                    <a href="{{ course.get_absolute_url }}" class="btn-full" style="background:#F6AD55; color:#0B1020; padding:0.5rem 1rem; border-radius:8px; display:inline-block;">Подробнее</a>
-                    {% endif %}
-                </div>
-            </div>
-            {% empty %}
-            <p>Курсы пока не добавлены.</p>
-            {% endfor %}
-        </div>
-    </div>
-</section>
+              </div>
 
-<section class="testimonials-section" style="padding:5rem 0; background:#F8FAFC;">
-    <div class="container">
-        <div class="section-header text-center">
-            <h2>Отзывы студентов</h2>
-        </div>
-        <div class="swiper testimonials-swiper">
-            <div class="swiper-wrapper">
-                {% for testimonial in testimonials %}
-                <div class="swiper-slide">
-                    <div class="testimonial-card" style="padding:2rem;">
-                        <div class="testimonial-header" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
-                            <img src="{{ testimonial.avatar.url }}" class="testimonial-avatar" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
-                            <div class="testimonial-user">
-                                <h3>{{ testimonial.user_name }}</h3>
-                                <p>{{ testimonial.course_name }}</p>
-                            </div>
-                        </div>
-                        <div class="testimonial-rating" style="color:#F6AD55; margin-bottom:1rem;">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= testimonial.rating|floatformat:0 %}
-                                <i class="bi bi-star-fill"></i>
-                                {% else %}
-                                <i class="bi bi-star"></i>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <p>{{ testimonial.text }}</p>
-                    </div>
-                </div>
+              <div class="course-rating" style="margin-bottom:.5rem">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= t.rating|floatformat:0 %}
+                    <i class="bi bi-star-fill" aria-hidden="true"></i>
+                  {% else %}
+                    <i class="bi bi-star" aria-hidden="true"></i>
+                  {% endif %}
                 {% endfor %}
+              </div>
+
+              <p>{{ t.text }}</p>
             </div>
-            <div class="swiper-button-next"></div>
-            <div class="swiper-button-prev"></div>
-        </div>
+          </div>
+        {% empty %}
+          <div class="swiper-slide">
+            <div class="testimonial-card"><p>Отзывов пока нет.</p></div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="swiper-button-next" aria-label="Следующие отзывы"></div>
+      <div class="swiper-button-prev" aria-label="Предыдущие отзывы"></div>
     </div>
+  </div>
 </section>
 
-<section class="faq-section" style="padding:5rem 0;">
-    <div class="container">
-        <div class="section-header text-center">
-            <h2>Часто задаваемые вопросы</h2>
-        </div>
-        <div class="faq-container" style="max-width:800px; margin:0 auto;">
-            {% for faq in faqs %}
-            <div class="faq-item">
-                <button class="faq-question" style="width:100%; padding:1.5rem; text-align:left; font-weight:600; font-size:1.1rem; cursor:pointer;">{{ faq.question }}</button>
-                <div class="faq-answer">{{ faq.answer }}</div>
-            </div>
-            {% endfor %}
-        </div>
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="container">
+    <div class="section-header text-center">
+      <h2>Часто задаваемые вопросы</h2>
     </div>
+
+    <div class="faq-container">
+      {% for faq in faqs %}
+        <div class="faq-item">
+          <button class="faq-question">{{ faq.question }}</button>
+          <div class="faq-answer"><p>{{ faq.answer }}</p></div>
+        </div>
+      {% empty %}
+        <p class="text-center">Скоро добавим ответы на популярные вопросы.</p>
+      {% endfor %}
+    </div>
+  </div>
 </section>
 
-<section class="cta-section" style="padding:4rem 0; background:linear-gradient(135deg,#F6AD55,#ECC94B); text-align:center; color:#0B1020;">
-    <div class="container">
-        <h2>Готовы начать карьеру в IT?</h2>
-        <p style="margin-bottom:2rem;">Присоединяйтесь к тысячам студентов, которые уже изменили свою жизнь с помощью наших курсов</p>
-        <a href="{% url 'signup' %}" class="cta-button" style="background:#01349D; color:white; padding:1rem 2rem; border-radius:8px; font-weight:600;">Начать обучение</a>
-    </div>
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="cta-title">Готовы начать карьеру в IT?</h2>
+    <p class="mb-3">Присоединяйтесь к студентам SkillsSpire и учитесь в удобном темпе.</p>
+    <a href="{% url 'signup' %}" class="cta-button">Начать обучение</a>
+  </div>
 </section>
 
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-var categoriesSwiper = new Swiper('.categories-swiper', {
+  // Categories slider
+  new Swiper('.categories-swiper', {
     slidesPerView: 'auto',
     spaceBetween: 20,
-    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-});
-var testimonialsSwiper = new Swiper('.testimonials-swiper', {
+    navigation: {
+      nextEl: '.categories-section .swiper-button-next',
+      prevEl: '.categories-section .swiper-button-prev'
+    },
+  });
+
+  // Testimonials slider
+  new Swiper('.testimonials-swiper', {
     slidesPerView: 1,
     spaceBetween: 20,
-    loop:true,
-    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-    breakpoints: { 768:{ slidesPerView:2 }, 1024:{ slidesPerView:3 } }
-});
+    loop: true,
+    navigation: {
+      nextEl: '.testimonials-section .swiper-button-next',
+      prevEl: '.testimonials-section .swiper-button-prev'
+    },
+    breakpoints: {
+      768: { slidesPerView: 2 },
+      1024: { slidesPerView: 3 }
+    }
+  });
 
-document.querySelectorAll('.faq-question').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-        btn.parentElement.classList.toggle('active');
+  // FAQ accordion
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.parentElement;
+      const open = item.classList.contains('active');
+      document.querySelectorAll('.faq-item').forEach(i => {
+        i.classList.remove('active');
+        const ans = i.querySelector('.faq-answer');
+        if (ans) ans.style.maxHeight = 0;
+      });
+      if (!open) {
+        item.classList.add('active');
+        const ans = item.querySelector('.faq-answer');
+        if (ans) ans.style.maxHeight = ans.scrollHeight + 'px';
+      }
     });
-});
+  });
 </script>
 {% endblock %}
