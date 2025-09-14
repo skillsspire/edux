@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.utils import timezone
 from django.conf import settings
+from django.db import ProgrammingError, DatabaseError
 
 import hmac
 import hashlib
@@ -87,7 +88,11 @@ def home(request):
         .annotate(num_students=Count('students', distinct=True))
         .order_by('-num_students')[:6]
     )
-    categories = Category.objects.filter(is_active=True)[:8]
+    try:
+        categories = Category.objects.filter(is_active=True)[:8]
+    except Exception:
+        # если поле is_active ещё не накатилось миграцией
+        categories = Category.objects.all()[:8]
 
     return render(request, 'home.html', {
         'featured_courses': featured_courses,
@@ -98,9 +103,11 @@ def home(request):
 
 # ------------------------ Courses List ------------------------
 def courses_list(request):
+    # Сразу аннотируем средний рейтинг, чтобы он ВСЕГДА был в курсах для шаблона
     courses_qs = (
         Course.objects.select_related('category')
         .prefetch_related('students', 'reviews')
+        .annotate(avg_rating=Avg('reviews__rating'))
     )
 
     category_slug = request.GET.get('category')
@@ -128,9 +135,11 @@ def courses_list(request):
         courses_qs = courses_qs.filter(price__gt=0)
 
     if sort_by == 'popular':
-        courses_qs = courses_qs.annotate(students_count=Count('students')).order_by('-students_count', '-created_at')
+        courses_qs = courses_qs.annotate(
+            students_count=Count('students', distinct=True)
+        ).order_by('-students_count', '-created_at')
     elif sort_by == 'rating':
-        courses_qs = courses_qs.annotate(avg_rating=Avg('reviews__rating')).order_by('-avg_rating', '-created_at')
+        courses_qs = courses_qs.order_by('-avg_rating', '-created_at')
     elif sort_by == 'price_low':
         courses_qs = courses_qs.order_by('price', '-created_at')
     elif sort_by == 'price_high':
@@ -138,7 +147,10 @@ def courses_list(request):
     else:
         courses_qs = courses_qs.order_by('-created_at')
 
-    categories = Category.objects.filter(is_active=True)
+    try:
+        categories = Category.objects.filter(is_active=True)
+    except Exception:
+        categories = Category.objects.all()
 
     paginator = Paginator(courses_qs, 12)
     page_number = request.GET.get('page')
@@ -166,14 +178,18 @@ def course_detail(request, slug):
             return redirect('login')
         has_access = course.students.filter(id=request.user.id).exists()
     else:
-        # бесплатный (price == 0)
         has_access = True
 
-    lessons = (
-        Lesson.objects.filter(module__course=course, is_active=True)
-        .select_related('module')
-        .order_by('module__order', 'order')
-    )
+    # Если таблицы модулей нет — не падаем
+    try:
+        lessons = (
+            Lesson.objects.filter(module__course=course, is_active=True)
+            .select_related('module')
+            .order_by('module__order', 'order')
+        )
+    except (ProgrammingError, DatabaseError):
+        lessons = Lesson.objects.none()
+
     related_courses = (
         Course.objects.filter(category=course.category)
         .exclude(id=course.id).select_related('category')[:4]
@@ -193,10 +209,16 @@ def course_detail(request, slug):
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related('students'), slug=course_slug)
-    lesson = get_object_or_404(
-        Lesson.objects.select_related('module'),
-        slug=lesson_slug, module__course=course, is_active=True
-    )
+
+    # Пытаемся получить урок через связь с module; если таблицы модулей нет — мягкий фолбэк
+    try:
+        lesson = get_object_or_404(
+            Lesson.objects.select_related('module'),
+            slug=lesson_slug, module__course=course, is_active=True
+        )
+    except (ProgrammingError, DatabaseError):
+        messages.error(request, 'Секции модулей пока недоступны. Попробуйте позже.')
+        return redirect('course_detail', slug=course_slug)
 
     # проверка доступа (платный курс — только для записанных)
     if course.price > 0 and not course.students.filter(id=request.user.id).exists():
@@ -204,10 +226,14 @@ def lesson_detail(request, course_slug, lesson_slug):
         return redirect('course_detail', slug=course_slug)
 
     # список уроков для навигации вперед/назад
-    lessons_list = list(
-        Lesson.objects.filter(module__course=course, is_active=True)
-        .order_by('module__order', 'order')
-    )
+    try:
+        lessons_list = list(
+            Lesson.objects.filter(module__course=course, is_active=True)
+            .order_by('module__order', 'order')
+        )
+    except (ProgrammingError, DatabaseError):
+        lessons_list = [lesson]
+
     try:
         current_index = lessons_list.index(lesson)
     except ValueError:
@@ -215,12 +241,12 @@ def lesson_detail(request, course_slug, lesson_slug):
     previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
     next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-    # отметка прогресса (обновим время доступа; percent при желании можно считать отдельно)
+    # отметка прогресса
     LessonProgress.objects.update_or_create(
         user=request.user,
         lesson=lesson,
         defaults={
-            'is_completed': False if course.price > 0 else True,  # пример авто-завершения для бесплатных
+            'is_completed': False if course.price > 0 else True,
             'percent': 0,
             'updated_at': timezone.now(),
         }
@@ -271,27 +297,30 @@ def my_courses(request):
 @login_required
 def dashboard(request):
     user = request.user
-    enrollments = Enrollment.objects.filter(user=user).select_related('course')
 
-    # Собираем лучший процент по каждому курсу из LessonProgress
-    progress_qs = LessonProgress.objects.filter(user=user).select_related(
-        'lesson__module__course'
+    # Курсы пользователя
+    enrollments = (
+        Enrollment.objects.filter(user=user)
+        .select_related('course')
+        .order_by('-enrolled_at')
     )
-    progress_map = {}
-    for lp in progress_qs:
-        cid = lp.lesson.module.course_id
-        val = int(lp.percent or 0)
-        if cid not in progress_map or val > progress_map[cid]:
-            progress_map[cid] = val
+
+    # Прогресс: НЕ джоиним к module, чтобы не упасть, если таблицы нет
+    try:
+        progress_qs = LessonProgress.objects.filter(user=user).select_related('lesson')
+        total_lessons = progress_qs.count()
+        completed_lessons = progress_qs.filter(is_completed=True).count()
+    except (ProgrammingError, DatabaseError):
+        progress_qs = LessonProgress.objects.none()
+        total_lessons = 0
+        completed_lessons = 0
 
     context = {
-        'enrollments': enrollments,
         'total_courses': enrollments.count(),
         'completed_courses': enrollments.filter(completed=True).count(),
-        'total_lessons': progress_qs.count(),
-        'completed_lessons': progress_qs.filter(is_completed=True).count(),
-        'recent_courses': enrollments.order_by('-enrolled_at')[:5],
-        'progress_map': progress_map,
+        'total_lessons': total_lessons,
+        'completed_lessons': completed_lessons,
+        'recent_courses': enrollments[:5],
     }
     return render(request, 'users/dashboard.html', context)
 

@@ -49,26 +49,16 @@
                 <div class="card-body">
                     <h5 class="card-title">Категории</h5>
                     <div class="list-group list-group-flush">
-                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{% url 'courses_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Все курсы
-                            <span class="badge bg-primary rounded-pill">45</span>
                         </a>
-                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            Программирование
-                            <span class="badge bg-primary rounded-pill">18</span>
-                        </a>
-                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            Дизайн
-                            <span class="badge bg-primary rounded-pill">12</span>
-                        </a>
-                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            Маркетинг
-                            <span class="badge bg-primary rounded-pill">9</span>
-                        </a>
-                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            Аналитика
-                            <span class="badge bg-primary rounded-pill">6</span>
-                        </a>
+                        {% for cat in categories %}
+                            <a href="{% url 'courses_list' %}?category={{ cat.slug }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                {{ cat.name }}
+                            </a>
+                        {% empty %}
+                            <span class="list-group-item text-muted">Нет категорий</span>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -111,7 +101,7 @@
                 <div class="col-lg-6 col-xl-4 mb-4">
                     <div class="card h-100 course-card">
                         <div class="position-relative">
-                            {# БЕЗОПАСНЫЙ ФОЛБЭК ДЛЯ КАРТИНКИ #}
+                            {# Безопасный фолбэк для картинки: не трогаем .url, если файла нет #}
                             {% if course.thumbnail and course.thumbnail.name %}
                                 <img src="{{ course.thumbnail.url }}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
                             {% elif course.image and course.image.name %}
@@ -130,11 +120,9 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="badge bg-primary">{{ course.category.name|default:"Без категории" }}</span>
-                                <div class="text-warning small">
-                                    <i class="bi bi-star-fill"></i>
-                                    {% with r=course.average_rating|default:course.avg_rating %}
-                                        {{ r|default:"4.8" }}
-                                    {% endwith %}
+                                <div class="text-warning small d-flex align-items-center">
+                                    <i class="bi bi-star-fill me-1"></i>
+                                    {{ course.avg_rating|default_if_none:"4.8"|floatformat:1 }}
                                 </div>
                             </div>
                             <h5 class="card-title">{{ course.title }}</h5>
