@@ -7,7 +7,6 @@ from django.db import connection
 
 log = logging.getLogger(__name__)
 
-
 class CoreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'app'
@@ -74,7 +73,6 @@ class CoreConfig(AppConfig):
             user_pk_type   = get_col_type('auth_user', 'id',  'bigint')
 
             with connection.cursor() as cur:
-                # сама таблица (если ранее не была создана миграциями)
                 cur.execute(f"""
                     CREATE TABLE IF NOT EXISTS app_course_students (
                         id bigserial PRIMARY KEY,
@@ -82,14 +80,11 @@ class CoreConfig(AppConfig):
                         user_id   {user_pk_type}   NOT NULL
                     );
                 """)
-                # уникальность пары (course, user)
                 cur.execute("""
                     DO $$
                     BEGIN
                         IF NOT EXISTS (
-                            SELECT 1 FROM pg_constraint c
-                            JOIN pg_class t ON t.oid = c.conrelid
-                            WHERE c.conname = 'app_course_students_course_user_uniq'
+                            SELECT 1 FROM pg_constraint WHERE conname = 'app_course_students_course_user_uniq'
                         ) THEN
                             ALTER TABLE app_course_students
                             ADD CONSTRAINT app_course_students_course_user_uniq
@@ -97,7 +92,6 @@ class CoreConfig(AppConfig):
                         END IF;
                     END$$;
                 """)
-                # индексы
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS app_course_students_course_idx
                     ON app_course_students (course_id);
@@ -106,7 +100,6 @@ class CoreConfig(AppConfig):
                     CREATE INDEX IF NOT EXISTS app_course_students_user_idx
                     ON app_course_students (user_id);
                 """)
-                # внешние ключи
                 cur.execute("""
                     DO $$
                     BEGIN
@@ -159,7 +152,14 @@ class CoreConfig(AppConfig):
                     END$$;
                 """)
 
-            log.info("Schema ensure OK: categories + m2m + instructor_id готовы.")
+            # 5) Короткое описание курса: app_course.short_description
+            with connection.cursor() as cur:
+                cur.execute("""
+                    ALTER TABLE app_course
+                    ADD COLUMN IF NOT EXISTS short_description text NOT NULL DEFAULT '';
+                """)
+
+            log.info("Schema ensure OK: categories + m2m + instructor_id + short_description готовы.")
 
         except Exception as e:
             # Не валим приложение: просто логируем, чтобы сайт продолжал работать.
