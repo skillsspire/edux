@@ -3,249 +3,256 @@
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}SkillsSpire - Онлайн-курсы{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SkillsSpire - Онлайн-курсы{% endblock %}</title>
 
-    <meta property="og:title" content="{% block og_title %}SkillsSpire - Онлайн-курсы{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Освойте востребованные навыки с лучшими экспертами. Практические курсы с гарантией результата.{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% static 'img/og-default.jpg' %}{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
-    <meta property="og:type" content="website">
+  <meta property="og:title" content="{% block og_title %}SkillsSpire - Онлайн-курсы{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Освойте востребованные навыки с лучшими экспертами. Практические курсы с гарантией результата.{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{% static 'img/og-default.jpg' %}{% endblock %}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  <meta property="og:type" content="website">
 
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicon/apple-touch-icon.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon/favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
-    <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicon/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
+  <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
-    {% block extra_css %}{% endblock %}
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
 
 <!-- NAVIGATION -->
 <nav class="main-nav">
-    <div class="container nav-container">
-        <a class="nav-brand" href="{% url 'home' %}">
-            <img src="{% static 'img/logo_skillsspire.png' %}" alt="SkillsSpire" width="40" height="40">
-            <span>SkillsSpire</span>
-        </a>
-        <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
-        <div class="nav-menu" id="navMenu">
-            <div class="nav-menu-inner">
-                <ul class="nav-list">
-                    <li><a href="{% url 'home' %}">Главная</a></li>
-                    <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
-                    <li><a href="{% url 'about' %}">О нас</a></li>
-                    <li><a href="{% url 'contact' %}">Контакты</a></li>
-                    {% if user.is_authenticated and user.instructor_profile %}
-                    <li class="nav-highlight">
-                        <a href="{% url 'course_create' %}"><i class="bi bi-plus-circle"></i> Создать курс</a>
-                    </li>
-                    {% endif %}
-                </ul>
+  <div class="container nav-container">
+    <a class="nav-brand" href="{% url 'home' %}">
+      <img src="{% static 'img/logo_skillsspire.png' %}" alt="SkillsSpire" width="40" height="40">
+      <span>SkillsSpire</span>
+    </a>
 
-                <div class="nav-actions">
-                    <form class="nav-search" action="{% url 'courses_list' %}" method="get">
-                        <input type="search" name="q" placeholder="Поиск курсов...">
-                        <button type="submit"><i class="bi bi-search"></i></button>
-                    </form>
+    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
 
-                    {% if user.is_authenticated %}
-                    <div class="nav-notifications">
-                        <button class="nav-icon-btn"><i class="bi bi-bell"></i><span class="nav-badge">3</span></button>
-                    </div>
-                    <div class="nav-user dropdown">
-                        <button class="nav-user-btn">
-                            {% if user.profile.avatar %}
-                            <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}">
-                            {% else %}
-                            <div class="nav-user-avatar">{{ user.first_name|first|default:user.email|first|upper }}</div>
-                            {% endif %}
-                            <span>{{ user.first_name|default:user.email }}</span>
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-menu">
-                            <h6>Мой аккаунт</h6>
-                            <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Дашборд</a>
-                            <a href="{% url 'my_courses' %}"><i class="bi bi-book"></i> Мои курсы</a>
-                            <a href="#"><i class="bi bi-credit-card"></i> Платежи</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="#"><i class="bi bi-gear"></i> Настройки</a>
-                            <form action="{% url 'logout' %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit"><i class="bi bi-box-arrow-right"></i> Выйти</button>
-                            </form>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="nav-auth">
-                        <a href="{% url 'signup' %}" class="btn btn-outline">Регистрация</a>
-                        <a href="{% url 'login' %}" class="btn btn-primary">Войти</a>
-                    </div>
-                    {% endif %}
+    <div class="nav-menu" id="navMenu">
+      <div class="nav-menu-inner">
+        <ul class="nav-list">
+          <li><a href="{% url 'home' %}">Главная</a></li>
+          <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
+          <li><a href="{% url 'about' %}">О нас</a></li>
+          <li><a href="{% url 'contact' %}">Контакты</a></li>
+          {% if user.is_authenticated and user.is_instructor %}
+          <li class="nav-highlight"><a href="{% url 'course_create' %}"><i class="bi bi-plus-circle"></i> Создать курс</a></li>
+          {% endif %}
+        </ul>
 
-                    <div class="nav-utils">
-                        <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
-                            {% get_current_language as LANGUAGE_CODE %}
-                            <select name="language" onchange="this.form.submit()">
-                                <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
-                                <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
-                                <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
-                            </select>
-                        </form>
-                        <button id="theme-toggle" class="theme-toggle"><i class="bi bi-moon"></i></button>
-                    </div>
-                </div>
+        <div class="nav-actions">
+          <form class="nav-search" action="{% url 'courses_list' %}" method="get">
+            <input type="search" name="q" placeholder="Поиск курсов...">
+            <button type="submit"><i class="bi bi-search"></i></button>
+          </form>
+
+          {% if user.is_authenticated %}
+          <div class="nav-notifications">
+            <button class="nav-icon-btn"><i class="bi bi-bell"></i><span class="nav-badge">3</span></button>
+          </div>
+
+          <div class="nav-user dropdown">
+            <button class="nav-user-btn">
+              {% if user.is_instructor and user.instructor_profile.avatar %}
+                <img src="{{ user.instructor_profile.avatar.url }}" alt="{{ user.get_full_name }}" width="32" height="32" style="border-radius:50%;object-fit:cover;">
+              {% else %}
+                <div class="nav-user-avatar">{{ user.first_name|first|default:user.email|first|upper }}</div>
+              {% endif %}
+              <span>{{ user.first_name|default:user.email }}</span>
+              <i class="bi bi-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu">
+              <h6>Мой аккаунт</h6>
+              <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Дашборд</a>
+              <a href="{% url 'my_courses' %}"><i class="bi bi-book"></i> Мои курсы</a>
+              <a href="#"><i class="bi bi-credit-card"></i> Платежи</a>
+              <div class="dropdown-divider"></div>
+              <a href="#"><i class="bi bi-gear"></i> Настройки</a>
+              <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit"><i class="bi bi-box-arrow-right"></i> Выйти</button>
+              </form>
             </div>
+          </div>
+          {% else %}
+          <div class="nav-auth">
+            <a href="{% url 'signup' %}" class="btn btn-outline">Регистрация</a>
+            <a href="{% url 'login' %}" class="btn btn-primary">Войти</a>
+          </div>
+          {% endif %}
+
+          <div class="nav-utils">
+            <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
+              {% get_current_language as LANGUAGE_CODE %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <select name="language" onchange="this.form.submit()">
+                <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
+                <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
+                <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
+              </select>
+            </form>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"><i class="bi bi-moon"></i></button>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </nav>
 
 <!-- MESSAGES -->
 {% if messages %}
 <div class="messages-container">
-    <div class="container">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            <div class="alert-content">
-                {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill"></i>
-                {% elif message.tags == 'error' %}<i class="bi bi-exclamation-circle-fill"></i>
-                {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
-                {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
-                <span>{{ message }}</span>
-            </div>
-            <button class="alert-close">&times;</button>
-        </div>
-        {% endfor %}
+  <div class="container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <div class="alert-content">
+        {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% elif message.tags == 'error' %}<i class="bi bi-exclamation-circle-fill"></i>
+        {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+        <span>{{ message }}</span>
+      </div>
+      <button class="alert-close" aria-label="Close">&times;</button>
     </div>
+    {% endfor %}
+  </div>
 </div>
 {% endif %}
 
 <!-- MAIN CONTENT -->
 <main>
-    {% block content %}{% endblock %}
+  {% block content %}{% endblock %}
 </main>
 
 <!-- FOOTER -->
 <footer class="main-footer">
-    <div class="container">
-        <div class="footer-grid">
-            <div class="footer-col">
-                <a class="footer-brand" href="{% url 'home' %}">
-                    <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire"><span>SkillsSpire</span>
-                </a>
-                <p>Платформа для онлайн-обучения с лучшими курсами от экспертов рынка.</p>
-                <div class="footer-social">
-                    <a href="#"><i class="bi bi-telegram"></i></a>
-                    <a href="#"><i class="bi bi-whatsapp"></i></a>
-                    <a href="#"><i class="bi bi-youtube"></i></a>
-                    <a href="#"><i class="bi bi-instagram"></i></a>
-                </div>
-            </div>
-
-            <div class="footer-col">
-                <h5>Навигация</h5>
-                <ul>
-                    <li><a href="{% url 'home' %}">Главная</a></li>
-                    <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
-                    <li><a href="{% url 'about' %}">О нас</a></li>
-                    <li><a href="{% url 'contact' %}">Контакты</a></li>
-                </ul>
-            </div>
-
-            <div class="footer-col">
-                <h5>Категории</h5>
-                <ul>
-                    <li><a href="#">Программирование</a></li>
-                    <li><a href="#">Дизайн</a></li>
-                    <li><a href="#">Маркетинг</a></li>
-                    <li><a href="#">Аналитика</a></li>
-                </ul>
-            </div>
-
-            <div class="footer-col">
-                <h5>Подписка на рассылку</h5>
-                <p>Подпишитесь, чтобы получать новости о курсах.</p>
-                <form class="footer-subscribe">
-                    <input type="email" placeholder="Ваш email">
-                    <button type="submit">Подписаться</button>
-                </form>
-            </div>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a class="footer-brand" href="{% url 'home' %}">
+          <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire">
+          <span>SkillsSpire</span>
+        </a>
+        <p>Платформа для онлайн-обучения с лучшими курсами от экспертов рынка.</p>
+        <div class="footer-social">
+          <a href="#"><i class="bi bi-telegram"></i></a>
+          <a href="#"><i class="bi bi-whatsapp"></i></a>
+          <a href="#"><i class="bi bi-youtube"></i></a>
+          <a href="#"><i class="bi bi-instagram"></i></a>
         </div>
+      </div>
 
-        <div class="footer-bottom">
-            <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
-            <div class="footer-payments">
-                <img src="{% static 'img/payments/visa.png' %}" alt="Visa">
-                <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard">
-                <img src="{% static 'img/payments/mir.png' %}" alt="Mir">
-            </div>
-        </div>
+      <div class="footer-col">
+        <h5>Навигация</h5>
+        <ul>
+          <li><a href="{% url 'home' %}">Главная</a></li>
+          <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
+          <li><a href="{% url 'about' %}">О нас</a></li>
+          <li><a href="{% url 'contact' %}">Контакты</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Категории</h5>
+        <ul>
+          <li><a href="#">Программирование</a></li>
+          <li><a href="#">Дизайн</a></li>
+          <li><a href="#">Маркетинг</a></li>
+          <li><a href="#">Аналитика</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Подписка на рассылку</h5>
+        <p>Подпишитесь, чтобы получать новости о курсах.</p>
+        <form class="footer-subscribe">
+          <input type="email" placeholder="Ваш email">
+          <button type="submit">Подписаться</button>
+        </form>
+      </div>
     </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
+      <div class="footer-payments">
+        <img src="{% static 'img/payments/visa.png' %}" alt="Visa">
+        <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard">
+        <img src="{% static 'img/payments/mir.png' %}" alt="Mir">
+      </div>
+    </div>
+  </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
 <script src="{% static 'js/main.js' %}"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const navToggle = document.getElementById('navToggle');
-    const navMenu = document.getElementById('navMenu');
-    if(navToggle && navMenu){
-        navToggle.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            navToggle.classList.toggle('active');
-        });
-    }
-
-    document.querySelectorAll('.alert-close').forEach(button => {
-        button.addEventListener('click', function() {
-            const alertEl = this.closest('.alert');
-            alertEl.classList.add('hide');
-            setTimeout(()=> alertEl.remove(), 350);
-        });
+document.addEventListener('DOMContentLoaded', function () {
+  const navToggle = document.getElementById('navToggle');
+  const navMenu = document.getElementById('navMenu');
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+      navToggle.classList.toggle('active');
     });
+  }
 
-    const subscribeForm = document.querySelector('.footer-subscribe');
-    if(subscribeForm){
-        subscribeForm.addEventListener('submit', function(e){
-            e.preventDefault();
-            const emailInput = this.querySelector('input[type="email"]');
-            if(emailInput.value){
-                alert('Спасибо за подписку!');
-                emailInput.value = '';
-            }
-        });
-    }
-
-    new PureCounter();
-
-    const faqQuestions = document.querySelectorAll('.faq-question');
-    faqQuestions.forEach(question => {
-        question.addEventListener('click', function() {
-            faqQuestions.forEach(q => {
-                if(q !== this){
-                    q.classList.remove('active');
-                    q.nextElementSibling.style.display = 'none';
-                }
-            });
-            this.classList.toggle('active');
-            const answer = this.nextElementSibling;
-            answer.style.display = this.classList.contains('active') ? 'block' : 'none';
-        });
+  document.querySelectorAll('.alert-close').forEach(button => {
+    button.addEventListener('click', function () {
+      const alertEl = this.closest('.alert');
+      alertEl.classList.add('hide');
+      setTimeout(() => alertEl.remove(), 350);
     });
+  });
 
-    const themeToggle = document.getElementById('theme-toggle');
+  const subscribeForm = document.querySelector('.footer-subscribe');
+  if (subscribeForm) {
+    subscribeForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const emailInput = this.querySelector('input[type="email"]');
+      if (emailInput.value) {
+        alert('Спасибо за подписку!');
+        emailInput.value = '';
+      }
+    });
+  }
+
+  new PureCounter();
+
+  const faqQuestions = document.querySelectorAll('.faq-question');
+  faqQuestions.forEach(q => {
+    q.addEventListener('click', function () {
+      faqQuestions.forEach(other => {
+        if (other !== this) {
+          other.classList.remove('active');
+          if (other.nextElementSibling) other.nextElementSibling.style.display = 'none';
+        }
+      });
+      this.classList.toggle('active');
+      const answer = this.nextElementSibling;
+      if (answer) answer.style.display = this.classList.contains('active') ? 'block' : 'none';
+    });
+  });
+
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
     themeToggle.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark-theme');
-        localStorage.setItem('theme', document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark-theme');
+      localStorage.setItem('theme',
+        document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light'
+      );
     });
-    if(localStorage.getItem('theme') === 'dark'){
-        document.documentElement.classList.add('dark-theme');
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.classList.add('dark-theme');
     }
+  }
 });
 </script>
 
