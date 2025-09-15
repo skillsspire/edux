@@ -1,236 +1,408 @@
-from django.contrib import admin, messages
+from django.db import models
+from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.utils.html import format_html
-from django.utils.timezone import now
-from django.http import HttpResponse
-from django.db.models import Q
-import csv
+from django.utils.text import slugify
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db import DatabaseError
+from django.templatetags.static import static
 
-from .models import Category, Course, Lesson, Enrollment, Payment, Subscription, InstructorProfile, Review, Wishlist, Module, ContactMessage
+# ===== Сервисные хелперы =====
+DEFAULT_COURSE_IMAGE = 'img/courses/default.jpg'
+DEFAULT_AVATAR_IMAGE = 'img/avatar-default.png'
 
-admin.site.empty_value_display = '—'
 
-class PriceRangeFilter(admin.SimpleListFilter):
-    title = 'Цена'
-    parameter_name = 'price_range'
+def safe_file_url(file_field, default_path):
+    try:
+        if file_field and getattr(file_field, 'url', None):
+            return file_field.url
+    except Exception:
+        pass
+    return static(default_path)
 
-    def lookups(self, request, model_admin):
-        return [
-            ('free', 'Бесплатно'),
-            ('lt100', '< 100'),
-            ('100-500', '100–500'),
-            ('gt500', '> 500'),
-        ]
 
-    def queryset(self, request, qs):
-        value = self.value()
-        if value == 'free':
-            return qs.filter(price=0)
-        if value == 'lt100':
-            return qs.filter(price__lt=100)
-        if value == '100-500':
-            return qs.filter(price__gte=100, price__lte=500)
-        if value == 'gt500':
-            return qs.filter(price__gt=500)
-        return qs
+# Свойство на User: является ли одобренным инструктором
+User.add_to_class(
+    'is_instructor',
+    property(lambda self: hasattr(self, 'instructor_profile') and getattr(self.instructor_profile, 'is_approved', False))
+)
 
-class ActiveSubscriptionFilter(admin.SimpleListFilter):
-    title = 'Статус подписки'
-    parameter_name = 'sub_active'
 
-    def lookups(self, request, model_admin):
-        return [('active', 'Активна'), ('expired', 'Истекла')]
+# ==========================
+# Категория
+# ==========================
+class Category(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Название")
+    slug = models.SlugField(unique=True, verbose_name="URL")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    icon = models.CharField(max_length=50, blank=True, verbose_name="Иконка")
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
 
-    def queryset(self, request, qs):
-        value = self.value()
-        if value == 'active':
-            return qs.filter(active=True, end_date__gte=now().date())
-        if value == 'expired':
-            return qs.filter(Q(active=False) | Q(end_date__lt=now().date()))
-        return qs
+    class Meta:
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
+        ordering = ['order', 'name']
 
-class ModuleInline(admin.TabularInline):
-    model = Module
-    fields = ['title', 'order', 'is_active']
-    extra = 0
-    ordering = ['order']
-    show_change_link = True
+    def __str__(self):
+        return self.name
 
-class EnrollmentInline(admin.TabularInline):
-    model = Enrollment
-    fields = ['user', 'completed', 'enrolled_at']
-    readonly_fields = ['enrolled_at']
-    extra = 0
-    autocomplete_fields = ['user']
-    show_change_link = True
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'description_short', 'is_active']
-    list_filter = ['is_active']
-    search_fields = ['name']
-    list_editable = ['is_active']
+    def get_absolute_url(self):
+        return reverse('courses_by_category', kwargs={'slug': self.slug})
 
-    @admin.display(description='Описание')
-    def description_short(self, obj):
-        desc = getattr(obj, 'description', '')
-        return (desc[:50] + '...') if desc else ''
 
-@admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
-    list_display = ['title_link', 'instructor', 'category', 'price', 'status', 'created_at']
-    list_display_links = ['title_link']
-    list_filter = ['category', 'status', 'level', 'is_featured', 'created_at']
-    search_fields = ['title', 'short_description']
-    readonly_fields = ['created_at', 'updated_at']
-    autocomplete_fields = ['instructor', 'category']
-    list_select_related = ['instructor', 'category']
-    date_hierarchy = 'created_at'
-    list_per_page = 50
-    inlines = [ModuleInline, EnrollmentInline]
+# ==========================
+# Профиль инструктора
+# ==========================
+class InstructorProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='instructor_profile')
+    bio = models.TextField(verbose_name="Биография")
+    avatar = models.ImageField(upload_to='instructors/avatars/', blank=True, null=True, verbose_name="Аватар")
+    specialization = models.CharField(max_length=200, verbose_name="Специализация")
+    experience = models.PositiveIntegerField(default=0, verbose_name="Опыт (лет)")
+    website = models.URLField(blank=True, verbose_name="Вебсайт")
+    linkedin = models.URLField(blank=True, verbose_name="LinkedIn")
+    twitter = models.URLField(blank=True, verbose_name="Twitter")
+    is_approved = models.BooleanField(default=False, verbose_name="Подтверждён")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    # не показываем поле author в форме
-    exclude = ['author']
+    class Meta:
+        verbose_name = "Профиль инструктора"
+        verbose_name_plural = "Профили инструкторов"
 
-    def save_model(self, request, obj, form, change):
-        # если автор не задан – ставим автоматически
-        if not getattr(obj, 'author_id', None):
-            # если выбран инструктор и у него есть связанный user – используем его
-            try:
-                if getattr(obj, 'instructor', None) and getattr(obj.instructor, 'user', None):
-                    obj.author = obj.instructor.user
-                else:
-                    obj.author = request.user
-            except Exception:
-                obj.author = request.user
-        super().save_model(request, obj, form, change)
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.username}"
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('instructor', 'category').prefetch_related('modules')
+    @property
+    def courses_count(self):
+        return self.user.courses_created.count()
 
-    @admin.display(description='Курс', ordering='title')
-    def title_link(self, obj):
-        url = reverse(f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', args=[obj.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.title)
+    @property
+    def avatar_safe_url(self):
+        return safe_file_url(self.avatar, DEFAULT_AVATAR_IMAGE)
 
-@admin.register(Lesson)
-class LessonAdmin(admin.ModelAdmin):
-    list_display = ['title', 'module', 'order', 'is_active']
-    list_filter = ['is_active', 'is_free', 'module__course']
-    ordering = ['module__course__title', 'module__order', 'order']
-    search_fields = ['title', 'content']
-    autocomplete_fields = ['module']
-    list_select_related = ['module__course']
 
-@admin.action(description='Отметить выбранные записи как завершённые')
-def mark_completed(modeladmin, request, queryset):
-    updated = queryset.update(completed=True)
-    messages.success(request, f'Отмечено завершёнными: {updated}')
+# ==========================
+# Курс
+# ==========================
+class Course(models.Model):
+    LEVEL_CHOICES = [
+        ('beginner', 'Начинающий'),
+        ('intermediate', 'Средний'),
+        ('advanced', 'Продвинутый'),
+    ]
+    STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('review', 'На проверке'),
+        ('published', 'Опубликован'),
+    ]
 
-@admin.action(description='Экспортировать в CSV')
-def export_csv(modeladmin, request, queryset):
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename=enrollments_export.csv'
-    writer = csv.writer(response)
-    writer.writerow(['user', 'course', 'completed', 'enrolled_at'])
-    for e in queryset.select_related('user', 'course'):
-        writer.writerow([
-            getattr(e.user, 'username', ''),
-            getattr(e.course, 'title', ''),
-            '1' if e.completed else '0',
-            e.enrolled_at.strftime('%Y-%m-%d %H:%M:%S') if e.enrolled_at else ''
-        ])
-    return response
+    title = models.CharField(max_length=200, verbose_name="Название")
+    slug = models.SlugField(unique=True, verbose_name="URL")
 
-@admin.register(Enrollment)
-class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'enrolled_at', 'completed']
-    list_filter = ['completed', 'enrolled_at']
-    search_fields = ['user__username', 'course__title']
-    readonly_fields = ['enrolled_at']
-    autocomplete_fields = ['user', 'course']
-    list_select_related = ['user', 'course']
-    date_hierarchy = 'enrolled_at'
-    actions = [mark_completed, export_csv]
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='courses', verbose_name="Категория")
 
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course_link', 'amount', 'status', 'created']  # ← ИЗМЕНИТЬ success на status
-    list_filter = ['status', 'created']  # ← ИЗМЕНИТЬ success на status
-    search_fields = ['user__username', 'course__title']
-    autocomplete_fields = ['user', 'course']
-    list_select_related = ['user', 'course']
-    readonly_fields = ['user', 'course', 'amount', 'status', 'created']  # ← ИЗМЕНИТЬ success на status
-    date_hierarchy = 'created'
+    # Инструктор — это User (так у тебя в админке)
+    instructor = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='courses_created',
+        null=True, blank=True, verbose_name="Инструктор"
+    )
 
-    @admin.display(description='Курс')
-    def course_link(self, obj):
-        if obj.course:
-            url = reverse(f'admin:{obj.course._meta.app_label}_{obj.course._meta.model_name}_change', args=[obj.course.pk])
-            return format_html('<a href="{}">{}</a>', url, obj.course.title)
-        return '—'
+    # author делаем nullable и автозаполняем — чтобы не было IntegrityError
+    author = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name='courses_authored',
+        null=True, blank=True, verbose_name="Автор"
+    )
 
-    def has_add_permission(self, request):
-        return False
+    short_description = models.TextField(verbose_name="Краткое описание")
+    description = models.TextField(verbose_name="Полное описание")
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Цена")
+    discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Цена со скидкой")
 
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
+    duration = models.CharField(max_length=50, verbose_name="Продолжительность")
+    image = models.ImageField(upload_to='courses/images/', blank=True, null=True, verbose_name="Изображение")
+    thumbnail = models.ImageField(upload_to='courses/thumbnails/', blank=True, null=True, verbose_name="Миниатюра")
 
-    def has_change_permission(self, request, obj=None):
-        if request.method in ('POST',):
-            return False
-        return super().has_change_permission(request, obj)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner', verbose_name="Уровень")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
 
-@admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'start_date', 'end_date', 'active']
-    list_filter = [ActiveSubscriptionFilter]
-    search_fields = ['user__username']
-    readonly_fields = ['start_date']
-    autocomplete_fields = ['user']
-    date_hierarchy = 'start_date'
+    is_featured = models.BooleanField(default=False, verbose_name="Рекомендуемый")
+    is_popular = models.BooleanField(default=False, verbose_name="Популярный")
 
-@admin.register(ContactMessage)
-class ContactMessageAdmin(admin.ModelAdmin):
-    list_display = ['name', 'email', 'subject', 'created_at', 'is_read']
-    list_filter = ['is_read', 'created_at']
-    search_fields = ['name', 'email', 'subject']
-    readonly_fields = ['created_at']
-    list_editable = ['is_read']
-    date_hierarchy = 'created_at'
+    students = models.ManyToManyField(User, related_name='enrolled_courses', blank=True, verbose_name="Студенты")
 
-@admin.register(InstructorProfile)
-class InstructorProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'specialization', 'experience', 'is_approved']
-    list_filter = ['is_approved']
-    search_fields = ['user__username', 'specialization']
-    autocomplete_fields = ['user']
+    requirements = models.TextField(blank=True, verbose_name="Требования")
+    what_you_learn = models.TextField(blank=True, verbose_name="Чему научитесь")
+    language = models.CharField(max_length=50, default="Русский", verbose_name="Язык")
+    certificate = models.BooleanField(default=True, verbose_name="Сертификат")
 
-@admin.register(Review)
-class ReviewAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'rating', 'created_at', 'is_active']
-    list_filter = ['rating', 'is_active', 'created_at']
-    search_fields = ['user__username', 'course__title']
-    autocomplete_fields = ['user', 'course']
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-@admin.register(Wishlist)
-class WishlistAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'added_at']
-    list_filter = ['added_at']
-    search_fields = ['user__username', 'course__title']
-    autocomplete_fields = ['user', 'course']
+    class Meta:
+        verbose_name = "Курс"
+        verbose_name_plural = "Курсы"
+        ordering = ['-created_at']
 
-@admin.register(Module)
-class ModuleAdmin(admin.ModelAdmin):
-    list_display = ['title', 'course', 'order', 'is_active']
-    list_filter = ['is_active', 'course']
-    search_fields = ['title', 'course__title']
-    ordering = ['course', 'order']
-    autocomplete_fields = ['course']
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        # автослаг
+        if not self.slug:
+            self.slug = slugify(self.title)
+
+        # автоавтор
+        if not getattr(self, 'author_id', None):
+            if getattr(self, 'instructor_id', None):
+                self.author_id = self.instructor_id
+            else:
+                U = get_user_model()
+                u = (U.objects.filter(is_superuser=True).order_by('id').first()
+                     or U.objects.filter(is_staff=True).order_by('id').first())
+                if u:
+                    self.author_id = u.id
+
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('course_detail', kwargs={'slug': self.slug})
+
+    # ---- свойства для шаблонов ----
+    @property
+    def has_discount(self):
+        return bool(self.discount_price and self.price and self.price > 0)
+
+    @property
+    def discount_percent(self):
+        if self.has_discount:
+            return int((1 - (float(self.discount_price) / float(self.price))) * 100)
+        return None
+
+    @property
+    def lessons_count(self):
+        # уроки живут в модулях
+        return Lesson.objects.filter(module__course=self, is_active=True).count()
+
+    @property
+    def students_count(self):
+        return self.students.count()
+
+    @property
+    def average_rating(self):
+        try:
+            qs = self.reviews.filter(is_active=True)
+            if qs.exists():
+                return round(qs.aggregate(models.Avg('rating'))['rating__avg'], 1)
+        except DatabaseError:
+            pass
+        return 4.5
+
+    @property
+    def rating(self):
+        return self.average_rating
+
+    @property
+    def reviews_count(self):
+        try:
+            return self.reviews.filter(is_active=True).count()
+        except DatabaseError:
+            return 0
+
+    @property
+    def image_safe_url(self):
+        return safe_file_url(self.image, DEFAULT_COURSE_IMAGE)
+
+    @property
+    def thumbnail_safe_url(self):
+        return safe_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
+
+
+# ==========================
+# Модули и Уроки
+# ==========================
+class Module(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
+    title = models.CharField(max_length=200, verbose_name="Название")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+
+    class Meta:
+        verbose_name = "Модуль"
+        verbose_name_plural = "Модули"
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.course.title} — {self.title}"
+
+
+class Lesson(models.Model):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons')
+    title = models.CharField(max_length=200, verbose_name="Название")
+    slug = models.SlugField(verbose_name="URL")
+    content = models.TextField(verbose_name="Содержание")
+    video_url = models.URLField(blank=True, verbose_name="Видео URL")
+    duration = models.CharField(max_length=50, blank=True, verbose_name="Продолжительность")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    is_free = models.BooleanField(default=False, verbose_name="Бесплатный")
+    resources = models.FileField(upload_to='lessons/resources/', blank=True, null=True, verbose_name="Ресурсы")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Урок"
+        verbose_name_plural = "Уроки"
+        ordering = ['order']
+    # уникальность адреса урока внутри курса
+        unique_together = [('module', 'slug')]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse(
+            'lesson_detail',
+            kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug}
+        )
+
+
+# ==========================
+# Прогресс по урокам
+# ==========================
+class LessonProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress_entries')
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Прогресс по уроку"
+        verbose_name_plural = "Прогресс по урокам"
+        unique_together = [('user', 'lesson')]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.lesson.title} — {'✓' if self.is_completed else '…'}"
+
+
+# ==========================
+# Остальные модели
+# ==========================
+class Enrollment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Запись на курс"
+        verbose_name_plural = "Записи на курсы"
+        unique_together = [('user', 'course')]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.course.title}"
+
+
+class Review(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    rating = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        verbose_name="Рейтинг"
+    )
+    comment = models.TextField(verbose_name="Комментарий")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+        unique_together = [('course', 'user')]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.course.title} — {self.rating}"
+
+
+class Wishlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='wishlisted_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Избранное"
+        verbose_name_plural = "Избранное"
+        unique_together = [('user', 'course')]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.course.title}"
+
+
+class Payment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'В ожидании'),
+        ('success', 'Успешно'),
+        ('failed', 'Неудачно'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
+    kaspi_invoice_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="ID платежа Kaspi")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Платёж"
+        verbose_name_plural = "Платежи"
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.course.title} — {self.amount} — {self.status}"
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.start_date.date()}"
+
+
+class ContactMessage(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Контактное сообщение"
+        verbose_name_plural = "Контактные сообщения"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} — {self.subject}"
