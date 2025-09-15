@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
+<<<<<<< HEAD
 from django.db import DatabaseError
 from django.templatetags.static import static
 
@@ -26,6 +27,11 @@ def safe_file_url(file_field, default_path):
 
 
 # Добавляем свойство к User: является ли инструктором
+=======
+from django.contrib.auth import get_user_model
+
+# --- свойство на User: является ли одобренным инструктором
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
 User.add_to_class(
     'is_instructor',
     property(lambda self: hasattr(self, 'instructor_profile') and getattr(self.instructor_profile, 'is_approved', False))
@@ -33,7 +39,7 @@ User.add_to_class(
 
 
 # ==========================
-# Категории курсов
+# Категория
 # ==========================
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
@@ -68,11 +74,11 @@ class InstructorProfile(models.Model):
     bio = models.TextField(verbose_name="Биография")
     avatar = models.ImageField(upload_to='instructors/avatars/', blank=True, null=True, verbose_name="Аватар")
     specialization = models.CharField(max_length=200, verbose_name="Специализация")
-    experience = models.PositiveIntegerField(default=0, verbose_name="Опыт работы (лет)")
+    experience = models.PositiveIntegerField(default=0, verbose_name="Опыт (лет)")
     website = models.URLField(blank=True, verbose_name="Вебсайт")
     linkedin = models.URLField(blank=True, verbose_name="LinkedIn")
     twitter = models.URLField(blank=True, verbose_name="Twitter")
-    is_approved = models.BooleanField(default=False, verbose_name="Подтвержден")
+    is_approved = models.BooleanField(default=False, verbose_name="Подтверждён")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -87,13 +93,16 @@ class InstructorProfile(models.Model):
     def courses_count(self):
         return self.user.courses_created.count()
 
+<<<<<<< HEAD
     @property
     def avatar_safe_url(self):
         return safe_file_url(self.avatar, DEFAULT_AVATAR_IMAGE)
 
+=======
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
 
 # ==========================
-# Курсы
+# Курс
 # ==========================
 class Course(models.Model):
     LEVEL_CHOICES = [
@@ -101,7 +110,6 @@ class Course(models.Model):
         ('intermediate', 'Средний'),
         ('advanced', 'Продвинутый'),
     ]
-
     STATUS_CHOICES = [
         ('draft', 'Черновик'),
         ('review', 'На проверке'),
@@ -110,24 +118,52 @@ class Course(models.Model):
 
     title = models.CharField(max_length=200, verbose_name="Название")
     slug = models.SlugField(unique=True, verbose_name="URL")
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='courses', verbose_name="Категория")
-    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses_created', null=True, blank=True)
+
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE, related_name='courses', verbose_name="Категория"
+    )
+
+    # В твоём проекте в админке поле instructor уже используется.
+    # Оставляем ссылку на User, чтобы форма не ломалась.
+    instructor = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='courses_created',
+        null=True, blank=True, verbose_name="Инструктор"
+    )
+
+    # НОВОЕ/ВАЖНОЕ: author делаем nullable, чтобы не падало на вставке.
+    author = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name='courses_authored',
+        null=True, blank=True, verbose_name="Автор"
+    )
+
     short_description = models.TextField(verbose_name="Краткое описание")
     description = models.TextField(verbose_name="Полное описание")
+
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Цена")
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Цена со скидкой")
+
     duration = models.CharField(max_length=50, verbose_name="Продолжительность")
     image = models.ImageField(upload_to='courses/images/', blank=True, null=True, verbose_name="Изображение")
     thumbnail = models.ImageField(upload_to='courses/thumbnails/', blank=True, null=True, verbose_name="Миниатюра")
+
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner', verbose_name="Уровень")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
+
     is_featured = models.BooleanField(default=False, verbose_name="Рекомендуемый")
+<<<<<<< HEAD
     is_popular = models.BooleanField(default=False, verbose_name="Популярный")  # используется в шаблонах
+=======
+    # если у тебя в миграциях есть поле is_popular — оставим его, чтобы не расходилось со схемой
+    is_popular = models.BooleanField(default=False, verbose_name="Популярный")
+
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
     students = models.ManyToManyField(User, related_name='enrolled_courses', blank=True, verbose_name="Студенты")
+
     requirements = models.TextField(blank=True, verbose_name="Требования")
     what_you_learn = models.TextField(blank=True, verbose_name="Чему научитесь")
     language = models.CharField(max_length=50, default="Русский", verbose_name="Язык")
     certificate = models.BooleanField(default=True, verbose_name="Сертификат")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -140,8 +176,22 @@ class Course(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
+        # слаг
         if not self.slug:
             self.slug = slugify(self.title)
+
+        # авто-подстановка автора, если не заполнен:
+        if not getattr(self, 'author_id', None):
+            if getattr(self, 'instructor_id', None):
+                self.author_id = self.instructor_id
+            else:
+                # подстраховка: первый суперюзер или стафф
+                U = get_user_model()
+                u = (U.objects.filter(is_superuser=True).order_by('id').first()
+                     or U.objects.filter(is_staff=True).order_by('id').first())
+                if u:
+                    self.author_id = u.id
+
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -154,13 +204,18 @@ class Course(models.Model):
 
     @property
     def discount_percent(self):
+<<<<<<< HEAD
         if self.has_discount:
+=======
+        if self.discount_price and self.price and self.price > 0:
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
             return int((1 - (float(self.discount_price) / float(self.price))) * 100)
         return None
 
     @property
     def lessons_count(self):
-        return self.lessons.filter(is_active=True).count()
+        # уроки живут внутри модулей
+        return Lesson.objects.filter(module__course=self, is_active=True).count()
 
     @property
     def students_count(self):
@@ -168,6 +223,7 @@ class Course(models.Model):
 
     @property
     def average_rating(self):
+<<<<<<< HEAD
         try:
             qs = self.reviews.filter(is_active=True)
             if qs.exists():
@@ -196,9 +252,16 @@ class Course(models.Model):
     def thumbnail_safe_url(self):
         return safe_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
 
+=======
+        qs = self.reviews.filter(is_active=True)
+        if qs.exists():
+            return round(qs.aggregate(models.Avg('rating'))['rating__avg'], 1)
+        return 4.5
+
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
 
 # ==========================
-# Модули и уроки
+# Модуль и урок
 # ==========================
 class Module(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
@@ -213,7 +276,7 @@ class Module(models.Model):
         ordering = ['order']
 
     def __str__(self):
-        return f"{self.course.title} - {self.title}"
+        return f"{self.course.title} — {self.title}"
 
 
 class Lesson(models.Model):
@@ -234,7 +297,7 @@ class Lesson(models.Model):
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
         ordering = ['order']
-        unique_together = ['module', 'slug']
+        unique_together = [('module', 'slug')]
 
     def __str__(self):
         return self.title
@@ -252,7 +315,29 @@ class Lesson(models.Model):
 
 
 # ==========================
+<<<<<<< HEAD
 # Запись, Отзывы, Избранное, Платежи, Подписки, Контакты
+=======
+# Прогресс по урокам (есть в миграциях 0004)
+# ==========================
+class LessonProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress_entries')
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Прогресс по уроку"
+        verbose_name_plural = "Прогресс по урокам"
+        unique_together = [('user', 'lesson')]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.lesson.title} — {'✓' if self.is_completed else '…'}"
+
+
+# ==========================
+# Остальные модели
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
 # ==========================
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
@@ -264,10 +349,10 @@ class Enrollment(models.Model):
     class Meta:
         verbose_name = "Запись на курс"
         verbose_name_plural = "Записи на курсы"
-        unique_together = ['user', 'course']
+        unique_together = [('user', 'course')]
 
     def __str__(self):
-        return f"{self.user.username} - {self.course.title}"
+        return f"{self.user.username} — {self.course.title}"
 
 
 class Review(models.Model):
@@ -285,9 +370,14 @@ class Review(models.Model):
     class Meta:
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
+<<<<<<< HEAD
         unique_together = ['course', 'user']
+=======
+        unique_together = [('course', 'user')]
+
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
     def __str__(self):
-        return f"{self.user.username} - {self.course.title} - {self.rating}"
+        return f"{self.user.username} — {self.course.title} — {self.rating}"
 
 
 class Wishlist(models.Model):
@@ -298,10 +388,10 @@ class Wishlist(models.Model):
     class Meta:
         verbose_name = "Избранное"
         verbose_name_plural = "Избранное"
-        unique_together = ['user', 'course']
+        unique_together = [('user', 'course')]
 
     def __str__(self):
-        return f"{self.user.username} - {self.course.title}"
+        return f"{self.user.username} — {self.course.title}"
 
 
 class Payment(models.Model):
@@ -320,12 +410,12 @@ class Payment(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Платеж"
+        verbose_name = "Платёж"
         verbose_name_plural = "Платежи"
         ordering = ['-created']
 
     def __str__(self):
-        return f"{self.user.username} - {self.course.title} - {self.amount} - {self.status}"
+        return f"{self.user.username} — {self.course.title} — {self.amount} — {self.status}"
 
 
 class Subscription(models.Model):
@@ -340,7 +430,7 @@ class Subscription(models.Model):
         ordering = ['-start_date']
 
     def __str__(self):
-        return f"{self.user.username} - {self.start_date.date()}"
+        return f"{self.user.username} — {self.start_date.date()}"
 
 
 class ContactMessage(models.Model):
@@ -357,6 +447,7 @@ class ContactMessage(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
+<<<<<<< HEAD
         return f"{self.name} - {self.subject}"
 
 
@@ -378,3 +469,6 @@ class LessonProgress(models.Model):
 
     def __str__(self):
         return f'{self.user} · {self.lesson} · {self.percent}%'
+=======
+        return f"{self.name} — {self.subject}"
+>>>>>>> 97ba3abd (fix(app/models): сделать Course.author nullable и автозаполнять (фикс IntegrityError в админке))
