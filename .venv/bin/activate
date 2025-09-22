@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/Users/yelenagordeyeva/Downloads/edux-main/.venv"
+VIRTUAL_ENV="/Users/yelenagordeyeva/SkillsSpire/edux/.venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
