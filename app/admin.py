@@ -60,7 +60,7 @@ class CourseAdmin(admin.ModelAdmin):
     list_filter = ("category", "status", "level", "is_featured", "is_popular", "created_at")
     search_fields = ("title", "short_description", "description")
     prepopulated_fields = {"slug": ("title",)}
-    autocomplete_fields = ("category", "instructor", "author", "students")
+    autocomplete_fields = ("category", "instructor", "students")
     readonly_fields = ("students_count", "reviews_count", "rating", "created_at", "updated_at")
     inlines = [ModuleInline]
 
@@ -85,8 +85,8 @@ class LessonAdmin(admin.ModelAdmin):
 
 @admin.register(LessonProgress)
 class LessonProgressAdmin(admin.ModelAdmin):
-    list_display = ("user", "lesson", "is_completed", "completed_at")
-    list_filter = ("is_completed", "completed_at")
+    list_display = ("user", "lesson", "is_completed")
+    list_filter = ("is_completed",)
     search_fields = ("user__username", "lesson__title", "lesson__module__course__title")
     autocomplete_fields = ("user", "lesson")
 
