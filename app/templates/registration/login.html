@@ -1,41 +1,61 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
+{% block title %}{% trans "Login" %} - SkillsSpire{% endblock %}
+
 {% block content %}
-<section class="section">
+<section class="section py-5">
   <div class="container" style="max-width: 420px;">
     <div class="card p-4 shadow-sm">
-      <h2 class="text-center mb-3 text-primary fw-bold">{% trans "Login to SkillSpire" %}</h2>
+      <h1 class="text-center mb-3 text-primary fw-bold h3">
+        <i class="bi bi-box-arrow-in-right me-2"></i> {% trans "Login to SkillsSpire" %}
+      </h1>
 
       {% if form.errors %}
       <div class="alert alert-danger">
         <strong>{% trans "Login failed:" %}</strong>
-        {% trans "Please check your email/username and password." %}
+        <ul class="mb-0">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
       </div>
       {% endif %}
 
-      <form method="post">
+      <form method="post" novalidate>
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.GET.next }}">
 
         <div class="mb-3">
           <label for="id_username" class="form-label">{% trans "Email or Username" %}</label>
-          <input type="text" name="username" class="form-control" id="id_username"
-                 required autocomplete="email" placeholder="{% trans 'Enter your email or username' %}">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input type="text" name="username" class="form-control" id="id_username"
+                   required autocomplete="email"
+                   placeholder="{% trans 'Enter your email or username' %}">
+          </div>
         </div>
 
         <div class="mb-3">
           <label for="id_password" class="form-label">{% trans "Password" %}</label>
-          <input type="password" name="password" class="form-control" id="id_password"
-                 required autocomplete="current-password" placeholder="{% trans 'Enter your password' %}">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" name="password" class="form-control" id="id_password"
+                   required autocomplete="current-password"
+                   placeholder="{% trans 'Enter your password' %}">
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">{% trans "Login" %}</button>
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-box-arrow-in-right me-1"></i> {% trans "Login" %}
+        </button>
       </form>
 
       <div class="text-center mt-3">
         <a href="{% url 'password_reset' %}" class="text-decoration-none">{% trans "Forgot your password?" %}</a>
-        <p class="mt-2">{% trans "Don't have an account?" %}
+        <p class="mt-2 mb-0">{% trans "Don't have an account?" %}
            <a href="{% url 'signup' %}" class="text-info fw-bold">{% trans "Sign Up" %}</a>
         </p>
       </div>

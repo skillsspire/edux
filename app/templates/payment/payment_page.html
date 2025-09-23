@@ -16,16 +16,16 @@
                 </div>
                 <div class="card-body">
                     <!-- Информация о заказе -->
-                    <div class="row mb-4">
+                    <div class="row border-bottom pb-3 mb-4">
                         <div class="col-md-6">
-                            <h5>Детали заказа:</h5>
+                            <h5 class="fw-bold mb-3">Детали заказа</h5>
                             {% if course %}
-                            <p class="mb-1"><strong>Курс:</strong> {{ course.title }}</p>
-                            <p class="mb-1"><strong>Уровень:</strong> {{ course.get_level_display }}</p>
-                            <p class="mb-1"><strong>Длительность:</strong> {{ course.duration }} часов</p>
+                                <p class="mb-1"><strong>Курс:</strong> {{ course.title }}</p>
+                                <p class="mb-1"><strong>Уровень:</strong> {{ course.get_level_display }}</p>
+                                <p class="mb-1"><strong>Длительность:</strong> {{ course.duration }} ч.</p>
                             {% elif subscription %}
-                            <p class="mb-1"><strong>Подписка:</strong> {{ subscription.name }}</p>
-                            <p class="mb-1"><strong>Период:</strong> {{ subscription.period }} дней</p>
+                                <p class="mb-1"><strong>Подписка:</strong> {{ subscription.name }}</p>
+                                <p class="mb-1"><strong>Период:</strong> {{ subscription.period }} дней</p>
                             {% endif %}
                         </div>
                         <div class="col-md-6 text-md-end">
@@ -34,32 +34,31 @@
                         </div>
                     </div>
 
-                    <form method="post" id="payment-form">
+                    <form method="post" id="payment-form" novalidate>
                         {% csrf_token %}
 
                         <!-- Контактная информация -->
-                        <div class="mb-4">
-                            <h5 class="mb-3">Контактная информация</h5>
+                        <div class="border-bottom pb-3 mb-4">
+                            <h5 class="fw-bold mb-3">Контактная информация</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     {{ form.email.label_tag }}
-                                    {{ form.email }}
+                                    {{ form.email|add_class:"form-control" }}
                                     {{ form.email.errors }}
                                 </div>
                                 <div class="col-md-6">
                                     {{ form.phone.label_tag }}
-                                    {{ form.phone }}
+                                    {{ form.phone|add_class:"form-control" }}
                                     {{ form.phone.errors }}
                                 </div>
                             </div>
                         </div>
 
                         <!-- Промокод -->
-                        <div class="mb-4">
-                            <h5 class="mb-3">Промокод</h5>
-                            {{ form.promo_code.label_tag }}
+                        <div class="border-bottom pb-3 mb-4">
+                            <h5 class="fw-bold mb-3">Промокод</h5>
                             <div class="input-group">
-                                {{ form.promo_code }}
+                                {{ form.promo_code|add_class:"form-control" }}
                                 <button type="button" class="btn btn-outline-secondary" id="apply-promo">
                                     Применить
                                 </button>
@@ -69,36 +68,38 @@
 
                         <!-- Данные карты -->
                         <div class="mb-4">
-                            <h5 class="mb-3">Данные банковской карты</h5>
+                            <h5 class="fw-bold mb-3">Данные банковской карты</h5>
                             <div class="row g-3">
-                                <div class="col-12">
+                                <div class="col-md-6">
+                                    {{ card_form.card_holder.label_tag }}
+                                    {{ card_form.card_holder|add_class:"form-control" }}
+                                    {{ card_form.card_holder.errors }}
+                                </div>
+                                <div class="col-md-6">
                                     {{ card_form.card_number.label_tag }}
-                                    {{ card_form.card_number }}
+                                    {{ card_form.card_number|add_class:"form-control" }}
                                     {{ card_form.card_number.errors }}
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     {{ card_form.expiry_date.label_tag }}
-                                    {{ card_form.expiry_date }}
+                                    {{ card_form.expiry_date|add_class:"form-control" }}
                                     {{ card_form.expiry_date.errors }}
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     {{ card_form.cvv.label_tag }}
-                                    {{ card_form.cvv }}
+                                    {{ card_form.cvv|add_class:"form-control" }}
                                     {{ card_form.cvv.errors }}
-                                </div>
-                                <div class="col-md-4">
-                                    {{ card_form.card_holder.label_tag }}
-                                    {{ card_form.card_holder }}
-                                    {{ card_form.card_holder.errors }}
                                 </div>
                             </div>
                         </div>
 
                         <!-- Кнопка оплаты -->
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="bi bi-lock-fill me-2"></i>
-                            Оплатить {{ amount }} ₸
-                        </button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-lock-fill me-2"></i>
+                                Оплатить {{ amount }} ₸
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -117,7 +118,7 @@
 
 {% block extra_js %}
 <script>
-// Простые маски для карты (демо)
+// Маски ввода (демо)
 document.addEventListener('DOMContentLoaded', function() {
     const cardInput = document.querySelector('#id_card_number');
     const expiryInput = document.querySelector('#id_expiry_date');
@@ -125,20 +126,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (cardInput) {
         cardInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 16) value = value.slice(0, 16);
-            e.target.value = value.replace(/(\d{4})/g, '$1 ').trim();
+            let value = e.target.value.replace(/\D/g, '').slice(0,16);
+            e.target.value = value.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
         });
     }
 
     if (expiryInput) {
         expiryInput.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '').slice(0,4);
-            if (value.length > 2) {
-                e.target.value = value.slice(0,2) + '/' + value.slice(2);
-            } else {
-                e.target.value = value;
-            }
+            e.target.value = value.length > 2 ? value.slice(0,2) + '/' + value.slice(2) : value;
         });
     }
 

@@ -1,190 +1,243 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Все курсы — SkillsSpire{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row mb-5">
-        <div class="col-lg-8">
-            <h1 class="display-5 fw-bold text-primary mb-3">Все курсы</h1>
-            <p class="lead text-muted">Выберите курс, который поможет вам достичь карьерных целей</p>
-        </div>
-        <div class="col-lg-4 d-flex align-items-center justify-content-lg-end">
-            <div class="dropdown">
-                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-filter me-2"></i>Фильтры
-                </button>
-                <div class="dropdown-menu p-3" style="width: 300px;">
-                    <h6 class="dropdown-header">Категории</h6>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="cat1">
-                        <label class="form-check-label" for="cat1">Программирование</label>
-                    </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="cat2">
-                        <label class="form-check-label" for="cat2">Дизайн</label>
-                    </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="cat3">
-                        <label class="form-check-label" for="cat3">Маркетинг</label>
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <h6 class="dropdown-header">Уровень</h6>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="level1">
-                        <label class="form-check-label" for="level1">Начинающий</label>
-                    </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="level2">
-                        <label class="form-check-label" for="level2">Продвинутый</label>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+<!-- HERO (узкий, как секция-заголовок) -->
+<section class="section" style="padding-top: 3rem; padding-bottom: 2rem;">
+  <div class="container">
+    <div class="section-header text-center">
+      <h1 style="margin-bottom:.5rem;">Все курсы</h1>
+      <p class="text-muted">Выберите курс, который поможет вам достичь карьерных целей</p>
     </div>
 
-    <div class="row">
-        <!-- Боковая панель -->
-        <div class="col-md-4 col-lg-3 mb-4">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Категории</h5>
-                    <div class="list-group list-group-flush">
-                        <a href="{% url 'courses_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            Все курсы
-                        </a>
-                        {% for cat in categories %}
-                            <a href="{% url 'courses_list' %}?category={{ cat.slug }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                {{ cat.name }}
-                            </a>
-                        {% empty %}
-                            <span class="list-group-item text-muted">Нет категорий</span>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+    <!-- Поиск и кнопка фильтров на мобилке -->
+    <div class="d-flex gap-2 justify-content-center mt-3">
+      <form action="{% url 'courses_list' %}" method="get" class="hero-search" style="max-width:520px; flex:1;">
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Поиск курсов" aria-label="Поисковый запрос">
+        <button type="submit">Поиск</button>
+      </form>
 
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Фильтры</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Уровень</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="beginner">
-                            <label class="form-check-label" for="beginner">Начинающий</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="intermediate">
-                            <label class="form-check-label" for="intermediate">Средний</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="advanced">
-                            <label class="form-check-label" for="advanced">Продвинутый</label>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Цена</label>
-                        <select class="form-select">
-                            <option>Любая</option>
-                            <option>Бесплатные</option>
-                            <option>Платные</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary w-100">Применить фильтры</button>
-                </div>
+      <button class="btn btn-outline-primary d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
+        <i class="bi bi-sliders"></i> Фильтры
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ОСНОВНАЯ СЕКЦИЯ -->
+<section class="section" style="padding-top: 0;">
+  <div class="container">
+    <div class="row g-4">
+
+      <!-- Сайдбар: Категории + Фильтры (виден от md и выше) -->
+      <aside class="col-md-3 d-none d-md-block">
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Категории</h5>
+            <div class="list-group list-group-flush">
+              <a href="{% url 'courses_list' %}" class="list-group-item list-group-item-action {% if not request.GET.category %}active{% endif %}">
+                Все курсы
+              </a>
+              {% for cat in categories %}
+                <a href="{% url 'courses_list' %}?category={{ cat.slug }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                   class="list-group-item list-group-item-action {% if request.GET.category == cat.slug %}active{% endif %}">
+                  {{ cat.name }}
+                </a>
+              {% empty %}
+                <span class="list-group-item text-muted">Нет категорий</span>
+              {% endfor %}
             </div>
+          </div>
         </div>
 
-        <!-- Основной контент -->
-        <div class="col-md-8 col-lg-9">
-            <div class="row">
-                {% for course in courses %}
-                <div class="col-lg-6 col-xl-4 mb-4">
-                    <div class="card h-100 course-card">
-                        <div class="position-relative">
-                            {# Безопасный фолбэк для картинки: не трогаем .url, если файла нет #}
-                            {% if course.thumbnail and course.thumbnail.name %}
-                                <img src="{{ course.thumbnail.url }}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
-                            {% elif course.image and course.image.name %}
-                                <img src="{{ course.image.url }}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
-                            {% else %}
-                                <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="{{ course.title }}" loading="lazy">
-                            {% endif %}
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Фильтры</h5>
+            <form action="{% url 'courses_list' %}" method="get" class="vstack gap-3">
+              <input type="hidden" name="category" value="{{ request.GET.category }}">
+              <div>
+                <label class="form-label">Уровень</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="level" value="beginner" id="f-beg" {% if 'beginner' in request.GET.getlist('level') %}checked{% endif %}>
+                  <label class="form-check-label" for="f-beg">Начинающий</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="level" value="intermediate" id="f-int" {% if 'intermediate' in request.GET.getlist('level') %}checked{% endif %}>
+                  <label class="form-check-label" for="f-int">Средний</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="level" value="advanced" id="f-adv" {% if 'advanced' in request.GET.getlist('level') %}checked{% endif %}>
+                  <label class="form-check-label" for="f-adv">Продвинутый</label>
+                </div>
+              </div>
 
-                            {% if course.is_popular %}
-                                <span class="position-absolute top-0 start-0 m-2 badge bg-danger">Популярный</span>
-                            {% endif %}
-                            {% if course.discount_percent %}
-                                <span class="position-absolute top-0 end-0 m-2 badge bg-success">-{{ course.discount_percent }}%</span>
-                            {% endif %}
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-primary">{{ course.category.name|default:"Без категории" }}</span>
-                                <div class="text-warning small d-flex align-items-center">
-                                    <i class="bi bi-star-fill me-1"></i>
-                                    {{ course.avg_rating|default_if_none:"4.8"|floatformat:1 }}
-                                </div>
-                            </div>
-                            <h5 class="card-title">{{ course.title }}</h5>
-                            <p class="card-text text-muted">{{ course.short_description|default:course.description|truncatewords:15 }}</p>
-                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                <div>
-                                    {% if course.price and course.price > 0 %}
-                                        {% if course.discount_price %}
-                                            <span class="text-decoration-line-through text-muted me-2">{{ course.price }} ₽</span>
-                                            <span class="fw-bold text-primary">{{ course.discount_price }} ₽</span>
-                                        {% else %}
-                                            <span class="fw-bold text-primary">{{ course.price }} ₽</span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="fw-bold text-success">Бесплатно</span>
-                                    {% endif %}
-                                </div>
-                                {% if course.duration %}
-                                    <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ course.duration }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="card-footer bg-transparent">
-                            <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary w-100">Подробнее</a>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="col-12">
-                    <div class="text-center py-5">
-                        <i class="bi bi-search display-1 text-muted"></i>
-                        <h4 class="text-muted mt-3">Курсы не найдены</h4>
-                        <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
-                    </div>
-                </div>
+              <div>
+                <label class="form-label">Цена</label>
+                <select class="form-select" name="price">
+                  <option value="" {% if not request.GET.price %}selected{% endif %}>Любая</option>
+                  <option value="free" {% if request.GET.price == 'free' %}selected{% endif %}>Бесплатные</option>
+                  <option value="paid" {% if request.GET.price == 'paid' %}selected{% endif %}>Платные</option>
+                </select>
+              </div>
+
+              <button class="btn btn-primary w-100" type="submit">
+                <i class="bi bi-filter"></i> Применить
+              </button>
+            </form>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Offcanvas фильтры (мобилка) -->
+      <div class="offcanvas offcanvas-start" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Фильтры</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
+        </div>
+        <div class="offcanvas-body">
+          <form action="{% url 'courses_list' %}" method="get" class="vstack gap-3">
+            <input type="hidden" name="q" value="{{ request.GET.q }}">
+            <div>
+              <label class="form-label">Категория</label>
+              <select class="form-select" name="category">
+                <option value="" {% if not request.GET.category %}selected{% endif %}>Все</option>
+                {% for cat in categories %}
+                  <option value="{{ cat.slug }}" {% if request.GET.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
                 {% endfor %}
+              </select>
             </div>
 
-            {% if is_paginated %}
-            <nav aria-label="Page navigation" class="mt-5">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
-                        </li>
-                    {% endif %}
+            <div>
+              <label class="form-label">Уровень</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="level" value="beginner" id="m-beg" {% if 'beginner' in request.GET.getlist('level') %}checked{% endif %}>
+                <label class="form-check-label" for="m-beg">Начинающий</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="level" value="intermediate" id="m-int" {% if 'intermediate' in request.GET.getlist('level') %}checked{% endif %}>
+                <label class="form-check-label" for="m-int">Средний</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="level" value="advanced" id="m-adv" {% if 'advanced' in request.GET.getlist('level') %}checked{% endif %}>
+                <label class="form-check-label" for="m-adv">Продвинутый</label>
+              </div>
+            </div>
 
-                    {% for num in page_obj.paginator.page_range %}
-                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                        </li>
-                    {% endfor %}
+            <div>
+              <label class="form-label">Цена</label>
+              <select class="form-select" name="price">
+                <option value="" {% if not request.GET.price %}selected{% endif %}>Любая</option>
+                <option value="free" {% if request.GET.price == 'free' %}selected{% endif %}>Бесплатные</option>
+                <option value="paid" {% if request.GET.price == 'paid' %}selected{% endif %}>Платные</option>
+              </select>
+            </div>
 
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
+            <button class="btn btn-primary w-100" type="submit">
+              <i class="bi bi-filter"></i> Применить
+            </button>
+          </form>
         </div>
+      </div>
+
+      <!-- Список курсов -->
+      <div class="col-md-9">
+        <div class="courses-grid">
+          {% for course in courses %}
+            <div class="course-card">
+              {% if course.thumbnail and course.thumbnail.name %}
+                <img src="{{ course.thumbnail.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+              {% elif course.image and course.image.name %}
+                <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+              {% else %}
+                <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+              {% endif %}
+
+              <div class="course-card-content">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="course-category">{{ course.category.name|default:"Без категории" }}</span>
+
+                  <div class="course-rating">
+                    <i class="bi bi-star-fill" aria-hidden="true"></i>
+                    {{ course.avg_rating|default_if_none:"4.8"|floatformat:1 }}
+                  </div>
+                </div>
+
+                <h3 class="course-card-title">{{ course.title }}</h3>
+                <p class="course-card-text">{{ course.short_description|default:course.description|truncatewords:18 }}</p>
+
+                <div class="course-card-meta">
+                  <div class="d-flex align-items-center gap-2">
+                    {% if course.price and course.price > 0 %}
+                      {% if course.discount_price %}
+                        <span class="text-muted text-decoration-line-through">{{ course.price }} ₽</span>
+                        <span class="course-price">{{ course.discount_price }} ₽</span>
+                      {% else %}
+                        <span class="course-price">{{ course.price }} ₽</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="course-price">Бесплатно</span>
+                    {% endif %}
+                  </div>
+                  {% if course.duration %}
+                    <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ course.duration }}</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="course-card-footer">
+                <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline btn-full">Подробнее</a>
+              </div>
+
+              {% if course.is_popular or course.discount_percent %}
+                <div class="position-absolute" style="top:.5rem; left:.5rem; right:.5rem; display:flex; justify-content:space-between; pointer-events:none;">
+                  {% if course.is_popular %}
+                    <span class="badge bg-danger" style="pointer-events:auto;">Популярный</span>
+                  {% endif %}
+                  {% if course.discount_percent %}
+                    <span class="badge bg-success" style="pointer-events:auto;">-{{ course.discount_percent }}%</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% empty %}
+            <div class="text-center py-5">
+              <i class="bi bi-search display-1 text-muted"></i>
+              <h4 class="text-muted mt-3">Курсы не найдены</h4>
+              <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
+        {% if is_paginated %}
+          <nav class="mt-5" aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% for l in request.GET.getlist('level') %}&level={{ l }}{% endfor %}{% if request.GET.price %}&price={{ request.GET.price }}{% endif %}">Назад</a>
+                </li>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                  <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% for l in request.GET.getlist('level') %}&level={{ l }}{% endfor %}{% if request.GET.price %}&price={{ request.GET.price }}{% endif %}">{{ num }}</a>
+                </li>
+              {% endfor %}
+
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% for l in request.GET.getlist('level') %}&level={{ l }}{% endfor %}{% if request.GET.price %}&price={{ request.GET.price }}{% endif %}">Вперед</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        {% endif %}
+      </div>
     </div>
-</div>
+  </div>
+</section>
+
 {% endblock %}

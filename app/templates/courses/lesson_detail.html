@@ -4,7 +4,7 @@
 {% block title %}{{ lesson.title }} - {{ course.title }} | SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container py-4">
     <div class="row">
         <!-- Основной контент -->
         <div class="col-lg-8">
@@ -24,7 +24,7 @@
                 <span class="badge bg-primary fs-6">{% trans "Урок" %} {{ lesson.order }}</span>
             </div>
 
-            <!-- Видео/Контент -->
+            <!-- Видео -->
             <div class="card mb-4">
                 {% if lesson.video_url %}
                 <div class="ratio ratio-16x9">
@@ -44,7 +44,7 @@
             <!-- Контент урока -->
             <div class="card mb-4">
                 <div class="card-body">
-                    {{ lesson.content|linebreaks }}
+                    {{ lesson.content|safe }}
                 </div>
             </div>
 
@@ -61,10 +61,9 @@
             {% endif %}
 
             <!-- Навигация между уроками -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 {% if prev_lesson %}
-                <a href="{% url 'lesson_detail' course.slug prev_lesson.slug %}"
-                   class="btn btn-outline-primary">
+                <a href="{% url 'lesson_detail' course.slug prev_lesson.slug %}" class="btn btn-outline-primary">
                     <i class="bi bi-arrow-left me-2"></i>{% trans "Предыдущий урок" %}
                 </a>
                 {% else %}
@@ -74,7 +73,7 @@
                 {% if not lesson in enrollment.completed_lessons.all %}
                 <form method="post" action="{% url 'mark_lesson_complete' course.slug lesson.slug %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-lg">
+                    <button type="submit" class="btn btn-success">
                         <i class="bi bi-check-circle me-2"></i>{% trans "Завершить урок" %}
                     </button>
                 </form>
@@ -85,8 +84,7 @@
                 {% endif %}
 
                 {% if next_lesson %}
-                <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}"
-                   class="btn btn-primary">
+                <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-primary">
                     {% trans "Следующий урок" %}<i class="bi bi-arrow-right ms-2"></i>
                 </a>
                 {% else %}
@@ -96,7 +94,7 @@
                 {% endif %}
             </div>
 
-            <!-- Комментарии/Обсуждение -->
+            <!-- Комментарии -->
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">{% trans "Обсуждение урока" %}</h5>
@@ -111,66 +109,70 @@
 
         <!-- Боковая панель -->
         <div class="col-lg-4">
-            <!-- Прогресс -->
-            <div class="card mb-4 text-center">
-                <div class="card-body">
-                    <h6 class="card-title">{% trans "Прогресс курса" %}</h6>
-                    <div class="progress-circle mx-auto mb-3" style="--progress: {{ enrollment.progress_percentage }}%;">
-                        <div class="progress-inner">{{ enrollment.progress_percentage|floatformat:0 }}%</div>
+            <div class="sticky-top" style="top: 80px; z-index: 100;">
+                <!-- Прогресс -->
+                <div class="card mb-4 text-center">
+                    <div class="card-body">
+                        <h6 class="card-title">{% trans "Прогресс курса" %}</h6>
+                        <div class="progress-circle mx-auto mb-3" style="--progress: {{ enrollment.progress_percentage }}%;">
+                            <div class="progress-inner">{{ enrollment.progress_percentage|floatformat:0 }}%</div>
+                        </div>
+                        <p class="text-muted">
+                            {{ enrollment.completed_lessons.count }} из {{ course.lessons.count }} {% trans "уроков завершено" %}
+                        </p>
+                        {% if enrollment.completed %}
+                        <div class="alert alert-success mt-3">
+                            <i class="bi bi-trophy-fill me-2"></i>{% trans "Курс завершен!" %}
+                        </div>
+                        {% endif %}
                     </div>
-                    <p class="text-muted">{{ enrollment.completed_lessons.count }} из {{ course.lessons.count }} {% trans "уроков завершено" %}</p>
-                    {% if enrollment.completed %}
-                    <div class="alert alert-success mt-3">
-                        <i class="bi bi-trophy-fill me-2"></i>{% trans "Курс завершен!" %}
-                    </div>
-                    {% endif %}
                 </div>
-            </div>
 
-            <!-- Содержание курса -->
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <h6 class="mb-0">{% trans "Содержание курса" %}</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        {% for module in course.modules.all %}
-                        <div class="list-group-item bg-light fw-bold">{{ module.title }}</div>
-                        {% for lesson_item in module.lessons.all %}
-                        <a href="{% url 'lesson_detail' course.slug lesson_item.slug %}"
-                           class="list-group-item list-group-item-action {% if lesson_item == lesson %}active{% endif %}">
-                            <div class="d-flex align-items-center">
-                                {% if lesson_item in enrollment.completed_lessons.all %}
-                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                {% else %}
-                                <i class="bi bi-play-circle me-2"></i>
-                                {% endif %}
-                                <span>Урок {{ forloop.parentloop.counter }}.{{ forloop.counter }}: {{ lesson_item.title }}</span>
-                                {% if lesson_item == lesson %}
-                                <i class="bi bi-arrow-right-short ms-auto"></i>
-                                {% endif %}
-                            </div>
-                        </a>
-                        {% endfor %}
-                        {% endfor %}
+                <!-- Содержание -->
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h6 class="mb-0">{% trans "Содержание курса" %}</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for module in course.modules.all %}
+                            <div class="list-group-item bg-light fw-bold">{{ module.title }}</div>
+                            {% for lesson_item in module.lessons.all %}
+                            <a href="{% url 'lesson_detail' course.slug lesson_item.slug %}"
+                               class="list-group-item list-group-item-action {% if lesson_item == lesson %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    {% if lesson_item in enrollment.completed_lessons.all %}
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    {% else %}
+                                    <i class="bi bi-play-circle me-2"></i>
+                                    {% endif %}
+                                    <span>{{ lesson_item.title }}</span>
+                                    {% if lesson_item == lesson %}
+                                    <i class="bi bi-arrow-right-short ms-auto"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Быстрые действия -->
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="card-title">{% trans "Быстрые действия" %}</h6>
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline-primary">
-                            <i class="bi bi-info-circle me-2"></i>{% trans "О курсе" %}
-                        </a>
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-speedometer2 me-2"></i>{% trans "В дашборд" %}
-                        </a>
-                        <a href="{% url 'my_courses' %}" class="btn btn-outline-info">
-                            <i class="bi bi-collection me-2"></i>{% trans "Мои курсы" %}
-                        </a>
+                <!-- Быстрые действия -->
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">{% trans "Быстрые действия" %}</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline-primary">
+                                <i class="bi bi-info-circle me-2"></i>{% trans "О курсе" %}
+                            </a>
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-speedometer2 me-2"></i>{% trans "В дашборд" %}
+                            </a>
+                            <a href="{% url 'my_courses' %}" class="btn btn-outline-info">
+                                <i class="bi bi-collection me-2"></i>{% trans "Мои курсы" %}
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -181,11 +183,10 @@
 
 {% block extra_js %}
 <script>
-// Анимация прогресса
 document.addEventListener('DOMContentLoaded', function() {
-    const progressCircle = document.querySelector('.progress-circle');
-    if (progressCircle) {
-        progressCircle.style.transition = 'background 1s ease';
+    const circle = document.querySelector('.progress-circle');
+    if (circle) {
+        circle.style.transition = 'background 1s ease';
     }
     window.scrollTo(0, 0);
 });

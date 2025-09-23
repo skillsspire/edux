@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static %}
+{% load i18n static app_extras %}
 
 {% block content %}
 <div class="container py-4">
@@ -44,25 +44,26 @@
   <h2 class="h4 mb-3">{% trans "My Courses" %}</h2>
 
   {% if enrollments %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 g-4">
       {% for e in enrollments %}
         {% with c=e.course %}
+        {% with p=progress_map|get_item:c.id|default:0 %}
         <div class="col">
           <div class="card h-100">
             <div class="ratio ratio-16x9">
               {% if c.thumbnail and c.thumbnail.name %}
-                <img src="{{ c.thumbnail.url }}" class="card-img-top" alt="{{ c.title }}" loading="lazy">
+                <img src="{{ c.thumbnail.url }}" class="card-img-top" alt="{{ c.title }}" loading="lazy" title="{{ c.title }}">
               {% elif c.image and c.image.name %}
-                <img src="{{ c.image.url }}" class="card-img-top" alt="{{ c.title }}" loading="lazy">
+                <img src="{{ c.image.url }}" class="card-img-top" alt="{{ c.title }}" loading="lazy" title="{{ c.title }}">
               {% else %}
-                <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="{{ c.title }}" loading="lazy">
+                <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="{{ c.title }}" loading="lazy" title="{{ c.title }}">
               {% endif %}
             </div>
 
             <div class="card-body d-flex flex-column">
               <h5 class="card-title mb-1">{{ c.title }}</h5>
               <p class="text-muted mb-3">
-                {% trans "Instructor:" %} 
+                {% trans "Instructor:" %}
                 {% if c.instructor %}
                   {{ c.instructor.get_full_name|default:c.instructor.username }}
                 {% else %}
@@ -70,16 +71,20 @@
                 {% endif %}
               </p>
 
-              {% with pid=c.id %}
-                {% with p=progress_map.pid|default:0 %}
-                  <div class="progress mb-2" style="height:14px;">
-                    <div class="progress-bar bg-success" role="progressbar"
-                         style="width: {{ p }}%;" aria-valuenow="{{ p }}" aria-valuemin="0" aria-valuemax="100">
-                      {{ p }}%
-                    </div>
+              <!-- Прогресс -->
+              <div class="mb-2">
+                <div class="progress" style="height:14px;" role="progressbar"
+                     aria-label="{% trans 'Course progress' %}"
+                     aria-valuenow="{{ p }}" aria-valuemin="0" aria-valuemax="100"
+                     title="{{ p }}%">
+                  <div class="progress-bar bg-success" style="width: {{ p }}%;">
+                    {{ p }}%
                   </div>
-                {% endwith %}
-              {% endwith %}
+                </div>
+                <small class="text-muted d-inline-block mt-1">
+                  {{ p }}% {% trans "completed" %}
+                </small>
+              </div>
 
               {% if e.completed %}
                 <p class="text-success fw-semibold mb-3">{% trans "Completed" %}</p>
@@ -95,6 +100,7 @@
             </div>
           </div>
         </div>
+        {% endwith %}
         {% endwith %}
       {% endfor %}
     </div>

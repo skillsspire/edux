@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Оплата успешна - SkillsSpire{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 text-center">
+            <!-- Галочка -->
+            <div class="success-checkmark mb-4">
+                <div class="check-icon">
+                    <span class="icon-line line-tip"></span>
+                    <span class="icon-line line-long"></span>
+                    <div class="icon-circle"></div>
+                    <div class="icon-fix"></div>
+                </div>
+            </div>
+
+            <h2 class="fw-bold text-success">Оплата прошла успешно!</h2>
+            <p class="text-muted mb-4">
+                Спасибо за вашу оплату. Теперь курс доступен в разделе <strong>«Мои курсы»</strong>.
+            </p>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'my_courses' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-collection me-2"></i> Мои курсы
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-speedometer2 me-2"></i> В дашборд
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.success-checkmark {
+  width: 80px;
+  height: 115px;
+  margin: 0 auto;
+}
+.check-icon {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  border-radius: 50%;
+  box-sizing: content-box;
+  border: 4px solid #28a745;
+}
+.check-icon .icon-line {
+  height: 5px;
+  background-color: #28a745;
+  display: block;
+  border-radius: 2px;
+  position: absolute;
+  z-index: 10;
+}
+.check-icon .line-tip {
+  width: 25px;
+  left: 14px;
+  top: 46px;
+  transform: rotate(45deg);
+  animation: icon-line-tip 0.4s ease forwards;
+}
+.check-icon .line-long {
+  width: 47px;
+  right: 8px;
+  top: 38px;
+  transform: rotate(-45deg);
+  animation: icon-line-long 0.4s ease forwards 0.3s;
+}
+.check-icon .icon-circle {
+  top: -4px;
+  left: -4px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  position: absolute;
+  box-sizing: content-box;
+  border: 4px solid rgba(40,167,69,0.5);
+}
+.check-icon .icon-fix {
+  top: 8px;
+  width: 5px;
+  left: 26px;
+  height: 85px;
+  position: absolute;
+  background-color: #fff;
+}
+@keyframes icon-line-tip {
+  0% { width: 0; left: 1px; top: 19px; }
+  54% { width: 0; left: 1px; top: 19px; }
+  70% { width: 50px; left: -8px; top: 37px; }
+  100% { width: 25px; left: 14px; top: 46px; }
+}
+@keyframes icon-line-long {
+  0% { width: 0; right: 46px; top: 54px; }
+  65% { width: 0; right: 46px; top: 54px; }
+  84% { width: 55px; right: 0; top: 35px; }
+  100% { width: 47px; right: 8px; top: 38px; }
+}
+</style>
+{% endblock %}
