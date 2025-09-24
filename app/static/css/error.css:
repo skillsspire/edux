@@ -1,0 +1,159 @@
+:root {
+    --primary-color: #1e3a8a; /* темно-синий */
+    --accent-color: #f43f5e; /* ярко-розовый */
+    --secondary-color: #0ea5e9; /* яркий синий */
+    --bg-color: #fff7f0; /* светлый фон */
+    --text-color: #333;
+    --btn-color: #f59e0b; /* ярко-оранжевый */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+}
+
+.error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    animation: fadeIn 1s ease-in-out;
+}
+
+.logo-container {
+    margin-bottom: 20px;
+}
+
+.logo {
+    max-width: 150px;
+    animation: pulse 1.5s infinite alternate;
+}
+
+.error-title {
+    font-size: 36px;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    animation: slideIn 1s ease-in-out;
+}
+
+.error-description {
+    font-size: 18px;
+    color: var(--text-color);
+    margin-bottom: 30px;
+    opacity: 0;
+    animation: fadeInText 2s ease-in-out forwards 1s;
+}
+
+.contact-info {
+    margin: 20px 0;
+    font-size: 18px;
+}
+
+.contact-info ul {
+    list-style: none;
+    padding: 0;
+}
+
+.contact-info li {
+    margin: 10px 0;
+}
+
+.contact-info a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+.error-actions {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 20px;
+    background-color: var(--btn-color);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.1);
+}
+
+.game-container {
+    margin-top: 30px;
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+.dino-game {
+    width: 300px;
+    height: 150px;
+    background-color: #fff;
+    border: 2px solid var(--secondary-color);
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInText {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}

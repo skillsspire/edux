@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ой! Страница не найдена · 404</title>
+    <link href="{% static 'css/error.css' %}" rel="stylesheet">
+</head>
+<body>
+    <div class="error-container">
+        <!-- Логотип -->
+        <div class="logo-container">
+            <img src="{% static 'img/logo_skillsspire.png' %}" alt="SkillSpire" class="logo">
+        </div>
+
+        <div class="error-content">
+            <h1 class="error-title">Ой! Мы не смогли найти эту страницу 🤔</h1>
+            <p class="error-description">Возможно, вы забыли URL или перешли по несуществующей ссылке.</p>
+
+            <!-- Контакты -->
+            <div class="contact-info">
+                <h2>Свяжитесь с нами:</h2>
+                <p>Мы всегда рады общению и готовы ответить на все ваши вопросы</p>
+                <ul>
+                    <li><strong>Email:</strong> <a href="mailto:skillsspire@gmail.com">skillsspire@gmail.com</a></li>
+                    <li><strong>Телефон:</strong> <a href="tel:+77012925568">+7 (701) 292-55-68</a></li>
+                    <li><strong>Instagram:</strong> <a href="https://instagram.com/skillsspire" target="_blank">@skillsspire</a></li>
+                    <li><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/company/skillsspireofficial" target="_blank">SkillSpire Official</a></li>
+                    <li><strong>Telegram:</strong> <a href="https://t.me/SkillsSpire" target="_blank">@SkillsSpire</a></li>
+                </ul>
+            </div>
+
+            <!-- Мини-игра -->
+            <div class="game-container">
+                <h2>Играйте с нами!</h2>
+                <div id="dino-game" class="dino-game"></div>
+            </div>
+
+            <div class="error-actions">
+                <a href="/" class="btn">На главную</a>
+                <a href="/search/?q=" class="btn">Поиск по сайту</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/error.js' %}"></script>
+</body>
+</html>
