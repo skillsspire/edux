@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<!-- HERO (узкий, как секция-заголовок) -->
+<!-- HERO -->
 <section class="section" style="padding-top: 3rem; padding-bottom: 2rem;">
   <div class="container">
     <div class="section-header text-center">
@@ -16,7 +16,7 @@
     <!-- Поиск и кнопка фильтров на мобилке -->
     <div class="d-flex gap-2 justify-content-center mt-3">
       <form action="{% url 'courses_list' %}" method="get" class="hero-search" style="max-width:520px; flex:1;">
-        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Поиск курсов" aria-label="Поисковый запрос">
+        <input type="text" name="q" value="{{ q }}" placeholder="Поиск курсов" aria-label="Поисковый запрос">
         <button type="submit">Поиск</button>
       </form>
 
@@ -32,18 +32,22 @@
   <div class="container">
     <div class="row g-4">
 
-      <!-- Сайдбар: Категории + Фильтры (виден от md и выше) -->
+      <!-- Сайдбар -->
       <aside class="col-md-3 d-none d-md-block">
         <div class="card mb-4">
           <div class="card-body">
             <h5 class="card-title mb-3">Категории</h5>
             <div class="list-group list-group-flush">
-              <a href="{% url 'courses_list' %}" class="list-group-item list-group-item-action {% if not request.GET.category %}active{% endif %}">
+              <a href="{% url 'courses_list' %}{% if q or selected_levels or price_filter %}?{% endif %}
+                 {% if q %}q={{ q|urlencode }}{% endif %}
+                 {% for lvl in selected_levels %}{% if forloop.first and not q %}?{% else %}&{% endif %}level={{ lvl|urlencode }}{% endfor %}
+                 {% if price_filter %}{% if q or selected_levels %}&{% else %}?{% endif %}price={{ price_filter }}{% endif %}"
+                 class="list-group-item list-group-item-action {% if not selected_categories %}active{% endif %}">
                 Все курсы
               </a>
               {% for cat in categories %}
-                <a href="{% url 'courses_list' %}?category={{ cat.slug }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
-                   class="list-group-item list-group-item-action {% if request.GET.category == cat.slug %}active{% endif %}">
+                <a href="{% url 'courses_list' %}?category={{ cat.slug }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for lvl in selected_levels %}&level={{ lvl|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}"
+                   class="list-group-item list-group-item-action {% if selected_categories and cat.slug in selected_categories %}active{% endif %}">
                   {{ cat.name }}
                 </a>
               {% empty %}
@@ -57,19 +61,23 @@
           <div class="card-body">
             <h5 class="card-title mb-3">Фильтры</h5>
             <form action="{% url 'courses_list' %}" method="get" class="vstack gap-3">
-              <input type="hidden" name="category" value="{{ request.GET.category }}">
+              {% for cat in selected_categories %}
+                <input type="hidden" name="category" value="{{ cat }}">
+              {% endfor %}
+              {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+
               <div>
                 <label class="form-label">Уровень</label>
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="level" value="beginner" id="f-beg" {% if 'beginner' in request.GET.getlist('level') %}checked{% endif %}>
+                  <input class="form-check-input" type="checkbox" name="level" value="beginner" id="f-beg" {% if 'beginner' in selected_levels %}checked{% endif %}>
                   <label class="form-check-label" for="f-beg">Начинающий</label>
                 </div>
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="level" value="intermediate" id="f-int" {% if 'intermediate' in request.GET.getlist('level') %}checked{% endif %}>
+                  <input class="form-check-input" type="checkbox" name="level" value="intermediate" id="f-int" {% if 'intermediate' in selected_levels %}checked{% endif %}>
                   <label class="form-check-label" for="f-int">Средний</label>
                 </div>
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="level" value="advanced" id="f-adv" {% if 'advanced' in request.GET.getlist('level') %}checked{% endif %}>
+                  <input class="form-check-input" type="checkbox" name="level" value="advanced" id="f-adv" {% if 'advanced' in selected_levels %}checked{% endif %}>
                   <label class="form-check-label" for="f-adv">Продвинутый</label>
                 </div>
               </div>
@@ -77,9 +85,9 @@
               <div>
                 <label class="form-label">Цена</label>
                 <select class="form-select" name="price">
-                  <option value="" {% if not request.GET.price %}selected{% endif %}>Любая</option>
-                  <option value="free" {% if request.GET.price == 'free' %}selected{% endif %}>Бесплатные</option>
-                  <option value="paid" {% if request.GET.price == 'paid' %}selected{% endif %}>Платные</option>
+                  <option value="" {% if not price_filter %}selected{% endif %}>Любая</option>
+                  <option value="free" {% if price_filter == 'free' %}selected{% endif %}>Бесплатные</option>
+                  <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>Платные</option>
                 </select>
               </div>
 
@@ -91,7 +99,7 @@
         </div>
       </aside>
 
-      <!-- Offcanvas фильтры (мобилка) -->
+      <!-- Offcanvas (мобилка) -->
       <div class="offcanvas offcanvas-start" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
         <div class="offcanvas-header">
           <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Фильтры</h5>
@@ -99,13 +107,17 @@
         </div>
         <div class="offcanvas-body">
           <form action="{% url 'courses_list' %}" method="get" class="vstack gap-3">
-            <input type="hidden" name="q" value="{{ request.GET.q }}">
+            {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+            {% for cat in selected_categories %}
+              <input type="hidden" name="category" value="{{ cat }}">
+            {% endfor %}
+
             <div>
               <label class="form-label">Категория</label>
               <select class="form-select" name="category">
-                <option value="" {% if not request.GET.category %}selected{% endif %}>Все</option>
+                <option value="" {% if not selected_categories %}selected{% endif %}>Все</option>
                 {% for cat in categories %}
-                  <option value="{{ cat.slug }}" {% if request.GET.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+                  <option value="{{ cat.slug }}" {% if selected_categories and cat.slug in selected_categories %}selected{% endif %}>{{ cat.name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -113,15 +125,15 @@
             <div>
               <label class="form-label">Уровень</label>
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="level" value="beginner" id="m-beg" {% if 'beginner' in request.GET.getlist('level') %}checked{% endif %}>
+                <input class="form-check-input" type="checkbox" name="level" value="beginner" id="m-beg" {% if 'beginner' in selected_levels %}checked{% endif %}>
                 <label class="form-check-label" for="m-beg">Начинающий</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="level" value="intermediate" id="m-int" {% if 'intermediate' in request.GET.getlist('level') %}checked{% endif %}>
+                <input class="form-check-input" type="checkbox" name="level" value="intermediate" id="m-int" {% if 'intermediate' in selected_levels %}checked{% endif %}>
                 <label class="form-check-label" for="m-int">Средний</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="level" value="advanced" id="m-adv" {% if 'advanced' in request.GET.getlist('level') %}checked{% endif %}>
+                <input class="form-check-input" type="checkbox" name="level" value="advanced" id="m-adv" {% if 'advanced' in selected_levels %}checked{% endif %}>
                 <label class="form-check-label" for="m-adv">Продвинутый</label>
               </div>
             </div>
@@ -129,9 +141,9 @@
             <div>
               <label class="form-label">Цена</label>
               <select class="form-select" name="price">
-                <option value="" {% if not request.GET.price %}selected{% endif %}>Любая</option>
-                <option value="free" {% if request.GET.price == 'free' %}selected{% endif %}>Бесплатные</option>
-                <option value="paid" {% if request.GET.price == 'paid' %}selected{% endif %}>Платные</option>
+                <option value="" {% if not price_filter %}selected{% endif %}>Любая</option>
+                <option value="free" {% if price_filter == 'free' %}selected{% endif %}>Бесплатные</option>
+                <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>Платные</option>
               </select>
             </div>
 
@@ -144,6 +156,24 @@
 
       <!-- Список курсов -->
       <div class="col-md-9">
+        <div class="d-flex justify-content-end mb-3">
+          <form method="get" class="d-flex gap-2 align-items-center">
+            {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
+            {% for lvl in selected_levels %}<input type="hidden" name="level" value="{{ lvl }}">{% endfor %}
+            {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+            {% if price_filter %}<input type="hidden" name="price" value="{{ price_filter }}">{% endif %}
+
+            <label class="me-2 text-muted small">Сортировка</label>
+            <select class="form-select form-select-sm" name="sort" onchange="this.form.submit()">
+              <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Сначала новые</option>
+              <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Популярные</option>
+              <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>По рейтингу</option>
+              <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Цена: низкая → высокая</option>
+              <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Цена: высокая → низкая</option>
+            </select>
+          </form>
+        </div>
+
         <div class="courses-grid">
           {% for course in courses %}
             <div class="course-card">
@@ -158,7 +188,6 @@
               <div class="course-card-content">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span class="course-category">{{ course.category.name|default:"Без категории" }}</span>
-
                   <div class="course-rating">
                     <i class="bi bi-star-fill" aria-hidden="true"></i>
                     {{ course.avg_rating|default_if_none:"4.8"|floatformat:1 }}
@@ -217,19 +246,22 @@
             <ul class="pagination justify-content-center">
               {% if page_obj.has_previous %}
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% for l in request.GET.getlist('level') %}&level={{ l }}{% endfor %}{% if request.GET.price %}&price={{ request.GET.price }}{% endif %}">Назад</a>
+                  <a class="page-link"
+                     href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for cat in selected_categories %}&category={{ cat|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Назад</a>
                 </li>
               {% endif %}
 
               {% for num in page_obj.paginator.page_range %}
                 <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                  <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% for l in request.GET.getlist('level') %}&level={{ l }}{% endfor %}{% if request.GET.price %}&price={{ request.GET.price }}{% endif %}">{{ num }}</a>
+                  <a class="page-link"
+                     href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for cat in selected_categories %}&category={{ cat|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
                 </li>
               {% endfor %}
 
               {% if page_obj.has_next %}
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% for l in request.GET.getlist('level') %}&level={{ l }}{% endfor %}{% if request.GET.price %}&price={{ request.GET.price }}{% endif %}">Вперед</a>
+                  <a class="page-link"
+                     href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for cat in selected_categories %}&category={{ cat|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Вперед</a>
                 </li>
               {% endif %}
             </ul>

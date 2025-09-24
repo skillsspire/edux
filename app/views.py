@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count, Avg
 from django.core.paginator import Paginator
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.utils import timezone
@@ -14,7 +14,7 @@ import hmac
 import hashlib
 import json
 
-from django.contrib.auth.models import User  # Важно: стандартный User
+from django.contrib.auth.models import User  # стандартный User
 from .forms import CustomUserCreationForm, ReviewForm, ContactForm
 from .models import (
     Course, Category, Lesson, Enrollment, Review, Wishlist, Payment,
@@ -66,10 +66,25 @@ def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
+            # 1) создаём пользователя
             user = form.save()
-            login(request, user)
-            messages.success(request, 'Регистрация прошла успешно! Добро пожаловать!')
-            return redirect('home')
+
+            # 2) аутентифицируем, чтобы у объекта был backend
+            username = form.cleaned_data['username']
+            raw_password = form.cleaned_data['password1']
+            auth_user = authenticate(request, username=username, password=raw_password)
+
+            if auth_user is not None:
+                login(request, auth_user)
+                messages.success(request, 'Регистрация прошла успешно! Добро пожаловать!')
+                return redirect('home')
+            else:
+                messages.warning(
+                    request,
+                    'Аккаунт создан, но автологин не сработал. Войдите вручную.'
+                )
+                return redirect('login')
+
         messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
         form = CustomUserCreationForm()
@@ -107,14 +122,15 @@ def courses_list(request):
         .annotate(avg_rating=Avg('reviews__rating'))
     )
 
-    category_slug = request.GET.get('category')
-    search_query = request.GET.get('q', '')
-    level = request.GET.get('level')
-    price_filter = request.GET.get('price')
+    # параметры фильтров/поиска
+    selected_categories = request.GET.getlist('category')  # поддержим множественный выбор
+    selected_levels = request.GET.getlist('level')         # ← вместо request.GET в шаблоне
+    search_query = request.GET.get('q', '').strip()
+    price_filter = request.GET.get('price')  # free | paid | None
     sort_by = request.GET.get('sort', 'newest')
 
-    if category_slug:
-        courses_qs = courses_qs.filter(category__slug=category_slug)
+    if selected_categories:
+        courses_qs = courses_qs.filter(category__slug__in=selected_categories)
 
     if search_query:
         courses_qs = courses_qs.filter(
@@ -123,8 +139,8 @@ def courses_list(request):
             Q(category__name__icontains=search_query)
         )
 
-    if level:
-        courses_qs = courses_qs.filter(level=level)
+    if selected_levels:
+        courses_qs = courses_qs.filter(level__in=selected_levels)
 
     if price_filter == 'free':
         courses_qs = courses_qs.filter(price=0)
@@ -158,6 +174,13 @@ def courses_list(request):
         'categories': categories,
         'is_paginated': page_obj.has_other_pages(),
         'page_obj': page_obj,
+
+        # отдадим в шаблон — вместо request.GET.*
+        'q': search_query,
+        'selected_levels': selected_levels,
+        'selected_categories': selected_categories,
+        'price_filter': price_filter,
+        'sort_by': sort_by,
     })
 
 
@@ -268,7 +291,7 @@ def enroll_course(request, slug):
 
     if course.price > 0:
         messages.error(request, 'Для записи на платный курс необходимо произвести оплату')
-        return redirect('create_payment', slug=slug)  # фикс имени url
+        return redirect('create_payment', slug=slug)  # убедись, что такой url name есть
 
     Enrollment.objects.get_or_create(user=request.user, course=course)
     course.students.add(request.user)

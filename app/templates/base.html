@@ -1,7 +1,7 @@
 {% load static %}
 {% load i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
+<html lang="{{ LANGUAGE_CODE }}" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -33,33 +33,35 @@
       <span>SkillsSpire</span>
     </a>
 
-    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
 
     <div class="nav-menu" id="navMenu">
       <div class="nav-menu-inner">
         <ul class="nav-list">
-          <li><a href="{% url 'home' %}">Главная</a></li>
-          <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
-          <li><a href="{% url 'about' %}">О нас</a></li>
-          <li><a href="{% url 'contact' %}">Контакты</a></li>
+          <li><a class="nav-link" href="{% url 'home' %}">Главная</a></li>
+          <li><a class="nav-link" href="{% url 'courses_list' %}">Все курсы</a></li>
+          <li><a class="nav-link" href="{% url 'about' %}">О нас</a></li>
+          <li><a class="nav-link" href="{% url 'contact' %}">Контакты</a></li>
           {% if user.is_authenticated and user.is_instructor %}
-          <li class="nav-highlight"><a href="{% url 'course_create' %}"><i class="bi bi-plus-circle"></i> Создать курс</a></li>
+          <li class="nav-highlight"><a class="nav-link" href="{% url 'course_create' %}"><i class="bi bi-plus-circle"></i> Создать курс</a></li>
           {% endif %}
         </ul>
 
         <div class="nav-actions">
           <form class="nav-search" action="{% url 'courses_list' %}" method="get">
             <input type="search" name="q" placeholder="Поиск курсов...">
-            <button type="submit"><i class="bi bi-search"></i></button>
+            <button type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
           </form>
 
           {% if user.is_authenticated %}
           <div class="nav-notifications">
-            <button class="nav-icon-btn"><i class="bi bi-bell"></i><span class="nav-badge">3</span></button>
+            <button class="nav-icon-btn" aria-label="Notifications"><i class="bi bi-bell"></i><span class="nav-badge">3</span></button>
           </div>
 
           <div class="nav-user dropdown">
-            <button class="nav-user-btn">
+            <button class="nav-user-btn" aria-haspopup="true" aria-expanded="false">
               {% if user.is_instructor and user.instructor_profile.avatar %}
                 <img src="{{ user.instructor_profile.avatar.url }}" alt="{{ user.get_full_name }}" width="32" height="32" style="border-radius:50%;object-fit:cover;">
               {% else %}
@@ -92,13 +94,14 @@
             <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
               {% get_current_language as LANGUAGE_CODE %}
               <input type="hidden" name="next" value="{{ request.path }}">
-              <select name="language" onchange="this.form.submit()">
+              <select name="language" onchange="this.form.submit()" aria-label="Language">
                 <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
                 <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
                 <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
               </select>
             </form>
-            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"><i class="bi bi-moon"></i></button>
+            <!-- важный id: themeToggle -->
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">🌙</button>
           </div>
         </div>
       </div>
@@ -190,72 +193,9 @@
   </div>
 </footer>
 
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
-<script src="{% static 'js/main.js' %}"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const navToggle = document.getElementById('navToggle');
-  const navMenu = document.getElementById('navMenu');
-  if (navToggle && navMenu) {
-    navToggle.addEventListener('click', () => {
-      navMenu.classList.toggle('active');
-      navToggle.classList.toggle('active');
-    });
-  }
-
-  document.querySelectorAll('.alert-close').forEach(button => {
-    button.addEventListener('click', function () {
-      const alertEl = this.closest('.alert');
-      alertEl.classList.add('hide');
-      setTimeout(() => alertEl.remove(), 350);
-    });
-  });
-
-  const subscribeForm = document.querySelector('.footer-subscribe');
-  if (subscribeForm) {
-    subscribeForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const emailInput = this.querySelector('input[type="email"]');
-      if (emailInput.value) {
-        alert('Спасибо за подписку!');
-        emailInput.value = '';
-      }
-    });
-  }
-
-  new PureCounter();
-
-  const faqQuestions = document.querySelectorAll('.faq-question');
-  faqQuestions.forEach(q => {
-    q.addEventListener('click', function () {
-      faqQuestions.forEach(other => {
-        if (other !== this) {
-          other.classList.remove('active');
-          if (other.nextElementSibling) other.nextElementSibling.style.display = 'none';
-        }
-      });
-      this.classList.toggle('active');
-      const answer = this.nextElementSibling;
-      if (answer) answer.style.display = this.classList.contains('active') ? 'block' : 'none';
-    });
-  });
-
-  const themeToggle = document.getElementById('theme-toggle');
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      document.documentElement.classList.toggle('dark-theme');
-      localStorage.setItem('theme',
-        document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light'
-      );
-    });
-    if (localStorage.getItem('theme') === 'dark') {
-      document.documentElement.classList.add('dark-theme');
-    }
-  }
-});
-</script>
-
+<script defer src="{% static 'js/main.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
