@@ -10,13 +10,13 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-# Разрешённые origin'ы для CSRF (без wildcard)
+# CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
     "https://www.skillsspire.com",
     "https://skillsspire.com",
 ]
 
-# Автоподхват домена Render для hosts/csrf
+# Автоподхват домена Render
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     if RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -25,7 +25,7 @@ if RENDER_EXTERNAL_HOSTNAME:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
-# Webhook секрет — НЕ хардкодим в urls.py
+# Webhook secret
 KASPI_WEBHOOK_SECRET = os.environ.get("KASPI_WEBHOOK_SECRET", "dev-secret")
 
 # --- Proxy / SSL ---
@@ -42,7 +42,6 @@ SESSION_COOKIE_DOMAIN = None
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# HSTS (включайте, когда убедитесь, что всё работает на HTTPS)
 SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
@@ -61,6 +60,7 @@ THIRD_PARTY_APPS = [
     "phonenumber_field",
     "ckeditor",
     "widget_tweaks",
+    "storages",  # для Supabase Storage
 ]
 
 LOCAL_APPS = [
@@ -72,7 +72,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # --- Middleware ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # сразу после SecurityMiddleware
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -147,7 +147,6 @@ TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
-# в base.html есть "kz" — оставляем так для консистентности UI
 LANGUAGES = [
     ("en", "English"),
     ("ru", "Русский"),
@@ -155,25 +154,23 @@ LANGUAGES = [
 ]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
-# --- Static / Media ---
+# --- Static ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# ВАЖНО: подключаем исходники статики из репозитория (app/static/**)
-STATICFILES_DIRS = [
-    BASE_DIR / "app" / "static",
-]
-
-# Хеши + сжатие для продакшена (оставляем один раз)
+STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# --- Media / Supabase Storage ---
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
-# WhiteNoise дополнительные опции (не заменяют collectstatic)
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_MANIFEST_STRICT = False
-WHITENOISE_ALLOW_ALL_ORIGINS = True
+AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY", "postgres")
+AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "media")
+AWS_S3_ENDPOINT_URL = "https://pyttzlcuxyfkhrwggrwi.supabase.co/storage/v1/s3"
+AWS_S3_ADDRESSING_STYLE = "path"
+AWS_QUERYSTRING_AUTH = False
+AWS_DEFAULT_ACL = "public-read"
+AWS_S3_FILE_OVERWRITE = False
 
 # --- Email ---
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
