@@ -59,6 +59,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "phonenumber_field",
     "ckeditor",
+    "widget_tweaks",   # 👈 добавлено
 ]
 
 LOCAL_APPS = [
