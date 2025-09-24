@@ -9,13 +9,14 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+# Разрешённые origin'ы для CSRF (без wildcard)
 CSRF_TRUSTED_ORIGINS = [
     "https://www.skillsspire.com",
     "https://skillsspire.com",
-    "https://*.onrender.com",
 ]
 
-# подтягиваем домен Render для hosts/csrf автоматически
+# Автоподхват домена Render для hosts/csrf
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     if RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -41,7 +42,7 @@ SESSION_COOKIE_DOMAIN = None
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# HSTS (активируй в проде, когда убедишься в корректности HTTPS)
+# HSTS (включайте, когда убедитесь, что всё работает на HTTPS)
 SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
@@ -59,7 +60,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "phonenumber_field",
     "ckeditor",
-    "widget_tweaks",   # 👈 добавлено
+    "widget_tweaks",
 ]
 
 LOCAL_APPS = [
@@ -71,7 +72,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # --- Middleware ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # сразу после SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -88,8 +89,8 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "templates",      # корневая папка шаблонов
-            BASE_DIR / "app" / "templates",  # шаблоны внутри приложения
+            BASE_DIR / "templates",
+            BASE_DIR / "app" / "templates",
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -146,24 +147,30 @@ TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
-# В base.html у тебя стоит опция "kz", потому делаем консистентно:
+# в base.html есть "kz" — оставляем так для консистентности UI
 LANGUAGES = [
     ("en", "English"),
     ("ru", "Русский"),
-    ("kz", "Қазақша"),   # <- было 'kk' — из-за этого выпадали проблемы со сменой языка
+    ("kz", "Қазақша"),
 ]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
 # --- Static / Media ---
-STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# ВАЖНО: подключаем исходники статики из репозитория (app/static/**)
+STATICFILES_DIRS = [
+    BASE_DIR / "app" / "static",
+]
+
+# Хеши + сжатие для продакшена (оставляем один раз)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# WhiteNoise: манифест + сжатие. Строгость манифеста off, чтобы не ловить 500, если файла нет.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# WhiteNoise дополнительные опции (не заменяют collectstatic)
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
@@ -187,7 +194,7 @@ PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
 # --- CKEditor warnings ---
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
 
-# --- Logging (проще ловить 500 в проде) ---
+# --- Logging ---
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
