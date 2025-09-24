@@ -144,7 +144,7 @@ class Course(models.Model):
 
     @property
     def lessons_count(self):
-        return self.lessons.filter(is_active=True).count()
+        return self.modules.filter(is_active=True).aggregate(total=models.Count('lessons'))['total'] or 0
 
     @property
     def students_count(self):
@@ -180,6 +180,77 @@ class Course(models.Model):
         return safe_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
 
 
+class Module(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
+    title = models.CharField(max_length=200, verbose_name="Название")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+
+    class Meta:
+        verbose_name = "Модуль"
+        verbose_name_plural = "Модули"
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.course.title} - {self.title}"
+
+
+class Lesson(models.Model):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons')
+    title = models.CharField(max_length=200, verbose_name="Название")
+    slug = models.SlugField(blank=True, verbose_name="URL")
+    content = models.TextField(verbose_name="Содержание")
+    video_url = models.URLField(blank=True, verbose_name="Видео URL")
+    duration_minutes = models.PositiveIntegerField(default=0, verbose_name="Длительность (мин.)")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    is_free = models.BooleanField(default=False, verbose_name="Бесплатный")
+    resources = models.FileField(upload_to='lessons/resources/', blank=True, null=True, verbose_name="Ресурсы")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Урок"
+        verbose_name_plural = "Уроки"
+        ordering = ['order']
+        constraints = [
+            models.UniqueConstraint(fields=['module', 'slug'], name='uq_lesson_module_slug'),
+        ]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse(
+            'lesson_detail',
+            kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug}
+        )
+
+
+class Enrollment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Запись на курс"
+        verbose_name_plural = "Записи на курсы"
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'course'], name='uq_enrollment_user_course'),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}"
+
+
 class Review(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews', null=True, blank=True)
@@ -203,3 +274,94 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.course.title} - {self.rating}"
+
+
+class Wishlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='wishlisted_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Избранное"
+        verbose_name_plural = "Избранное"
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'course'], name='uq_wishlist_user_course'),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}"
+
+
+class Payment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'В ожидании'),
+        ('success', 'Успешно'),
+        ('failed', 'Неудачно'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
+    kaspi_invoice_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="ID платежа Kaspi")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Платеж"
+        verbose_name_plural = "Платежи"
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title} - {self.amount} - {self.status}"
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.start_date.date()}"
+
+
+class ContactMessage(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Контактное сообщение"
+        verbose_name_plural = "Контактные сообщения"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} - {self.subject}"
+
+
+class LessonProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress')
+    is_completed = models.BooleanField(default=False)
+    percent = models.PositiveSmallIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Прогресс по уроку"
+        verbose_name_plural = "Прогресс по урокам"
+        ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'lesson'], name='uq_lessonprogress_user_lesson'),
+        ]
+
+    def __str__(self):
+        return f'{self.user} · {self.lesson} · {self.percent}%'
