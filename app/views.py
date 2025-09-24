@@ -14,7 +14,7 @@ import hmac
 import hashlib
 import json
 
-from django.contrib.auth.models import User  # Важно: берем User из django
+from django.contrib.auth.models import User  # Важно: стандартный User
 from .forms import CustomUserCreationForm, ReviewForm, ContactForm
 from .models import (
     Course, Category, Lesson, Enrollment, Review, Wishlist, Payment,
@@ -34,7 +34,6 @@ def kaspi_webhook(request):
     if not secret:
         return JsonResponse({'error': 'KASPI_SECRET is not set'}, status=500)
 
-    # Проверка подписи
     expected_signature = hmac.new(
         key=secret.encode(),
         msg=body,
@@ -91,7 +90,6 @@ def home(request):
     try:
         categories = Category.objects.filter(is_active=True)[:8]
     except Exception:
-        # если поле is_active ещё не накатилось миграцией
         categories = Category.objects.all()[:8]
 
     return render(request, 'home.html', {
@@ -103,7 +101,6 @@ def home(request):
 
 # ------------------------ Courses List ------------------------
 def courses_list(request):
-    # Сразу аннотируем средний рейтинг, чтобы он ВСЕГДА был в курсах для шаблона
     courses_qs = (
         Course.objects.select_related('category')
         .prefetch_related('students', 'reviews')
@@ -157,7 +154,7 @@ def courses_list(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'courses/list.html', {
-        'courses': page_obj,            # в шаблоне {% for course in courses %}
+        'courses': page_obj,
         'categories': categories,
         'is_paginated': page_obj.has_other_pages(),
         'page_obj': page_obj,
@@ -171,7 +168,6 @@ def course_detail(request, slug):
         slug=slug
     )
 
-    # доступ к платному курсу — только для авторизованных и записанных
     if course.price > 0:
         if not request.user.is_authenticated:
             messages.info(request, 'Для доступа к курсу необходимо авторизоваться')
@@ -180,7 +176,6 @@ def course_detail(request, slug):
     else:
         has_access = True
 
-    # Если таблицы модулей нет — не падаем
     try:
         lessons = (
             Lesson.objects.filter(module__course=course, is_active=True)
@@ -210,7 +205,6 @@ def course_detail(request, slug):
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related('students'), slug=course_slug)
 
-    # Пытаемся получить урок через связь с module; если таблицы модулей нет — мягкий фолбэк
     try:
         lesson = get_object_or_404(
             Lesson.objects.select_related('module'),
@@ -220,12 +214,10 @@ def lesson_detail(request, course_slug, lesson_slug):
         messages.error(request, 'Секции модулей пока недоступны. Попробуйте позже.')
         return redirect('course_detail', slug=course_slug)
 
-    # проверка доступа (платный курс — только для записанных)
     if course.price > 0 and not course.students.filter(id=request.user.id).exists():
         messages.error(request, 'У вас нет доступа к этому уроку')
         return redirect('course_detail', slug=course_slug)
 
-    # список уроков для навигации вперед/назад
     try:
         lessons_list = list(
             Lesson.objects.filter(module__course=course, is_active=True)
@@ -241,7 +233,6 @@ def lesson_detail(request, course_slug, lesson_slug):
     previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
     next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-    # отметка прогресса
     LessonProgress.objects.update_or_create(
         user=request.user,
         lesson=lesson,
@@ -252,11 +243,17 @@ def lesson_detail(request, course_slug, lesson_slug):
         }
     )
 
+    try:
+        enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+    except Exception:
+        enrollment = None
+
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
         'lesson': lesson,
-        'previous_lesson': previous_lesson,
+        'prev_lesson': previous_lesson,
         'next_lesson': next_lesson,
+        'enrollment': enrollment,
     })
 
 
@@ -271,7 +268,7 @@ def enroll_course(request, slug):
 
     if course.price > 0:
         messages.error(request, 'Для записи на платный курс необходимо произвести оплату')
-        return redirect('payment:create', course_slug=slug)
+        return redirect('create_payment', slug=slug)  # фикс имени url
 
     Enrollment.objects.get_or_create(user=request.user, course=course)
     course.students.add(request.user)
@@ -298,7 +295,6 @@ def my_courses(request):
 def dashboard(request):
     user = request.user
 
-    # Курсы пользователя через M2M (без Enrollment, чтобы не упасть из-за user_id)
     my_courses = (
         Course.objects.filter(students__id=user.id)
         .select_related('category')
@@ -307,18 +303,15 @@ def dashboard(request):
     total_courses = my_courses.count()
     recent_courses = my_courses.order_by('-created_at')[:5]
 
-    # Попытка аккуратно посчитать завершённые, если в БД есть нужные поля
     completed_courses = 0
     try:
         completed_courses = Enrollment.objects.filter(user_id=user.id, completed=True).count()
     except Exception:
         try:
-            # вдруг поле называется иначе (например, student)
             completed_courses = Enrollment.objects.filter(student_id=user.id, completed=True).count()
         except Exception:
             completed_courses = 0
 
-    # Прогресс: без join к module, чтобы не ловить "relation app_module does not exist"
     try:
         progress_qs = LessonProgress.objects.filter(user=user).select_related('lesson')
         total_lessons = progress_qs.count()
@@ -333,7 +326,6 @@ def dashboard(request):
         'total_lessons': total_lessons,
         'completed_lessons': completed_lessons,
         'recent_courses': recent_courses,
-        # на случай, если шаблон что-то ждёт от enrollments — подадим None
         'enrollments': None,
     }
     return render(request, 'users/dashboard.html', context)
@@ -389,7 +381,6 @@ def toggle_wishlist(request, slug):
 
 # ------------------------ About ------------------------
 def about(request):
-    # Если миграции ещё не накатывали, не уронит страницу
     try:
         instructors = InstructorProfile.objects.filter(is_approved=True)
         total_instructors = instructors.count()
