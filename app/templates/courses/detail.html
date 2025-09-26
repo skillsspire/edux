@@ -7,13 +7,7 @@
 <meta name="description" content="{{ course.short_description }}">
 <meta property="og:title" content="{{ course.title }}">
 <meta property="og:description" content="{{ course.short_description }}">
-{% if course.thumbnail and course.thumbnail.name %}
-  <meta property="og:image" content="{{ course.thumbnail.url }}">
-{% elif course.image and course.image.name %}
-  <meta property="og:image" content="{{ course.image.url }}">
-{% else %}
-  <meta property="og:image" content="{% static 'img/courses/default.jpg' %}">
-{% endif %}
+<meta property="og:image" content="{{ course_image_url|default:static('img/courses/default.jpg') }}">
 {% endblock %}
 
 {% block content %}
@@ -122,6 +116,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -136,7 +131,6 @@
         </div>
       </div>
 
-      <!-- Программа курса (без обращения к Module, используем уже переданный список lessons) -->
       <div id="course-content" class="card mb-4">
         <div class="card-header">
           <h4 class="mb-0">Программа курса</h4>
@@ -167,7 +161,6 @@
         </div>
       </div>
 
-      <!-- Отзывы -->
       <div class="card mb-4">
         <div class="card-body">
           <h5>Отзывы студентов</h5>
@@ -185,7 +178,7 @@
     </div>
 
     <div class="col-lg-4">
-      {% with teacher=course.instructor|default:course.author %}
+      {% comment %} Блок преподавателя: используем переменную teacher из контекста {% endcomment %}
       <div class="card mb-4 text-center">
         <div class="card-body">
           {% if teacher and teacher.avatar and teacher.avatar.name %}
@@ -193,12 +186,15 @@
           {% else %}
             <img src="{% static 'img/avatars/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
           {% endif %}
-          <h5>{{ teacher.get_full_name|default:teacher.username }}</h5>
-          {% if teacher.position %}<p class="text-muted">{{ teacher.position }}</p>{% endif %}
-          {% if teacher.bio %}<p class="small">{{ teacher.bio|truncatewords:20 }}</p>{% endif %}
+          {% if teacher %}
+            <h5>{{ teacher.get_full_name|default:teacher.username }}</h5>
+            {% if teacher.position %}<p class="text-muted">{{ teacher.position }}</p>{% endif %}
+            {% if teacher.bio %}<p class="small">{{ teacher.bio|truncatewords:20 }}</p>{% endif %}
+          {% else %}
+            <h5>SkillsSpire</h5>
+          {% endif %}
         </div>
       </div>
-      {% endwith %}
 
       <div class="card">
         <div class="card-body">
@@ -228,10 +224,10 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Модальное окно для записи/оплаты -->
 <div class="modal fade" id="enrollModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -269,11 +265,9 @@
 
 {% block extra_js %}
 <script>
-// CSRF из формы (или из cookie, если формы вдруг нет)
 function getCSRFToken() {
   const input = document.querySelector('input[name=csrfmiddlewaretoken]');
   if (input) return input.value;
-  // резерв: из cookie
   const m = document.cookie.match(/csrftoken=([^;]+)/);
   return m ? m[1] : '';
 }
@@ -298,7 +292,6 @@ const applyPromo = document.getElementById('applyPromo');
 if (applyPromo) {
   applyPromo.addEventListener('click', function(){
     const code = document.getElementById('promo_code').value || '';
-    // тут можно дернуть свой backend; пока просто демо
     alert('Промокод применён: ' + code);
   });
 }

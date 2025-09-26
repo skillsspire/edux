@@ -13,6 +13,7 @@ from django.db import ProgrammingError, DatabaseError
 import hmac
 import hashlib
 import json
+import os
 
 from django.contrib.auth.models import User
 from .forms import CustomUserCreationForm, ReviewForm, ContactForm
@@ -21,6 +22,27 @@ from .models import (
     InstructorProfile, LessonProgress
 )
 
+# ---------- helpers ----------
+
+def public_storage_url(path: str | None) -> str | None:
+    """
+    Собирает публичный URL для объекта в Supabase Storage.
+    Ожидаем в БД относительный путь внутри бакета (например: 'courses/images/pic.png').
+    """
+    if not path:
+        return None
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    bucket = os.environ.get("SUPABASE_BUCKET", "media").strip("/")
+    if not base:
+        # бэкап — твой конкретный проект
+        base = "https://pyttzlcuxyfkhrwggrwi.supabase.co"
+    return f"{base}/storage/v1/object/public/{bucket}/{path.lstrip('/')}"
+
+def first_nonempty(*vals):
+    for v in vals:
+        if v:
+            return v
+    return None
 
 # ------------------------ Kaspi Webhook ------------------------
 @csrf_exempt
@@ -60,32 +82,29 @@ def kaspi_webhook(request):
 
     return JsonResponse({'status': 'ok'})
 
-
-# ------------------------ User Signup ------------------------
+# ------------------------ Auth ------------------------
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            username = form.cleaned_data['username']
-            raw_password = form.cleaned_data['password1']
-            auth_user = authenticate(request, username=username, password=raw_password)
-
+            auth_user = authenticate(
+                request,
+                username=form.cleaned_data['username'],
+                password=form.cleaned_data['password1'],
+            )
             if auth_user is not None:
                 login(request, auth_user)
                 messages.success(request, 'Регистрация прошла успешно! Добро пожаловать!')
                 return redirect('home')
-            else:
-                messages.warning(request, 'Аккаунт создан, но автологин не сработал. Войдите вручную.')
-                return redirect('login')
-
+            messages.warning(request, 'Аккаунт создан, но автологин не сработал. Войдите вручную.')
+            return redirect('login')
         messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
 
-
-# ------------------------ Home Page ------------------------
+# ------------------------ Home ------------------------
 def home(request):
     featured_courses = Course.objects.filter(is_featured=True).select_related('category')[:6]
     popular_courses = (
@@ -103,7 +122,6 @@ def home(request):
         'popular_courses': popular_courses,
         'categories': categories,
     })
-
 
 # ------------------------ Courses List ------------------------
 def courses_list(request):
@@ -138,8 +156,9 @@ def courses_list(request):
         courses_qs = courses_qs.filter(price__gt=0)
 
     if sort_by == 'popular':
-        courses_qs = courses_qs.annotate(students_count=Count('students', distinct=True)) \
-                               .order_by('-students_count', '-created_at')
+        courses_qs = courses_qs.annotate(
+            students_count=Count('students', distinct=True)
+        ).order_by('-students_count', '-created_at')
     elif sort_by == 'rating':
         courses_qs = courses_qs.order_by('-avg_rating', '-created_at')
     elif sort_by == 'price_low':
@@ -170,31 +189,44 @@ def courses_list(request):
         'sort_by': sort_by,
     })
 
-
 # ------------------------ Course Detail ------------------------
 def course_detail(request, slug):
+    """
+    Страницу курса смотрят все; логин обязателен только для уроков/записи.
+    """
     course = get_object_or_404(
         Course.objects.select_related('category').prefetch_related('students', 'reviews'),
         slug=slug
     )
 
+    # доступ к урокам (но саму страницу показываем всем)
+    has_access = True
     if course.price and float(course.price) > 0:
-        is_enrolled = request.user.is_authenticated and course.students.filter(id=request.user.id).exists()
-        has_access = is_enrolled
-    else:
-        has_access = True
+        has_access = request.user.is_authenticated and course.students.filter(id=request.user.id).exists()
 
+    # безопасно формируем список уроков
     try:
-        lessons = Lesson.objects.filter(module__course=course, is_active=True) \
-                                .select_related('module') \
-                                .order_by('module__order', 'order')
+        lessons = (
+            Lesson.objects.filter(module__course=course, is_active=True)
+            .select_related('module')
+            .order_by('module__order', 'order')
+        )
     except (ProgrammingError, DatabaseError):
         lessons = Lesson.objects.none()
 
-    related_courses = Course.objects.filter(category=course.category) \
-                                    .exclude(id=course.id) \
-                                    .select_related('category')[:4]
+    related_courses = (
+        Course.objects.filter(category=course.category)
+        .exclude(id=course.id).select_related('category')[:4]
+    )
     reviews = Review.objects.filter(course=course, is_active=True).select_related('user')[:10]
+
+    # teach­er: не обращаемся к несуществующему course.author
+    teacher = getattr(course, 'instructor', None)
+
+    # публичная картинка для meta/hero
+    thumb_name = getattr(getattr(course, 'thumbnail', None), 'name', None)
+    image_name = getattr(getattr(course, 'image', None), 'name', None)
+    course_image_url = public_storage_url(first_nonempty(thumb_name, image_name))
 
     return render(request, 'courses/detail.html', {
         'course': course,
@@ -202,49 +234,66 @@ def course_detail(request, slug):
         'related_courses': related_courses,
         'reviews': reviews,
         'has_access': has_access,
+        'teacher': teacher,
+        'course_image_url': course_image_url,
     })
-
 
 # ------------------------ Lesson Detail ------------------------
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related('students'), slug=course_slug)
 
+    try:
+        lesson = get_object_or_404(
+            Lesson.objects.select_related('module'),
+            slug=lesson_slug, module__course=course, is_active=True
+        )
+    except (ProgrammingError, DatabaseError):
+        messages.error(request, 'Секции модулей пока недоступны. Попробуйте позже.')
+        return redirect('course_detail', slug=course_slug)
+
     if course.price and float(course.price) > 0 and not course.students.filter(id=request.user.id).exists():
         messages.error(request, 'У вас нет доступа к этому уроку')
         return redirect('course_detail', slug=course_slug)
 
-    lesson = get_object_or_404(
-        Lesson.objects.select_related('module'),
-        slug=lesson_slug, module__course=course, is_active=True
-    )
-
-    lessons_list = list(
-        Lesson.objects.filter(module__course=course, is_active=True).order_by('module__order', 'order')
-    )
     try:
-        idx = lessons_list.index(lesson)
+        lessons_list = list(
+            Lesson.objects.filter(module__course=course, is_active=True)
+            .order_by('module__order', 'order')
+        )
+    except (ProgrammingError, DatabaseError):
+        lessons_list = [lesson]
+
+    try:
+        current_index = lessons_list.index(lesson)
     except ValueError:
-        idx = 0
-    prev_lesson = lessons_list[idx - 1] if idx > 0 else None
-    next_lesson = lessons_list[idx + 1] if idx < len(lessons_list) - 1 else None
+        current_index = 0
+    previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
+    next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
     LessonProgress.objects.update_or_create(
         user=request.user,
         lesson=lesson,
-        defaults={'is_completed': False, 'percent': 0, 'updated_at': timezone.now()},
+        defaults={
+            'is_completed': False if (course.price and float(course.price) > 0) else True,
+            'percent': 0,
+            'updated_at': timezone.now(),
+        }
     )
 
-    enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+    enrollment = None
+    try:
+        enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+    except Exception:
+        pass
 
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
         'lesson': lesson,
-        'prev_lesson': prev_lesson,
+        'prev_lesson': previous_lesson,
         'next_lesson': next_lesson,
         'enrollment': enrollment,
     })
-
 
 # ------------------------ Enroll Course ------------------------
 @login_required
@@ -257,14 +306,13 @@ def enroll_course(request, slug):
 
     if course.price and float(course.price) > 0:
         messages.error(request, 'Для записи на платный курс необходимо произвести оплату')
-        return redirect('course_detail', slug=slug)  # позже заменишь на redirect('create_payment', slug=slug)
+        return redirect('create_payment', slug=slug)  # убедись, что такой url name есть
 
     Enrollment.objects.get_or_create(user=request.user, course=course)
     course.students.add(request.user)
 
     messages.success(request, f'Вы успешно записаны на курс "{course.title}"')
     return redirect('course_detail', slug=slug)
-
 
 # ------------------------ My Courses ------------------------
 @login_required
@@ -278,11 +326,11 @@ def my_courses(request):
         'completed': completed,
     })
 
-
 # ------------------------ Dashboard ------------------------
 @login_required
 def dashboard(request):
     user = request.user
+
     my_courses = Course.objects.filter(students__id=user.id).select_related('category')
     total_courses = my_courses.count()
     recent_courses = my_courses.order_by('-created_at')[:5]
@@ -290,14 +338,18 @@ def dashboard(request):
     try:
         completed_courses = Enrollment.objects.filter(user_id=user.id, completed=True).count()
     except Exception:
-        completed_courses = 0
+        try:
+            completed_courses = Enrollment.objects.filter(student_id=user.id, completed=True).count()
+        except Exception:
+            completed_courses = 0
 
     try:
         progress_qs = LessonProgress.objects.filter(user=user).select_related('lesson')
         total_lessons = progress_qs.count()
         completed_lessons = progress_qs.filter(is_completed=True).count()
     except Exception:
-        total_lessons, completed_lessons = 0, 0
+        total_lessons = 0
+        completed_lessons = 0
 
     context = {
         'total_courses': total_courses,
@@ -305,9 +357,9 @@ def dashboard(request):
         'total_lessons': total_lessons,
         'completed_lessons': completed_lessons,
         'recent_courses': recent_courses,
+        'enrollments': None,
     }
     return render(request, 'users/dashboard.html', context)
-
 
 # ------------------------ Add Review ------------------------
 @login_required
@@ -335,7 +387,6 @@ def add_review(request, slug):
 
     return render(request, 'courses/add_review.html', {'course': course, 'form': form})
 
-
 # ------------------------ Toggle Wishlist ------------------------
 @login_required
 def toggle_wishlist(request, slug):
@@ -344,9 +395,11 @@ def toggle_wishlist(request, slug):
 
     if not created:
         wishlist_item.delete()
-        message, is_wishlisted = 'Курс удален из избранного', False
+        message = 'Курс удален из избранного'
+        is_wishlisted = False
     else:
-        message, is_wishlisted = 'Курс добавлен в избранное', True
+        message = 'Курс добавлен в избранное'
+        is_wishlisted = True
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'success': True, 'message': message, 'is_wishlisted': is_wishlisted})
@@ -354,8 +407,7 @@ def toggle_wishlist(request, slug):
     messages.success(request, message)
     return redirect('course_detail', slug=slug)
 
-
-# ------------------------ About ------------------------
+# ------------------------ About/Contact/Wireframe ------------------------
 def about(request):
     try:
         instructors = InstructorProfile.objects.filter(is_approved=True)
@@ -374,8 +426,6 @@ def about(request):
 
     return render(request, 'about.html', {'instructors': instructors, 'stats': stats})
 
-
-# ------------------------ Contact ------------------------
 def contact(request):
     if request.method == 'POST':
         form = ContactForm(request.POST)
@@ -387,8 +437,6 @@ def contact(request):
         form = ContactForm()
     return render(request, 'contact.html', {'form': form})
 
-
-# ------------------------ Design Wireframe ------------------------
 def design_wireframe(request):
     features = [
         {'title': 'Практика', 'description': 'Проекты в портфолио'},
