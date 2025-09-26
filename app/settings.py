@@ -4,19 +4,15 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- Security / Env ---
 SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-# CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
     "https://www.skillsspire.com",
     "https://skillsspire.com",
 ]
-
-# Автоподхват домена Render
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     if RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -25,16 +21,13 @@ if RENDER_EXTERNAL_HOSTNAME:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
-# Webhook secret
 KASPI_WEBHOOK_SECRET = os.environ.get("KASPI_WEBHOOK_SECRET", "dev-secret")
 
-# --- Proxy / SSL ---
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
-
 SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True") == "True"
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_DOMAIN = None
@@ -45,8 +38,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
+SECURE_REFERRER_POLICY = "same-origin"
 
-# --- Apps ---
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -55,21 +48,17 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
-
 THIRD_PARTY_APPS = [
     "phonenumber_field",
     "ckeditor",
     "widget_tweaks",
-    "storages",  # для Supabase Storage
+    "storages",
 ]
-
 LOCAL_APPS = [
     "app.apps.CoreConfig",
 ]
-
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# --- Middleware ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -84,7 +73,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "app.urls"
 
-# --- Templates ---
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -106,16 +94,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "app.wsgi.application"
 
-# --- DB ---
+USE_PGBOUNCER = os.environ.get("DB_PGBOUNCER", "False") == "True"
+CONN_MAX_AGE_VALUE = 0 if USE_PGBOUNCER else 600
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
+    db_cfg = dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=CONN_MAX_AGE_VALUE,
+        ssl_require=True,
+    )
+    db_cfg["CONN_HEALTH_CHECKS"] = True
+    DATABASES = {"default": db_cfg}
 else:
     DATABASES = {
         "default": {
@@ -124,7 +114,17 @@ else:
         }
     }
 
-# --- Auth ---
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+REDIS_URL = os.getenv("REDIS_URL")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -141,7 +141,6 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 
-# --- i18n / l10n ---
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
@@ -154,25 +153,25 @@ LANGUAGES = [
 ]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
-# --- Static ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+WHITENOISE_AUTOREFRESH = DEBUG
+WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365
 
-# --- Media / Supabase Storage ---
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
-AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY", "postgres")
+AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
 AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "media")
-AWS_S3_ENDPOINT_URL = "https://pyttzlcuxyfkhrwggrwi.supabase.co/storage/v1/s3"
+AWS_S3_ENDPOINT_URL = "https://pyttzlcuxyfkhrwggrwi.storage.supabase.co/storage/v1/s3"
+AWS_S3_REGION_NAME = "eu-central-1"
 AWS_S3_ADDRESSING_STYLE = "path"
+AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_QUERYSTRING_AUTH = False
-AWS_DEFAULT_ACL = "public-read"
+AWS_DEFAULT_ACL = None
 AWS_S3_FILE_OVERWRITE = False
 
-# --- Email ---
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
@@ -184,14 +183,12 @@ SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False") == "True"
 
-# --- Phone ---
 PHONENUMBER_DEFAULT_REGION = "KZ"
 PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
 
-# --- CKEditor warnings ---
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
 
-# --- Logging ---
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -200,14 +197,11 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",
+        "level": LOG_LEVEL,
     },
     "loggers": {
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
-        },
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "django.db.backends": {"handlers": ["console"], "level": os.getenv("DB_LOG_LEVEL", "WARNING")},
     },
 }
 
