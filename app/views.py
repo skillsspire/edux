@@ -14,7 +14,7 @@ import hmac
 import hashlib
 import json
 
-from django.contrib.auth.models import User  # стандартный User
+from django.contrib.auth.models import User
 from .forms import CustomUserCreationForm, ReviewForm, ContactForm
 from .models import (
     Course, Category, Lesson, Enrollment, Review, Wishlist, Payment,
@@ -66,10 +66,7 @@ def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            # 1) создаём пользователя
             user = form.save()
-
-            # 2) аутентифицируем, чтобы у объекта был backend
             username = form.cleaned_data['username']
             raw_password = form.cleaned_data['password1']
             auth_user = authenticate(request, username=username, password=raw_password)
@@ -79,10 +76,7 @@ def signup(request):
                 messages.success(request, 'Регистрация прошла успешно! Добро пожаловать!')
                 return redirect('home')
             else:
-                messages.warning(
-                    request,
-                    'Аккаунт создан, но автологин не сработал. Войдите вручную.'
-                )
+                messages.warning(request, 'Аккаунт создан, но автологин не сработал. Войдите вручную.')
                 return redirect('login')
 
         messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
@@ -93,10 +87,7 @@ def signup(request):
 
 # ------------------------ Home Page ------------------------
 def home(request):
-    featured_courses = (
-        Course.objects.filter(is_featured=True)
-        .select_related('category')[:6]
-    )
+    featured_courses = Course.objects.filter(is_featured=True).select_related('category')[:6]
     popular_courses = (
         Course.objects.select_related('category')
         .annotate(num_students=Count('students', distinct=True))
@@ -122,11 +113,10 @@ def courses_list(request):
         .annotate(avg_rating=Avg('reviews__rating'))
     )
 
-    # параметры фильтров/поиска
-    selected_categories = request.GET.getlist('category')  # поддержим множественный выбор
-    selected_levels = request.GET.getlist('level')         # ← вместо request.GET в шаблоне
+    selected_categories = request.GET.getlist('category')
+    selected_levels = request.GET.getlist('level')
     search_query = request.GET.get('q', '').strip()
-    price_filter = request.GET.get('price')  # free | paid | None
+    price_filter = request.GET.get('price')
     sort_by = request.GET.get('sort', 'newest')
 
     if selected_categories:
@@ -148,9 +138,8 @@ def courses_list(request):
         courses_qs = courses_qs.filter(price__gt=0)
 
     if sort_by == 'popular':
-        courses_qs = courses_qs.annotate(
-            students_count=Count('students', distinct=True)
-        ).order_by('-students_count', '-created_at')
+        courses_qs = courses_qs.annotate(students_count=Count('students', distinct=True)) \
+                               .order_by('-students_count', '-created_at')
     elif sort_by == 'rating':
         courses_qs = courses_qs.order_by('-avg_rating', '-created_at')
     elif sort_by == 'price_low':
@@ -174,8 +163,6 @@ def courses_list(request):
         'categories': categories,
         'is_paginated': page_obj.has_other_pages(),
         'page_obj': page_obj,
-
-        # отдадим в шаблон — вместо request.GET.*
         'q': search_query,
         'selected_levels': selected_levels,
         'selected_categories': selected_categories,
@@ -191,27 +178,22 @@ def course_detail(request, slug):
         slug=slug
     )
 
-    if course.price > 0:
-        if not request.user.is_authenticated:
-            messages.info(request, 'Для доступа к курсу необходимо авторизоваться')
-            return redirect('login')
-        has_access = course.students.filter(id=request.user.id).exists()
+    if course.price and float(course.price) > 0:
+        is_enrolled = request.user.is_authenticated and course.students.filter(id=request.user.id).exists()
+        has_access = is_enrolled
     else:
         has_access = True
 
     try:
-        lessons = (
-            Lesson.objects.filter(module__course=course, is_active=True)
-            .select_related('module')
-            .order_by('module__order', 'order')
-        )
+        lessons = Lesson.objects.filter(module__course=course, is_active=True) \
+                                .select_related('module') \
+                                .order_by('module__order', 'order')
     except (ProgrammingError, DatabaseError):
         lessons = Lesson.objects.none()
 
-    related_courses = (
-        Course.objects.filter(category=course.category)
-        .exclude(id=course.id).select_related('category')[:4]
-    )
+    related_courses = Course.objects.filter(category=course.category) \
+                                    .exclude(id=course.id) \
+                                    .select_related('category')[:4]
     reviews = Review.objects.filter(course=course, is_active=True).select_related('user')[:10]
 
     return render(request, 'courses/detail.html', {
@@ -228,53 +210,37 @@ def course_detail(request, slug):
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related('students'), slug=course_slug)
 
-    try:
-        lesson = get_object_or_404(
-            Lesson.objects.select_related('module'),
-            slug=lesson_slug, module__course=course, is_active=True
-        )
-    except (ProgrammingError, DatabaseError):
-        messages.error(request, 'Секции модулей пока недоступны. Попробуйте позже.')
-        return redirect('course_detail', slug=course_slug)
-
-    if course.price > 0 and not course.students.filter(id=request.user.id).exists():
+    if course.price and float(course.price) > 0 and not course.students.filter(id=request.user.id).exists():
         messages.error(request, 'У вас нет доступа к этому уроку')
         return redirect('course_detail', slug=course_slug)
 
-    try:
-        lessons_list = list(
-            Lesson.objects.filter(module__course=course, is_active=True)
-            .order_by('module__order', 'order')
-        )
-    except (ProgrammingError, DatabaseError):
-        lessons_list = [lesson]
+    lesson = get_object_or_404(
+        Lesson.objects.select_related('module'),
+        slug=lesson_slug, module__course=course, is_active=True
+    )
 
+    lessons_list = list(
+        Lesson.objects.filter(module__course=course, is_active=True).order_by('module__order', 'order')
+    )
     try:
-        current_index = lessons_list.index(lesson)
+        idx = lessons_list.index(lesson)
     except ValueError:
-        current_index = 0
-    previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
-    next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
+        idx = 0
+    prev_lesson = lessons_list[idx - 1] if idx > 0 else None
+    next_lesson = lessons_list[idx + 1] if idx < len(lessons_list) - 1 else None
 
     LessonProgress.objects.update_or_create(
         user=request.user,
         lesson=lesson,
-        defaults={
-            'is_completed': False if course.price > 0 else True,
-            'percent': 0,
-            'updated_at': timezone.now(),
-        }
+        defaults={'is_completed': False, 'percent': 0, 'updated_at': timezone.now()},
     )
 
-    try:
-        enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
-    except Exception:
-        enrollment = None
+    enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
 
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
         'lesson': lesson,
-        'prev_lesson': previous_lesson,
+        'prev_lesson': prev_lesson,
         'next_lesson': next_lesson,
         'enrollment': enrollment,
     })
@@ -289,9 +255,9 @@ def enroll_course(request, slug):
         messages.info(request, 'Вы уже записаны на этот курс')
         return redirect('course_detail', slug=slug)
 
-    if course.price > 0:
+    if course.price and float(course.price) > 0:
         messages.error(request, 'Для записи на платный курс необходимо произвести оплату')
-        return redirect('create_payment', slug=slug)  # убедись, что такой url name есть
+        return redirect('course_detail', slug=slug)  # позже заменишь на redirect('create_payment', slug=slug)
 
     Enrollment.objects.get_or_create(user=request.user, course=course)
     course.students.add(request.user)
@@ -317,31 +283,21 @@ def my_courses(request):
 @login_required
 def dashboard(request):
     user = request.user
-
-    my_courses = (
-        Course.objects.filter(students__id=user.id)
-        .select_related('category')
-    )
-
+    my_courses = Course.objects.filter(students__id=user.id).select_related('category')
     total_courses = my_courses.count()
     recent_courses = my_courses.order_by('-created_at')[:5]
 
-    completed_courses = 0
     try:
         completed_courses = Enrollment.objects.filter(user_id=user.id, completed=True).count()
     except Exception:
-        try:
-            completed_courses = Enrollment.objects.filter(student_id=user.id, completed=True).count()
-        except Exception:
-            completed_courses = 0
+        completed_courses = 0
 
     try:
         progress_qs = LessonProgress.objects.filter(user=user).select_related('lesson')
         total_lessons = progress_qs.count()
         completed_lessons = progress_qs.filter(is_completed=True).count()
     except Exception:
-        total_lessons = 0
-        completed_lessons = 0
+        total_lessons, completed_lessons = 0, 0
 
     context = {
         'total_courses': total_courses,
@@ -349,7 +305,6 @@ def dashboard(request):
         'total_lessons': total_lessons,
         'completed_lessons': completed_lessons,
         'recent_courses': recent_courses,
-        'enrollments': None,
     }
     return render(request, 'users/dashboard.html', context)
 
@@ -389,11 +344,9 @@ def toggle_wishlist(request, slug):
 
     if not created:
         wishlist_item.delete()
-        message = 'Курс удален из избранного'
-        is_wishlisted = False
+        message, is_wishlisted = 'Курс удален из избранного', False
     else:
-        message = 'Курс добавлен в избранное'
-        is_wishlisted = True
+        message, is_wishlisted = 'Курс добавлен в избранное', True
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'success': True, 'message': message, 'is_wishlisted': is_wishlisted})
@@ -408,8 +361,7 @@ def about(request):
         instructors = InstructorProfile.objects.filter(is_approved=True)
         total_instructors = instructors.count()
     except Exception:
-        instructors = []
-        total_instructors = 0
+        instructors, total_instructors = [], 0
 
     try:
         stats = {
