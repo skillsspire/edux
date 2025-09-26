@@ -71,12 +71,12 @@
           <div class="card-body text-center">
             {% if course.discount_price %}
               <div class="d-flex justify-content-center align-items-center mb-2">
-                <span class="text-decoration-line-through text-muted me-2 h5">{{ course.price }} ₽</span>
-                <span class="h3 fw-bold text-primary">{{ course.discount_price }} ₽</span>
+                <span class="text-decoration-line-through text-muted me-2 h5">{{ course.price }} ₸</span>
+                <span class="h3 fw-bold text-primary">{{ course.discount_price }} ₸</span>
               </div>
             {% else %}
               {% if course.price and course.price|floatformat != "0" %}
-                <div class="h3 fw-bold text-primary mb-2">{{ course.price }} ₽</div>
+                <div class="h3 fw-bold text-primary mb-2">{{ course.price }} ₸</div>
               {% else %}
                 <div class="h4 fw-bold text-success mb-2">Бесплатно</div>
               {% endif %}
@@ -216,7 +216,7 @@
                 <h6 class="mb-1">{{ related_course.title }}</h6>
                 {% if related_course.duration %}<small class="text-muted">{{ related_course.duration }}</small>{% endif %}
                 {% if related_course.price and related_course.price|floatformat != "0" %}
-                  <div class="text-primary fw-bold">{{ related_course.price }} ₽</div>
+                  <div class="text-primary fw-bold">{{ related_course.price }} ₸</div>
                 {% else %}
                   <div class="text-success fw-bold">Бесплатно</div>
                 {% endif %}
@@ -251,7 +251,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <span>Стоимость:</span>
           <span class="h4 text-primary fw-bold" id="coursePrice">
-            {% if course.discount_price %}{{ course.discount_price }}{% else %}{{ course.price }}{% endif %} ₽
+            {% if course.discount_price %}{{ course.discount_price }}{% else %}{{ course.price }}{% endif %} ₸
           </span>
         </div>
       </div>

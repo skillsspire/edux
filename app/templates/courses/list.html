@@ -201,10 +201,10 @@
                   <div class="d-flex align-items-center gap-2">
                     {% if course.price and course.price > 0 %}
                       {% if course.discount_price %}
-                        <span class="text-muted text-decoration-line-through">{{ course.price }} ₽</span>
-                        <span class="course-price">{{ course.discount_price }} ₽</span>
+                        <span class="text-muted text-decoration-line-through">{{ course.price }} ₸</span>
+                        <span class="course-price">{{ course.discount_price }} ₸</span>
                       {% else %}
-                        <span class="course-price">{{ course.price }} ₽</span>
+                        <span class="course-price">{{ course.price }} ₸</span>
                       {% endif %}
                     {% else %}
                       <span class="course-price">Бесплатно</span>
