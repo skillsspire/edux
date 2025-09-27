@@ -132,8 +132,7 @@
               {% elif course.image %}
                 <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
               {% else %}
-                <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
-              {% endif %}
+                <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
 
               <div class="course-card-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">

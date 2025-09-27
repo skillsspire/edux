@@ -9,6 +9,10 @@ from django.templatetags.static import static
 DEFAULT_COURSE_IMAGE = 'img/courses/default.jpg'
 DEFAULT_AVATAR_IMAGE = 'img/avatar-default.png'
 
+# Supabase project ID - должен совпадать с настройками
+SUPABASE_PROJECT_ID = "pyttzlcuxyfkhrwggrwi"
+SUPABASE_BUCKET_NAME = "media"
+
 
 def safe_file_url(file_field, default_path):
     try:
@@ -16,6 +20,15 @@ def safe_file_url(file_field, default_path):
             return file_field.url
     except Exception:
         pass
+    return static(default_path)
+
+
+def get_supabase_file_url(file_field, default_path):
+    """Возвращает правильный URL для файла в Supabase Storage"""
+    if file_field and file_field.name:
+        # Убираем имя bucket'а из пути, так как он уже указан в URL
+        filename = file_field.name.replace(f'{SUPABASE_BUCKET_NAME}/', '')
+        return f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET_NAME}/{filename}"
     return static(default_path)
 
 
@@ -77,6 +90,16 @@ class InstructorProfile(models.Model):
     @property
     def avatar_safe_url(self):
         return safe_file_url(self.avatar, DEFAULT_AVATAR_IMAGE)
+
+    @property
+    def avatar_supabase_url(self):
+        """Возвращает правильный URL аватара из Supabase"""
+        return get_supabase_file_url(self.avatar, DEFAULT_AVATAR_IMAGE)
+
+    @property
+    def display_avatar_url(self):
+        """Основной метод для отображения аватара"""
+        return self.avatar_supabase_url or self.avatar_safe_url
 
 
 class Course(models.Model):
@@ -169,7 +192,7 @@ class Course(models.Model):
         try:
             return self.reviews.filter(is_active=True).count()
         except DatabaseError:
-            return 0
+        return 0
 
     @property
     def image_safe_url(self):
@@ -178,6 +201,39 @@ class Course(models.Model):
     @property
     def thumbnail_safe_url(self):
         return safe_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
+
+    @property
+    def image_supabase_url(self):
+        """Возвращает правильный URL изображения из Supabase"""
+        return get_supabase_file_url(self.image, DEFAULT_COURSE_IMAGE)
+
+    @property
+    def thumbnail_supabase_url(self):
+        """Возвращает правильный URL миниатюры из Supabase"""
+        return get_supabase_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
+
+    @property
+    def display_image_url(self):
+        """Основной метод для отображения изображения курса"""
+        # Приоритет: Supabase thumbnail -> Supabase image -> безопасные URL -> дефолтное изображение
+        return (
+            self.thumbnail_supabase_url or 
+            self.image_supabase_url or 
+            self.thumbnail_safe_url or 
+            self.image_safe_url
+        )
+
+    @property
+    def duration_display(self):
+        """Отформатированное отображение длительности"""
+        if self.duration_hours == 0:
+            return "Не указано"
+        elif self.duration_hours == 1:
+            return "1 час"
+        elif self.duration_hours < 5:
+            return f"{self.duration_hours} часа"
+        else:
+            return f"{self.duration_hours} часов"
 
 
 class Module(models.Model):
@@ -232,6 +288,21 @@ class Lesson(models.Model):
             kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug}
         )
 
+    @property
+    def duration_display(self):
+        """Отформатированное отображение длительности урока"""
+        if self.duration_minutes == 0:
+            return "Не указано"
+        elif self.duration_minutes < 60:
+            return f"{self.duration_minutes} мин."
+        else:
+            hours = self.duration_minutes // 60
+            minutes = self.duration_minutes % 60
+            if minutes == 0:
+                return f"{hours} ч."
+            else:
+                return f"{hours} ч. {minutes} мин."
+
 
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
@@ -274,6 +345,11 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.course.title} - {self.rating}"
+
+    @property
+    def photo_supabase_url(self):
+        """Возвращает правильный URL фото из Supabase"""
+        return get_supabase_file_url(self.photo, DEFAULT_AVATAR_IMAGE)
 
 
 class Wishlist(models.Model):
