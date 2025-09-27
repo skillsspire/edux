@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Заявка принята — {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:760px;">
+  <div class="card shadow-sm">
+    <div class="card-body p-4 p-lg-5 text-center">
+      <div class="display-5 mb-3">✅</div>
+      <h1 class="h4 mb-2">Спасибо! Заявка на оплату принята</h1>
+      <p class="text-muted mb-4">
+        Мы получили уведомление и проверим платёж в ближайшее время. Как только он будет подтверждён, доступ к курсу
+        откроется автоматически.
+      </p>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">
+          Вернуться к курсу
+        </a>
+        <a href="{% url 'my_courses' %}" class="btn btn-outline-secondary">
+          Мои курсы
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Оплата курса — {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:860px;">
+  <div class="card shadow-sm">
+    <div class="card-body p-4 p-lg-5">
+      <h1 class="h3 mb-3">Оплата курса</h1>
+      <p class="text-muted mb-4">{{ course.title }}</p>
+
+      <div class="d-flex flex-wrap align-items-center gap-4 mb-4">
+        <div>
+          {% if course.image %}
+            <img src="{{ course.image.url }}" alt="{{ course.title }}" style="width:120px;height:80px;object-fit:cover;border-radius:8px;">
+          {% else %}
+            <img src="{% static 'img/courses/default.jpg' %}" alt="{{ course.title }}" style="width:120px;height:80px;object-fit:cover;border-radius:8px;">
+          {% endif %}
+        </div>
+        <div class="flex-grow-1">
+          {% if course.discount_price %}
+            <div class="h4 mb-0 text-primary">{{ course.discount_price }} ₸</div>
+            <div class="text-muted"><s>{{ course.price }} ₸</s></div>
+          {% else %}
+            <div class="h4 mb-0 text-primary">{{ course.price }} ₸</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-start" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        <div>
+          Оплата происходит на официальной странице Kaspi.kz. После оплаты вернитесь на сайт и нажмите
+          <strong>«Я оплатил(а)»</strong>, чтобы мы зачислили доступ.
+        </div>
+      </div>
+
+      <div class="d-grid gap-2 d-sm-flex">
+        <a href="{{ kaspi_pay_url }}" target="_blank" rel="noopener" class="btn btn-primary">
+          <i class="bi bi-qr-code me-2"></i> Открыть страницу Kaspi
+        </a>
+        <a href="{% url 'payment_page' course.slug %}" class="btn btn-outline-secondary">
+          Уже оплатил(а)
+        </a>
+        <a href="{% url 'course_detail' course.slug %}" class="btn btn-link ms-sm-auto">Вернуться к курсу</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

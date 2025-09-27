@@ -29,6 +29,8 @@ from .models import (
     Wishlist,
 )
 
+
+# ----------------- helpers -----------------
 def public_storage_url(path: str | None) -> str | None:
     if not path:
         return None
@@ -38,38 +40,58 @@ def public_storage_url(path: str | None) -> str | None:
         base = "https://pyttzlcuxyfkhrwggrwi.supabase.co"
     return f"{base}/storage/v1/object/public/{bucket}/{path.lstrip('/')}"
 
+
 def first_nonempty(*vals):
     for v in vals:
         if v:
             return v
     return None
 
+
+# ----------------- Kaspi webhook -----------------
 @csrf_exempt
 def kaspi_webhook(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=400)
+
     signature = request.headers.get("X-Kaspi-Signature") or ""
     body = request.body
     secret = getattr(settings, "KASPI_SECRET", None)
     if not secret:
         return JsonResponse({"error": "KASPI_SECRET is not set"}, status=500)
-    expected_signature = hmac.new(key=secret.encode(), msg=body, digestmod=hashlib.sha256).hexdigest()
+
+    expected_signature = hmac.new(
+        key=secret.encode(),
+        msg=body,
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+
     if signature != expected_signature:
         return JsonResponse({"error": "Invalid signature"}, status=403)
+
     try:
         data = json.loads(body)
         invoice_id = data.get("invoiceId")
         status = data.get("status")
+        amount = data.get("amount")
         payment = Payment.objects.get(kaspi_invoice_id=invoice_id)
     except (Payment.DoesNotExist, json.JSONDecodeError, KeyError, TypeError):
         return JsonResponse({"error": "Payment not found or invalid data"}, status=404)
+
+    if amount and float(amount) < float(payment.amount):
+        return JsonResponse({"error": "Invalid amount"}, status=400)
+
     payment.status = status
     payment.save()
+
     if status == "success":
         Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
         payment.course.students.add(payment.user)
+
     return JsonResponse({"status": "ok"})
 
+
+# ----------------- Auth -----------------
 def signup(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
@@ -91,23 +113,72 @@ def signup(request):
         form = CustomUserCreationForm()
     return render(request, "registration/signup.html", {"form": form})
 
+
+# ----------------- Home -----------------
 def home(request):
-    featured_courses = Course.objects.filter(is_featured=True).select_related("category")[:6]
     popular_courses = (
         Course.objects.select_related("category")
-        .annotate(num_students=Count("students", distinct=True))
+        .prefetch_related("students", "reviews")
+        .annotate(
+            num_students=Count("students", distinct=True),
+            avg_rating=Avg("reviews__rating"),
+        )
         .order_by("-num_students")[:6]
     )
+
+    featured_courses = (
+        Course.objects.filter(is_featured=True)
+        .select_related("category")
+        .prefetch_related("students", "reviews")[:6]
+    )
+
     try:
-        categories = Category.objects.filter(is_active=True)[:8]
+        categories = Category.objects.filter(is_active=True).order_by("order", "name")[:12]
     except Exception:
-        categories = Category.objects.all()[:8]
+        categories = Category.objects.all()[:12]
+
+    raw_reviews = (
+        Review.objects.filter(is_active=True)
+        .select_related("course", "user")
+        .order_by("-created_at")[:12]
+    )
+    testimonials = []
+    for r in raw_reviews:
+        user_name = (
+            (r.name or "").strip()
+            or (r.user.get_full_name().strip() if r.user else "")
+            or (r.user.username if r.user else "Студент")
+        )
+        avatar = None
+        try:
+            if r.photo and getattr(r.photo, "url", None):
+                avatar = r.photo.url
+        except Exception:
+            avatar = None
+        testimonials.append({
+            "user_name": user_name,
+            "course_name": r.course.title if r.course_id else "",
+            "avatar": avatar,
+            "rating": float(r.rating) if r.rating is not None else 5.0,
+            "text": r.comment,
+        })
+
+    faqs = [
+        {"question": "Как проходит обучение?", "answer": "Полностью онлайн: видеоуроки, задания и обратная связь."},
+        {"question": "Есть ли рассрочка?", "answer": "Да, напишите нам через форму контактов — подберём вариант."},
+        {"question": "Выдаётся ли сертификат?", "answer": "Да, после успешного завершения курса."},
+    ]
+
     return render(request, "home.html", {
         "featured_courses": featured_courses,
         "popular_courses": popular_courses,
         "categories": categories,
+        "testimonials": testimonials,
+        "faqs": faqs,
     })
 
+
+# ----------------- Courses -----------------
 def courses_list(request):
     courses_qs = (
         Course.objects.select_related("category")
@@ -167,6 +238,7 @@ def courses_list(request):
         "sort_by": sort_by,
     })
 
+
 def course_detail(request, slug):
     course = get_object_or_404(
         Course.objects.select_related("category").prefetch_related("students", "reviews"),
@@ -205,6 +277,8 @@ def course_detail(request, slug):
         "course_image_url": course_image_url,
     })
 
+
+# ----------------- Lessons -----------------
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related("students"), slug=course_slug)
@@ -260,6 +334,8 @@ def lesson_detail(request, course_slug, lesson_slug):
         "enrollment": enrollment,
     })
 
+
+# ----------------- Payments -----------------
 @login_required
 def enroll_course(request, slug):
     course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
@@ -269,20 +345,59 @@ def enroll_course(request, slug):
         return redirect("course_detail", slug=slug)
 
     if course.price and float(course.price) > 0:
-        Payment.objects.create(
-            user=request.user,
-            course=course,
-            amount=course.discount_price or course.price,
-            status="pending",
-            kaspi_invoice_id=None,
-        )
-        return redirect(settings.KASPI_PAYMENT_URL)
+        return redirect("create_payment", slug=slug)
 
     Enrollment.objects.get_or_create(user=request.user, course=course)
     course.students.add(request.user)
     messages.success(request, f'Вы успешно записаны на курс "{course.title}"')
     return redirect("course_detail", slug=slug)
 
+
+@login_required
+def create_payment(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    amount = course.discount_price or course.price
+    payment = Payment.objects.create(
+        user=request.user,
+        course=course,
+        amount=amount,
+        status="pending",
+        kaspi_invoice_id=f"QR{timezone.now().timestamp()}",
+    )
+    return render(request, "payments/payment_page.html", {
+        "course": course,
+        "amount": amount,
+        "kaspi_url": settings.KASPI_PAYMENT_URL,
+        "payment": payment,
+    })
+
+
+@login_required
+def payment_claim(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    payment = Payment.objects.filter(user=request.user, course=course, status="pending").last()
+    if not payment:
+        messages.error(request, "Платеж не найден")
+        return redirect("course_detail", slug=slug)
+
+    if request.method == "POST" and request.FILES.get("receipt"):
+        receipt = request.FILES["receipt"]
+        payment.receipt = receipt
+        payment.status = "waiting"
+        payment.save()
+        messages.success(request, "Чек успешно загружен, ожидайте подтверждения")
+        return redirect("payment_thanks", slug=slug)
+
+    return render(request, "payments/payment_claim.html", {"course": course, "payment": payment})
+
+
+@login_required
+def payment_thanks(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    return render(request, "payments/payment_thanks.html", {"course": course})
+
+
+# ----------------- My Courses -----------------
 @login_required
 def my_courses(request):
     enrollments = Enrollment.objects.filter(user=request.user).select_related("course")
@@ -293,6 +408,8 @@ def my_courses(request):
         "completed": completed,
     })
 
+
+# ----------------- Dashboard -----------------
 @login_required
 def dashboard(request):
     user = request.user
@@ -324,6 +441,8 @@ def dashboard(request):
     }
     return render(request, "users/dashboard.html", context)
 
+
+# ----------------- Reviews & Wishlist -----------------
 @login_required
 def add_review(request, slug):
     course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
@@ -348,6 +467,7 @@ def add_review(request, slug):
 
     return render(request, "courses/add_review.html", {"course": course, "form": form})
 
+
 @login_required
 def toggle_wishlist(request, slug):
     course = get_object_or_404(Course, slug=slug)
@@ -364,6 +484,8 @@ def toggle_wishlist(request, slug):
     messages.success(request, message)
     return redirect("course_detail", slug=slug)
 
+
+# ----------------- Static Pages -----------------
 def about(request):
     try:
         instructors = InstructorProfile.objects.filter(is_approved=True)
@@ -380,6 +502,7 @@ def about(request):
         stats = {"total_courses": 0, "total_students": 0, "total_instructors": total_instructors}
     return render(request, "about.html", {"instructors": instructors, "stats": stats})
 
+
 def contact(request):
     if request.method == "POST":
         form = ContactForm(request.POST)
@@ -390,6 +513,7 @@ def contact(request):
     else:
         form = ContactForm()
     return render(request, "contact.html", {"form": form})
+
 
 def design_wireframe(request):
     features = [

@@ -7,7 +7,6 @@ from django.conf.urls.static import static
 from .forms import EmailAuthenticationForm
 from . import views
 
-
 urlpatterns = [
     # --- Админка ---
     path("admin/", admin.site.urls),
@@ -29,6 +28,11 @@ urlpatterns = [
         views.lesson_detail,
         name="lesson_detail",
     ),
+
+    # --- Оплата ---
+    path("course/<slug:slug>/pay/", views.create_payment, name="create_payment"),
+    path("course/<slug:slug>/pay/claim/", views.payment_claim, name="payment_claim"),
+    path("course/<slug:slug>/pay/thanks/", views.payment_thanks, name="payment_thanks"),
 
     # --- Пользовательский кабинет ---
     path("my-courses/", views.my_courses, name="my_courses"),

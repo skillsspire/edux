@@ -12,62 +12,67 @@
 {% endblock %}
 
 {% block content %}
+<!-- Hero -->
 <div class="course-hero" style="background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%);">
   <div class="container py-5">
-    <div class="row align-items-center">
+    <div class="row g-4 align-items-center">
       <div class="col-lg-8">
         {% if course.category %}
-          <span class="course-badge">{{ course.category.name }}</span>
+          <span class="course-badge badge bg-light text-dark mb-2">{{ course.category.name }}</span>
         {% endif %}
-        <h1 class="course-title">{{ course.title }}</h1>
-        <p class="course-subtitle">{{ course.short_description }}</p>
 
-        <div class="hero-stats mb-4">
-          <div class="stat-item">
-            <i class="bi bi-people stat-icon"></i>
+        <h1 class="course-title text-white mb-2">{{ course.title }}</h1>
+        {% if course.short_description %}
+          <p class="course-subtitle text-white-50 mb-4">{{ course.short_description }}</p>
+        {% endif %}
+
+        <div class="d-flex flex-wrap align-items-center gap-3 mb-4 text-white-50">
+          <div class="d-inline-flex align-items-center gap-2">
+            <i class="bi bi-people"></i>
             <span>{{ course.students.count }} студентов</span>
           </div>
           {% if course.duration_hours %}
-          <div class="stat-item">
-            <i class="bi bi-clock stat-icon"></i>
+          <div class="d-inline-flex align-items-center gap-2">
+            <i class="bi bi-clock"></i>
             <span>{{ course.duration_hours }} часов</span>
           </div>
           {% endif %}
-          <div class="stat-item">
-            <i class="bi bi-star stat-icon"></i>
+          <div class="d-inline-flex align-items-center gap-2">
+            <i class="bi bi-star"></i>
             <span>Рейтинг: {{ course.average_rating|default:"4.8" }}</span>
           </div>
         </div>
 
         {% with first_lesson=lessons.0 %}
-        <div class="hero-cta">
+        <div class="d-flex flex-wrap gap-2">
           {% if has_access and first_lesson %}
-            <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="hero-btn hero-btn-primary">
-              <i class="bi bi-play-circle"></i> Продолжить обучение
+            <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-light">
+              <i class="bi bi-play-circle me-1"></i> Продолжить обучение
             </a>
           {% elif has_access %}
-            <a href="#course-content" class="hero-btn hero-btn-primary">
-              <i class="bi bi-play-circle"></i> Перейти к урокам
+            <a href="#course-content" class="btn btn-light">
+              <i class="bi bi-play-circle me-1"></i> Перейти к урокам
             </a>
           {% else %}
-            <button class="hero-btn hero-btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
-              <i class="bi bi-cart"></i> Записаться на курс
+            <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtn">
+              <i class="bi bi-cart me-1"></i> Записаться на курс
             </button>
           {% endif %}
-          <a href="#course-content" class="hero-btn hero-btn-secondary">
-            <i class="bi bi-list-ul"></i> Программа курса
+
+          <a href="#course-content" class="btn btn-outline-light">
+            <i class="bi bi-list-ul me-1"></i> Программа курса
           </a>
         </div>
         {% endwith %}
       </div>
 
       <div class="col-lg-4">
-        <div class="card">
+        <div class="card shadow-sm">
           <div class="card-body text-center">
             {% if course.discount_price %}
-              <div class="d-flex justify-content-center align-items-center mb-2">
-                <span class="text-decoration-line-through text-muted me-2 h5">{{ course.price }} ₸</span>
-                <span class="h3 fw-bold text-primary">{{ course.discount_price }} ₸</span>
+              <div class="d-flex justify-content-center align-items-baseline gap-2 mb-2">
+                <span class="text-decoration-line-through text-muted h6 mb-0">{{ course.price }} ₸</span>
+                <span class="h3 fw-bold text-primary mb-0">{{ course.discount_price }} ₸</span>
               </div>
             {% else %}
               {% if course.price and course.price|floatformat != "0" %}
@@ -80,62 +85,69 @@
             <div class="d-grid gap-2">
               {% with first_lesson=lessons.0 %}
                 {% if has_access and first_lesson %}
-                  <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-success">
-                    <i class="bi bi-play-circle"></i> Начать обучение
+                  <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-success" id="startBtn">
+                    <i class="bi bi-play-circle me-1"></i> Начать обучение
                   </a>
                 {% elif has_access %}
-                  <a href="#course-content" class="btn btn-success">
-                    <i class="bi bi-play-circle"></i> Начать обучение
+                  <a href="#course-content" class="btn btn-success" id="startBtnNoLesson">
+                    <i class="bi bi-play-circle me-1"></i> Начать обучение
                   </a>
                 {% else %}
-                  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
-                    <i class="bi bi-cart"></i> Записаться на курс
+                  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtnSide">
+                    <i class="bi bi-cart me-1"></i> Записаться на курс
                   </button>
                 {% endif %}
               {% endwith %}
+
               <button id="wishlistBtn" class="btn btn-outline-primary">
-                <i class="bi bi-heart"></i> Добавить в избранное
+                <i class="bi bi-heart me-1"></i> Добавить в избранное
               </button>
             </div>
 
             <hr>
+
             <div class="text-start">
-              <h6>В курс входит:</h6>
-              <ul class="list-unstyled">
+              <h6 class="mb-3">В курс входит:</h6>
+              <ul class="list-unstyled mb-0">
                 <li class="mb-2"><i class="bi bi-play-circle text-primary me-2"></i> {{ lessons|length }} уроков</li>
                 <li class="mb-2"><i class="bi bi-file-text text-primary me-2"></i> Материалы для скачивания</li>
                 <li class="mb-2"><i class="bi bi-infinity text-primary me-2"></i> Бессрочный доступ</li>
                 <li class="mb-2"><i class="bi bi-phone text-primary me-2"></i> Доступ с мобильного</li>
-                <li class="mb-2"><i class="bi bi-award text-primary me-2"></i> Сертификат</li>
+                <li class="mb-0"><i class="bi bi-award text-primary me-2"></i> Сертификат</li>
               </ul>
             </div>
           </div>
         </div>
-      </div>
-
+      </div> <!-- /col -->
     </div>
   </div>
 </div>
+<!-- /Hero -->
 
 <div class="container py-5">
-  <div class="row">
+  <div class="row g-4">
+    <!-- Контент -->
     <div class="col-lg-8">
+      <!-- О курсе -->
       <div class="card mb-4">
         <div class="card-body">
-          <h3>О курсе</h3>
-          <div class="course-content">{{ course.description|safe }}</div>
+          <h3 class="h4 mb-3">О курсе</h3>
+          <div class="course-content">
+            {{ course.description|safe }}
+          </div>
         </div>
       </div>
 
+      <!-- Программа курса -->
       <div id="course-content" class="card mb-4">
-        <div class="card-header"><h4 class="mb-0">Программа курса</h4></div>
-        <div class="card-body">
+        <div class="card-header"><h4 class="mb-0 h5">Программа курса</h4></div>
+        <div class="card-body p-0">
           {% if lessons %}
-            <div class="list-group">
+            <div class="list-group list-group-flush">
               {% for lesson in lessons %}
                 <div class="list-group-item d-flex justify-content-between align-items-center">
                   <div class="d-flex align-items-center">
-                    <i class="bi bi-play-circle text-muted me-3"></i>
+                    <i class="bi bi-play-circle text-muted fs-5 me-3"></i>
                     <div>
                       <h6 class="mb-1">{{ lesson.title }}</h6>
                       {% if lesson.duration_minutes %}
@@ -152,19 +164,22 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="text-muted mb-0">Уроки появятся скоро.</p>
+            <div class="p-3">
+              <p class="text-muted mb-0">Уроки появятся скоро.</p>
+            </div>
           {% endif %}
         </div>
       </div>
 
+      <!-- Отзывы -->
       <div class="card mb-4">
         <div class="card-body">
-          <h5>Отзывы студентов</h5>
+          <h5 class="mb-3">Отзывы студентов</h5>
           {% for review in reviews %}
             <div class="mb-3">
               <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
-              <span class="text-muted">{{ review.created_at|date:"d M Y" }}</span>
-              <p class="mb-0">{{ review.content }}</p>
+              <span class="text-muted ms-2">{{ review.created_at|date:"d M Y" }}</span>
+              <p class="mb-0 mt-1">{{ review.comment|default:review.content }}</p>
             </div>
           {% empty %}
             <p class="text-muted mb-0">Пока нет отзывов.</p>
@@ -173,29 +188,32 @@
       </div>
     </div>
 
+    <!-- Сайдбар -->
     <div class="col-lg-4">
+      <!-- Преподаватель -->
       <div class="card mb-4 text-center">
         <div class="card-body">
           {% if teacher and teacher.avatar %}
-            <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100">
+            <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100" style="object-fit:cover;">
           {% else %}
-            <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
+            <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100" style="object-fit:cover;">
           {% endif %}
           {% if teacher %}
-            <h5>{{ teacher.get_full_name|default:teacher.username }}</h5>
-            {% if teacher.specialization %}<p class="text-muted">{{ teacher.specialization }}</p>{% endif %}
-            {% if teacher.bio %}<p class="small">{{ teacher.bio|truncatewords:20 }}</p>{% endif %}
+            <h5 class="mb-1">{{ teacher.get_full_name|default:teacher.username }}</h5>
+            {% if teacher.specialization %}<p class="text-muted mb-1">{{ teacher.specialization }}</p>{% endif %}
+            {% if teacher.bio %}<p class="small text-muted mb-0">{{ teacher.bio|truncatewords:20 }}</p>{% endif %}
           {% else %}
-            <h5>SkillsSpire</h5>
+            <h5 class="mb-0">SkillsSpire</h5>
           {% endif %}
         </div>
       </div>
 
+      <!-- Похожие курсы -->
       <div class="card">
         <div class="card-body">
-          <h5>Похожие курсы</h5>
+          <h5 class="mb-3">Похожие курсы</h5>
           {% for related_course in related_courses %}
-            <div class="d-flex mb-3">
+            <div class="d-flex align-items-center mb-3">
               {% if related_course.thumbnail %}
                 <img src="{{ related_course.thumbnail.url }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
               {% elif related_course.image %}
@@ -203,16 +221,18 @@
               {% else %}
                 <img src="{% static 'img/courses/default.jpg' %}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
               {% endif %}
-              <div>
+              <div class="flex-grow-1">
                 <h6 class="mb-1">{{ related_course.title }}</h6>
                 {% if related_course.duration_hours %}
                   <small class="text-muted">{{ related_course.duration_hours }} часов</small>
                 {% endif %}
-                {% if related_course.price and related_course.price|floatformat != "0" %}
-                  <div class="text-primary fw-bold">{{ related_course.price }} ₸</div>
-                {% else %}
-                  <div class="text-success fw-bold">Бесплатно</div>
-                {% endif %}
+                <div class="mt-1">
+                  {% if related_course.price and related_course.price|floatformat != "0" %}
+                    <span class="text-primary fw-bold">{{ related_course.price }} ₸</span>
+                  {% else %}
+                    <span class="text-success fw-bold">Бесплатно</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
           {% empty %}
@@ -224,16 +244,17 @@
   </div>
 </div>
 
-<div class="modal fade" id="enrollModal" tabindex="-1">
+<!-- Модалка записи/оплаты -->
+<div class="modal fade" id="enrollModal" tabindex="-1" aria-labelledby="enrollModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Запись на курс</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title" id="enrollModalLabel">Запись на курс</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
-        <p>Вы уверены, что хотите записаться на курс "{{ course.title }}"?</p>
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="mb-3">Вы уверены, что хотите записаться на курс «{{ course.title }}»?</p>
+        <div class="d-flex justify-content-between align-items-center">
           <span>Стоимость:</span>
           <span class="h4 text-primary fw-bold" id="coursePrice">
             {% if course.discount_price %}{{ course.discount_price }}{% else %}{{ course.price }}{% endif %} ₸
@@ -241,10 +262,12 @@
         </div>
       </div>
       <div class="modal-footer">
-        <form action="{% url 'enroll_course' course.slug %}" method="post" class="ms-auto">
+        <form action="{% url 'enroll_course' course.slug %}" method="post" class="ms-auto" id="enrollForm">
           {% csrf_token %}
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary">Оплатить и записаться</button>
+          <button type="submit" class="btn btn-primary" id="enrollSubmit">
+            Оплатить и записаться
+          </button>
         </form>
       </div>
     </div>
@@ -254,26 +277,47 @@
 
 {% block extra_js %}
 <script>
-function getCSRFToken() {
-  const input = document.querySelector('input[name=csrfmiddlewaretoken]');
-  if (input) return input.value;
-  const m = document.cookie.match(/csrftoken=([^;]+)/);
-  return m ? m[1] : '';
-}
-const wishlistBtn = document.getElementById('wishlistBtn');
-if (wishlistBtn) {
-  wishlistBtn.addEventListener('click', function(){
-    fetch("{% url 'toggle_wishlist' course.slug %}", {
-      method: 'POST',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRFToken': getCSRFToken()
-      }
-    })
-    .then(res => res.json())
-    .then(data => alert(data.message))
-    .catch(() => alert('Не удалось обновить избранное'));
-  });
-}
+(function () {
+  function getCSRFToken() {
+    const input = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (input) return input.value;
+    const m = document.cookie.match(/(?:^|;)\\s*csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  // Защита от двойного клика
+  const enrollSubmit = document.getElementById('enrollSubmit');
+  const enrollForm = document.getElementById('enrollForm');
+  if (enrollForm && enrollSubmit) {
+    enrollForm.addEventListener('submit', function () {
+      enrollSubmit.disabled = true;
+      enrollSubmit.classList.add('disabled');
+      enrollSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Обработка...';
+    });
+  }
+
+  // Избранное
+  const wishlistBtn = document.getElementById('wishlistBtn');
+  if (wishlistBtn) {
+    wishlistBtn.addEventListener('click', function () {
+      fetch("{% url 'toggle_wishlist' course.slug %}", {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCSRFToken()
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.message === 'string') {
+          alert(data.message);
+        } else {
+          alert('Статус избранного обновлён.');
+        }
+      })
+      .catch(() => alert('Не удалось обновить избранное'));
+    });
+  }
+})();
 </script>
 {% endblock %}

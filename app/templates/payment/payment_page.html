@@ -1,148 +1,132 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Оплата - SkillsSpire{% endblock %}
+{% block title %}Оплата курса — {{ course.title }} | SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="bi bi-credit-card me-2"></i>
-                        Оформление заказа
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <!-- Информация о заказе -->
-                    <div class="row border-bottom pb-3 mb-4">
-                        <div class="col-md-6">
-                            <h5 class="fw-bold mb-3">Детали заказа</h5>
-                            {% if course %}
-                                <p class="mb-1"><strong>Курс:</strong> {{ course.title }}</p>
-                                <p class="mb-1"><strong>Уровень:</strong> {{ course.get_level_display }}</p>
-                                <p class="mb-1"><strong>Длительность:</strong> {{ course.duration }} ч.</p>
-                            {% elif subscription %}
-                                <p class="mb-1"><strong>Подписка:</strong> {{ subscription.name }}</p>
-                                <p class="mb-1"><strong>Период:</strong> {{ subscription.period }} дней</p>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            <h3 class="text-primary">{{ amount }} ₸</h3>
-                            <small class="text-muted">*Цена включает НДС</small>
-                        </div>
-                    </div>
-
-                    <form method="post" id="payment-form" novalidate>
-                        {% csrf_token %}
-
-                        <!-- Контактная информация -->
-                        <div class="border-bottom pb-3 mb-4">
-                            <h5 class="fw-bold mb-3">Контактная информация</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    {{ form.email.label_tag }}
-                                    {{ form.email|add_class:"form-control" }}
-                                    {{ form.email.errors }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.phone.label_tag }}
-                                    {{ form.phone|add_class:"form-control" }}
-                                    {{ form.phone.errors }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Промокод -->
-                        <div class="border-bottom pb-3 mb-4">
-                            <h5 class="fw-bold mb-3">Промокод</h5>
-                            <div class="input-group">
-                                {{ form.promo_code|add_class:"form-control" }}
-                                <button type="button" class="btn btn-outline-secondary" id="apply-promo">
-                                    Применить
-                                </button>
-                            </div>
-                            {{ form.promo_code.errors }}
-                        </div>
-
-                        <!-- Данные карты -->
-                        <div class="mb-4">
-                            <h5 class="fw-bold mb-3">Данные банковской карты</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    {{ card_form.card_holder.label_tag }}
-                                    {{ card_form.card_holder|add_class:"form-control" }}
-                                    {{ card_form.card_holder.errors }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ card_form.card_number.label_tag }}
-                                    {{ card_form.card_number|add_class:"form-control" }}
-                                    {{ card_form.card_number.errors }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ card_form.expiry_date.label_tag }}
-                                    {{ card_form.expiry_date|add_class:"form-control" }}
-                                    {{ card_form.expiry_date.errors }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ card_form.cvv.label_tag }}
-                                    {{ card_form.cvv|add_class:"form-control" }}
-                                    {{ card_form.cvv.errors }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Кнопка оплаты -->
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-lock-fill me-2"></i>
-                                Оплатить {{ amount }} ₸
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Безопасность -->
-            <div class="mt-3 text-center">
-                <small class="text-muted">
-                    <i class="bi bi-shield-check me-1"></i>
-                    Ваши данные защищены. Мы используем 256-bit SSL шифрование
-                </small>
-            </div>
+<div class="container py-5" style="max-width: 900px">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0"><i class="bi bi-credit-card me-2"></i>Оплата курса</h4>
         </div>
+        <div class="card-body">
+          <h5 class="fw-bold mb-2">{{ course.title }}</h5>
+
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div class="text-muted">
+              <i class="bi bi-clock me-1"></i>{{ course.duration_hours|default:"—" }} ч ·
+              <i class="bi bi-bar-chart me-1 ms-2"></i>{{ course.get_level_display|default:"" }}
+            </div>
+            <div class="h4 mb-0">
+              {% if course.discount_price %}
+                <span class="text-muted text-decoration-line-through me-2">{{ course.price }} ₸</span>
+                <span class="text-primary fw-bold">{{ course.discount_price }} ₸</span>
+              {% else %}
+                <span class="text-primary fw-bold">{{ amount }} ₸</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="alert alert-info d-flex align-items-start" role="alert">
+            <i class="bi bi-info-circle me-2 fs-5"></i>
+            <div>
+              Переведите <strong>{{ amount }} ₸</strong> по кнопке ниже в Kaspi.kz.
+              После оплаты вернитесь сюда, прикрепите чек и нажмите «Я оплатил(а)».
+              Мы проверим платёж и откроем доступ к курсу.
+            </div>
+          </div>
+
+          <a href="{{ kaspi_url }}" target="_blank" rel="noopener"
+             class="btn btn-danger btn-lg w-100 mb-3">
+            <i class="bi bi-qr-code me-2"></i>Открыть Kaspi QR / оплатить
+          </a>
+
+          <hr class="my-4">
+
+          <form method="post"
+                action="{% url 'payment_claim' course.slug %}"
+                enctype="multipart/form-data" id="claimForm">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label">Комментарий / номер перевода (необязательно)</label>
+              <input type="text" name="note" class="form-control" placeholder="напр. QR123456 или примечание">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Чек(и) об оплате (PDF/JPG/PNG, можно несколько)</label>
+              <input type="file" name="receipts" accept=".pdf,image/*" multiple class="form-control">
+              <div class="form-text">Если нет файла — сделайте скриншот из Kaspi.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-send-check me-2"></i>Я оплатил(а) — отправить на проверку
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h6 class="mb-0">Состояние платежа</h6>
+        </div>
+        <div class="card-body">
+          {% if last_payment %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted">Статус:</span>
+              {% if last_payment.status == 'success' %}
+                <span class="badge bg-success">оплачен</span>
+              {% elif last_payment.status == 'claimed' %}
+                <span class="badge bg-warning text-dark">на проверке</span>
+              {% elif last_payment.status == 'pending' %}
+                <span class="badge bg-secondary">ожидает оплаты</span>
+              {% else %}
+                <span class="badge bg-light text-dark">{{ last_payment.status }}</span>
+              {% endif %}
+            </div>
+            {% if last_payment.kaspi_invoice_id %}
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted">ID / комментарий:</span>
+                <span class="fw-medium">{{ last_payment.kaspi_invoice_id }}</span>
+              </div>
+            {% endif %}
+            <div class="text-muted small">
+              Создан: {{ last_payment.created|date:"d.m.Y H:i" }}<br>
+              Обновлён: {{ last_payment.updated|date:"d.m.Y H:i" }}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">Платёж ещё не создан. Нажмите «Открыть Kaspi QR», оплатите и отправьте чек.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-body">
+          <h6 class="mb-2">FAQ</h6>
+          <ul class="small text-muted mb-0">
+            <li>Оплата открывается в новой вкладке Kaspi.kz.</li>
+            <li>Если случайно закрыли эту страницу — вернитесь по меню «Мои курсы» → оплата.</li>
+            <li>Проверка занимает обычно до 1–2 часов в рабочее время.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Маски ввода (демо)
-document.addEventListener('DOMContentLoaded', function() {
-    const cardInput = document.querySelector('#id_card_number');
-    const expiryInput = document.querySelector('#id_expiry_date');
-    const cvvInput = document.querySelector('#id_cvv');
-
-    if (cardInput) {
-        cardInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '').slice(0,16);
-            e.target.value = value.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-        });
-    }
-
-    if (expiryInput) {
-        expiryInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '').slice(0,4);
-            e.target.value = value.length > 2 ? value.slice(0,2) + '/' + value.slice(2) : value;
-        });
-    }
-
-    if (cvvInput) {
-        cvvInput.addEventListener('input', function(e) {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0,3);
-        });
-    }
+document.getElementById('claimForm')?.addEventListener('submit', function(e){
+  const btn = this.querySelector('button[type="submit"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Отправляем...';
+  }
 });
 </script>
 {% endblock %}

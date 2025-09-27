@@ -1,15 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Мои курсы — SkillsSpire{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <h1 class="mb-4">Мои курсы</h1>
     <div class="row">
         {% for enrollment in enrollments %}
         <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                {# безопасный фолбэк для картинки #}
-                {% if enrollment.course.image and enrollment.course.image.name %}
+            <div class="card h-100 shadow-sm">
+                {% if enrollment.course.thumbnail and enrollment.course.thumbnail.name %}
+                    <img src="{{ enrollment.course.thumbnail.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" style="height:200px; object-fit:cover;">
+                {% elif enrollment.course.image and enrollment.course.image.name %}
                     <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" style="height:200px; object-fit:cover;">
                 {% else %}
                     <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="Default course image" style="height:200px; object-fit:cover;">
@@ -17,7 +20,7 @@
 
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ enrollment.course.title }}</h5>
-                    <p class="card-text text-muted">{{ enrollment.course.description|default:""|truncatewords:20 }}</p>
+                    <p class="card-text text-muted">{{ enrollment.course.short_description|default:enrollment.course.description|truncatewords:20 }}</p>
 
                     <p class="mb-1">
                         <strong>Дата записи:</strong>
@@ -48,7 +51,6 @@
             <i class="bi bi-collection display-1 text-muted"></i>
             <h4 class="text-muted mt-3">Вы ещё не записаны на курсы</h4>
             <p class="text-muted">Начните обучение прямо сейчас, выбрав курс ниже.</p>
-            {# имя роута исправлено на courses_list #}
             <a href="{% url 'courses_list' %}" class="btn btn-primary">Смотреть курсы</a>
         </div>
         {% endfor %}

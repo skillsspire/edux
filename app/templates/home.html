@@ -71,30 +71,41 @@
         <div class="course-card">
           {% if course.image %}
             <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}">
+          {% else %}
+            <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}">
           {% endif %}
 
           <div class="course-card-content">
-            <span class="course-category">{{ course.category.name }}</span>
+            <span class="course-category">{{ course.category.name|default:"Без категории" }}</span>
             <h3 class="course-card-title">{{ course.title }}</h3>
-            <p class="course-card-text">{{ course.description|truncatechars:120 }}</p>
+            <p class="course-card-text">{{ course.short_description|default:course.description|truncatechars:120 }}</p>
 
             <div class="course-card-meta">
               <div class="course-rating">
                 <i class="bi bi-star-fill" aria-hidden="true"></i>
-                {{ course.average_rating }}
+                {{ course.average_rating|default:"4.8" }}
                 <span class="course-reviews">({{ course.reviews.count }} отзывов)</span>
               </div>
               <span class="course-price">
-                {% if course.price > 0 %}{{ course.price }} ₸{% else %}Бесплатно{% endif %}
+                {% if course.price and course.price > 0 %}
+                  {% if course.discount_price %}
+                    <span class="text-muted text-decoration-line-through">{{ course.price }} ₸</span>
+                    {{ course.discount_price }} ₸
+                  {% else %}
+                    {{ course.price }} ₸
+                  {% endif %}
+                {% else %}
+                  Бесплатно
+                {% endif %}
               </span>
             </div>
           </div>
 
           <div class="course-card-footer">
             {% if user.is_authenticated and user in course.students.all %}
-              <a href="{{ course.get_absolute_url }}" class="btn btn-primary btn-full">Продолжить</a>
+              <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary btn-full">Продолжить</a>
             {% else %}
-              <a href="{{ course.get_absolute_url }}" class="btn btn-outline btn-full">Подробнее</a>
+              <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline btn-full">Подробнее</a>
             {% endif %}
           </div>
         </div>
@@ -105,7 +116,7 @@
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
+<!-- REVIEWS -->
 <section class="testimonials-section">
   <div class="container">
     <div class="section-header text-center">
@@ -114,30 +125,25 @@
 
     <div class="swiper testimonials-swiper">
       <div class="swiper-wrapper">
-        {% for t in testimonials %}
+        {% for review in reviews %}
           <div class="swiper-slide">
             <div class="testimonial-card">
-              <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
-                {% if t.avatar %}
-                  <img src="{{ t.avatar }}" class="testimonial-avatar" alt="{{ t.user_name }}">
-                {% endif %}
-                <div>
-                  <h3 style="margin:0">{{ t.user_name }}</h3>
-                  <p class="course-card-text" style="margin:0">{{ t.course_name }}</p>
-                </div>
+              <div style="margin-bottom:1rem;">
+                <h3 style="margin:0">{{ review.user.get_full_name|default:review.user.username }}</h3>
+                <p class="text-muted mb-0">{{ review.course.title }}</p>
               </div>
 
-              <div class="course-rating" style="margin-bottom:.5rem">
+              <div class="course-rating mb-2">
                 {% for i in "12345" %}
-                  {% if forloop.counter <= t.rating|floatformat:0 %}
-                    <i class="bi bi-star-fill" aria-hidden="true"></i>
+                  {% if forloop.counter <= review.rating %}
+                    <i class="bi bi-star-fill"></i>
                   {% else %}
-                    <i class="bi bi-star" aria-hidden="true"></i>
+                    <i class="bi bi-star"></i>
                   {% endif %}
                 {% endfor %}
               </div>
 
-              <p>{{ t.text }}</p>
+              <p>"{{ review.comment|truncatewords:25 }}"</p>
             </div>
           </div>
         {% empty %}
@@ -197,7 +203,7 @@
     },
   });
 
-  // Testimonials slider
+  // Reviews slider
   new Swiper('.testimonials-swiper', {
     slidesPerView: 1,
     spaceBetween: 20,

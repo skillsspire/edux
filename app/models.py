@@ -5,39 +5,47 @@ from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import DatabaseError
 from django.templatetags.static import static
+from django.conf import settings
 
-DEFAULT_COURSE_IMAGE = 'img/courses/default.jpg'
-DEFAULT_AVATAR_IMAGE = 'img/avatar-default.png'
+# ---- Константы ----
+DEFAULT_COURSE_IMAGE = "img/courses/default.jpg"
+DEFAULT_AVATAR_IMAGE = "img/avatar-default.png"
 
-# Supabase project ID - должен совпадать с настройками
 SUPABASE_PROJECT_ID = "pyttzlcuxyfkhrwggrwi"
 SUPABASE_BUCKET_NAME = "media"
 
 
-def safe_file_url(file_field, default_path):
+# ---- Хелперы для URL файлов ----
+def safe_file_url(file_field, default_path: str) -> str:
     try:
-        if file_field and getattr(file_field, 'url', None):
+        if file_field and getattr(file_field, "url", None):
             return file_field.url
     except Exception:
         pass
     return static(default_path)
 
 
-def get_supabase_file_url(file_field, default_path):
-    """Возвращает правильный URL для файла в Supabase Storage"""
+def get_supabase_file_url(file_field, default_path: str) -> str:
     if file_field and file_field.name:
-        # Убираем имя bucket'а из пути, так как он уже указан в URL
-        filename = file_field.name.replace(f'{SUPABASE_BUCKET_NAME}/', '')
-        return f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET_NAME}/{filename}"
+        filename = file_field.name.replace(f"{SUPABASE_BUCKET_NAME}/", "")
+        return (
+            f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/"
+            f"{SUPABASE_BUCKET_NAME}/{filename}"
+        )
     return static(default_path)
 
 
+# Флаг "является ли пользователь инструктором"
 User.add_to_class(
-    'is_instructor',
-    property(lambda self: hasattr(self, 'instructor_profile') and getattr(self.instructor_profile, 'is_approved', False))
+    "is_instructor",
+    property(
+        lambda self: hasattr(self, "instructor_profile")
+        and getattr(self.instructor_profile, "is_approved", False)
+    ),
 )
 
 
+# ---- Категории ----
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
     slug = models.SlugField(unique=True, blank=True, verbose_name="URL")
@@ -49,7 +57,7 @@ class Category(models.Model):
     class Meta:
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
-        ordering = ['order', 'name']
+        ordering = ["order", "name"]
 
     def __str__(self):
         return self.name
@@ -60,15 +68,23 @@ class Category(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse('courses_by_category', kwargs={'slug': self.slug})
+        # безопасная ссылка на страницу списка с выбранной категорией
+        return f"{reverse('courses_list')}?category={self.slug}"
 
 
+# ---- Профиль инструктора ----
 class InstructorProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='instructor_profile')
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="instructor_profile"
+    )
     bio = models.TextField(verbose_name="Биография")
-    avatar = models.ImageField(upload_to='instructors/avatars/', blank=True, null=True, verbose_name="Аватар")
+    avatar = models.ImageField(
+        upload_to="instructors/avatars/", blank=True, null=True, verbose_name="Аватар"
+    )
     specialization = models.CharField(max_length=200, verbose_name="Специализация")
-    experience = models.PositiveIntegerField(default=0, verbose_name="Опыт работы (лет)")
+    experience = models.PositiveIntegerField(
+        default=0, verbose_name="Опыт работы (лет)"
+    )
     website = models.URLField(blank=True, verbose_name="Вебсайт")
     linkedin = models.URLField(blank=True, verbose_name="LinkedIn")
     twitter = models.URLField(blank=True, verbose_name="Twitter")
@@ -93,44 +109,49 @@ class InstructorProfile(models.Model):
 
     @property
     def avatar_supabase_url(self):
-        """Возвращает правильный URL аватара из Supabase"""
         return get_supabase_file_url(self.avatar, DEFAULT_AVATAR_IMAGE)
 
     @property
     def display_avatar_url(self):
-        """Основной метод для отображения аватара"""
         return self.avatar_supabase_url or self.avatar_safe_url
 
 
+# ---- Курсы ----
 class Course(models.Model):
     LEVEL_CHOICES = [
-        ('beginner', 'Начинающий'),
-        ('intermediate', 'Средний'),
-        ('advanced', 'Продвинутый'),
+        ("beginner", "Начинающий"),
+        ("intermediate", "Средний"),
+        ("advanced", "Продвинутый"),
     ]
 
     STATUS_CHOICES = [
-        ('draft', 'Черновик'),
-        ('review', 'На проверке'),
-        ('published', 'Опубликован'),
+        ("draft", "Черновик"),
+        ("review", "На проверке"),
+        ("published", "Опубликован"),
     ]
 
     title = models.CharField(max_length=200, verbose_name="Название")
     slug = models.SlugField(unique=True, blank=True, verbose_name="URL")
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='courses', verbose_name="Категория")
-    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses_created', null=True, blank=True)
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE, related_name="courses", verbose_name="Категория"
+    )
+    instructor = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="courses_created", null=True, blank=True
+    )
     short_description = models.TextField(verbose_name="Краткое описание")
     description = models.TextField(verbose_name="Полное описание")
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Цена")
-    discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Цена со скидкой")
+    discount_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Цена со скидкой"
+    )
     duration_hours = models.PositiveIntegerField(default=0, verbose_name="Продолжительность (часы)")
-    image = models.ImageField(upload_to='courses/images/', blank=True, null=True, verbose_name="Изображение")
-    thumbnail = models.ImageField(upload_to='courses/thumbnails/', blank=True, null=True, verbose_name="Миниатюра")
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='beginner', verbose_name="Уровень")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
+    image = models.ImageField(upload_to="courses/images/", blank=True, null=True, verbose_name="Изображение")
+    thumbnail = models.ImageField(upload_to="courses/thumbnails/", blank=True, null=True, verbose_name="Миниатюра")
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="beginner", verbose_name="Уровень")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft", verbose_name="Статус")
     is_featured = models.BooleanField(default=False, verbose_name="Рекомендуемый")
     is_popular = models.BooleanField(default=False, verbose_name="Популярный")
-    students = models.ManyToManyField(User, related_name='enrolled_courses', blank=True, verbose_name="Студенты")
+    students = models.ManyToManyField(User, related_name="enrolled_courses", blank=True, verbose_name="Студенты")
     requirements = models.TextField(blank=True, verbose_name="Требования")
     what_you_learn = models.TextField(blank=True, verbose_name="Чему научитесь")
     language = models.CharField(max_length=50, default="Русский", verbose_name="Язык")
@@ -141,7 +162,7 @@ class Course(models.Model):
     class Meta:
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return self.title
@@ -152,11 +173,16 @@ class Course(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse('course_detail', kwargs={'slug': self.slug})
+        return reverse("course_detail", kwargs={"slug": self.slug})
 
     @property
     def has_discount(self):
-        return bool(self.discount_price is not None and self.price and self.price > 0 and self.discount_price < self.price)
+        return bool(
+            self.discount_price is not None
+            and self.price
+            and self.price > 0
+            and self.discount_price < self.price
+        )
 
     @property
     def discount_percent(self):
@@ -167,7 +193,7 @@ class Course(models.Model):
 
     @property
     def lessons_count(self):
-        return self.modules.filter(is_active=True).aggregate(total=models.Count('lessons'))['total'] or 0
+        return self.modules.filter(is_active=True).aggregate(total=models.Count("lessons")).get("total") or 0
 
     @property
     def students_count(self):
@@ -178,7 +204,7 @@ class Course(models.Model):
         try:
             qs = self.reviews.filter(is_active=True)
             if qs.exists():
-                return round(qs.aggregate(models.Avg('rating'))['rating__avg'], 1)
+                return round(qs.aggregate(models.Avg("rating"))["rating__avg"], 1)
         except DatabaseError:
             pass
         return 4.5
@@ -204,28 +230,23 @@ class Course(models.Model):
 
     @property
     def image_supabase_url(self):
-        """Возвращает правильный URL изображения из Supabase"""
         return get_supabase_file_url(self.image, DEFAULT_COURSE_IMAGE)
 
     @property
     def thumbnail_supabase_url(self):
-        """Возвращает правильный URL миниатюры из Supabase"""
         return get_supabase_file_url(self.thumbnail, DEFAULT_COURSE_IMAGE)
 
     @property
     def display_image_url(self):
-        """Основной метод для отображения изображения курса"""
-        # Приоритет: Supabase thumbnail -> Supabase image -> безопасные URL -> дефолтное изображение
         return (
-            self.thumbnail_supabase_url or 
-            self.image_supabase_url or 
-            self.thumbnail_safe_url or 
-            self.image_safe_url
+            self.thumbnail_supabase_url
+            or self.image_supabase_url
+            or self.thumbnail_safe_url
+            or self.image_safe_url
         )
 
     @property
     def duration_display(self):
-        """Отформатированное отображение длительности"""
         if self.duration_hours == 0:
             return "Не указано"
         elif self.duration_hours == 1:
@@ -236,8 +257,9 @@ class Course(models.Model):
             return f"{self.duration_hours} часов"
 
 
+# ---- Модули ----
 class Module(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
     title = models.CharField(max_length=200, verbose_name="Название")
     description = models.TextField(blank=True, verbose_name="Описание")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
@@ -246,14 +268,15 @@ class Module(models.Model):
     class Meta:
         verbose_name = "Модуль"
         verbose_name_plural = "Модули"
-        ordering = ['order']
+        ordering = ["order"]
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
 
+# ---- Уроки ----
 class Lesson(models.Model):
-    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200, verbose_name="Название")
     slug = models.SlugField(blank=True, verbose_name="URL")
     content = models.TextField(verbose_name="Содержание")
@@ -262,16 +285,16 @@ class Lesson(models.Model):
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     is_free = models.BooleanField(default=False, verbose_name="Бесплатный")
-    resources = models.FileField(upload_to='lessons/resources/', blank=True, null=True, verbose_name="Ресурсы")
+    resources = models.FileField(upload_to="lessons/resources/", blank=True, null=True, verbose_name="Ресурсы")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
-        ordering = ['order']
+        ordering = ["order"]
         constraints = [
-            models.UniqueConstraint(fields=['module', 'slug'], name='uq_lesson_module_slug'),
+            models.UniqueConstraint(fields=["module", "slug"], name="uq_lesson_module_slug"),
         ]
 
     def __str__(self):
@@ -284,13 +307,12 @@ class Lesson(models.Model):
 
     def get_absolute_url(self):
         return reverse(
-            'lesson_detail',
-            kwargs={'course_slug': self.module.course.slug, 'lesson_slug': self.slug}
+            "lesson_detail",
+            kwargs={"course_slug": self.module.course.slug, "lesson_slug": self.slug},
         )
 
     @property
     def duration_display(self):
-        """Отформатированное отображение длительности урока"""
         if self.duration_minutes == 0:
             return "Не указано"
         elif self.duration_minutes < 60:
@@ -298,15 +320,13 @@ class Lesson(models.Model):
         else:
             hours = self.duration_minutes // 60
             minutes = self.duration_minutes % 60
-            if minutes == 0:
-                return f"{hours} ч."
-            else:
-                return f"{hours} ч. {minutes} мин."
+            return f"{hours} ч." if minutes == 0 else f"{hours} ч. {minutes} мин."
 
 
+# ---- Запись на курс ----
 class Enrollment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -315,24 +335,26 @@ class Enrollment(models.Model):
         verbose_name = "Запись на курс"
         verbose_name_plural = "Записи на курсы"
         constraints = [
-            models.UniqueConstraint(fields=['user', 'course'], name='uq_enrollment_user_course'),
+            models.UniqueConstraint(fields=["user", "course"], name="uq_enrollment_user_course"),
         ]
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
 
 
+# ---- Отзывы ----
 class Review(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews', null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
     name = models.CharField(max_length=100, verbose_name="Имя")
     position = models.CharField(max_length=200, blank=True, verbose_name="Должность/Род занятий")
     age = models.PositiveIntegerField(null=True, blank=True, verbose_name="Возраст")
-    photo = models.ImageField(upload_to='reviews/photos/', blank=True, null=True, verbose_name="Фото")
+    photo = models.ImageField(upload_to="reviews/photos/", blank=True, null=True, verbose_name="Фото")
     rating = models.DecimalField(
-        max_digits=2, decimal_places=1,
+        max_digits=2,
+        decimal_places=1,
         validators=[MinValueValidator(1.0), MaxValueValidator(5.0)],
-        verbose_name="Рейтинг"
+        verbose_name="Рейтинг",
     )
     comment = models.TextField(verbose_name="Комментарий")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
@@ -348,52 +370,83 @@ class Review(models.Model):
 
     @property
     def photo_supabase_url(self):
-        """Возвращает правильный URL фото из Supabase"""
         return get_supabase_file_url(self.photo, DEFAULT_AVATAR_IMAGE)
 
 
+# ---- Избранное ----
 class Wishlist(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='wishlisted_by')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="wishlisted_by")
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Избранное"
         verbose_name_plural = "Избранное"
         constraints = [
-            models.UniqueConstraint(fields=['user', 'course'], name='uq_wishlist_user_course'),
+            models.UniqueConstraint(fields=["user", "course"], name="uq_wishlist_user_course"),
         ]
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
 
 
+# ---- Платежи ----
 class Payment(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'В ожидании'),
-        ('success', 'Успешно'),
-        ('failed', 'Неудачно'),
+        ("pending", "В ожидании"),   # создан, ещё не подтверждён
+        ("waiting", "Ожидает проверки"),  # чек загружен, ждёт модерации
+        ("success", "Успешно"),
+        ("failed", "Неудачно"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
-    kaspi_invoice_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="ID платежа Kaspi")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
+
+    kaspi_invoice_id = models.CharField(
+        max_length=100, unique=True, null=True, blank=True, verbose_name="ID платежа Kaspi"
+    )
+
+    # Прикрепление чека (PDF/JPEG/PNG/MP4 и т.п.)
+    receipt = models.FileField(
+        upload_to="payments/receipts/",
+        null=True,
+        blank=True,
+        verbose_name="Чек/Подтверждение оплаты",
+    )
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending", verbose_name="Статус")
+    paid_at = models.DateTimeField(null=True, blank=True, verbose_name="Время оплаты")
+    verified_at = models.DateTimeField(null=True, blank=True, verbose_name="Проверено в")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Платеж"
         verbose_name_plural = "Платежи"
-        ordering = ['-created']
+        ordering = ["-created"]
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title} - {self.amount} - {self.status}"
 
+    @property
+    def kaspi_qr_url(self) -> str:
+        # Возвращаем ссылку из настроек, если есть, иначе пустую строку
+        return getattr(settings, "KASPI_PAYMENT_URL", "") or ""
 
+    def mark_success(self):
+        """Пометить платёж успешным и выдать доступ к курсу."""
+        self.status = "success"
+        self.paid_at = self.paid_at or models.functions.Now()
+        self.save(update_fields=["status", "paid_at", "updated"])
+
+        Enrollment.objects.get_or_create(user=self.user, course=self.course)
+        self.course.students.add(self.user)
+
+
+# ---- Подписки ----
 class Subscription(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="subscriptions")
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField()
     active = models.BooleanField(default=True)
@@ -401,12 +454,13 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = "Подписка"
         verbose_name_plural = "Подписки"
-        ordering = ['-start_date']
+        ordering = ["-start_date"]
 
     def __str__(self):
         return f"{self.user.username} - {self.start_date.date()}"
 
 
+# ---- Контакты ----
 class ContactMessage(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField()
@@ -418,26 +472,29 @@ class ContactMessage(models.Model):
     class Meta:
         verbose_name = "Контактное сообщение"
         verbose_name_plural = "Контактные сообщения"
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.name} - {self.subject}"
 
 
+# ---- Прогресс по урокам ----
 class LessonProgress(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='progress')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="lesson_progress")
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="progress")
     is_completed = models.BooleanField(default=False)
-    percent = models.PositiveSmallIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    percent = models.PositiveSmallIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Прогресс по уроку"
         verbose_name_plural = "Прогресс по урокам"
-        ordering = ['-updated_at']
+        ordering = ["-updated_at"]
         constraints = [
-            models.UniqueConstraint(fields=['user', 'lesson'], name='uq_lessonprogress_user_lesson'),
+            models.UniqueConstraint(fields=["user", "lesson"], name="uq_lessonprogress_user_lesson"),
         ]
 
     def __str__(self):
-        return f'{self.user} · {self.lesson} · {self.percent}%'
+        return f"{self.user} · {self.lesson} · {self.percent}%"
