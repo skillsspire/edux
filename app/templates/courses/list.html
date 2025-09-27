@@ -126,12 +126,14 @@
         <div class="courses-grid">
           {% for course in courses %}
             <div class="course-card">
+              <!-- Исправленный блок картинки курса -->
+              {% static 'img/courses/default.jpg' as default_course_img %}
               {% if course.thumbnail and course.thumbnail.name %}
                 <img src="{{ course.thumbnail.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
               {% elif course.image and course.image.name %}
                 <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
               {% else %}
-                <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+                <img src="{{ default_course_img }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
               {% endif %}
 
               <div class="course-card-content">
@@ -150,10 +152,10 @@
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     {% if course.price and course.price > 0 %}
                       {% if course.discount_price %}
-                        <span style="color: var(--color-text-tertiary); text-decoration: line-through;">{{ course.price }} ₽</span>
-                        <span class="course-price">{{ course.discount_price }} ₽</span>
+                        <span style="color: var(--color-text-tertiary); text-decoration: line-through;">{{ course.price }} ₸</span>
+                        <span class="course-price">{{ course.discount_price }} ₸</span>
                       {% else %}
-                        <span class="course-price">{{ course.price }} ₽</span>
+                        <span class="course-price">{{ course.price }} ₸</span>
                       {% endif %}
                     {% else %}
                       <span class="course-price">Бесплатно</span>

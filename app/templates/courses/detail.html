@@ -4,10 +4,11 @@
 {% block title %}{{ course.title }} - SkillsSpire{% endblock %}
 
 {% block meta %}
+{% static 'img/courses/default.jpg' as default_course_img %}
 <meta name="description" content="{{ course.short_description }}">
 <meta property="og:title" content="{{ course.title }}">
 <meta property="og:description" content="{{ course.short_description }}">
-<meta property="og:image" content="{{ course_image_url|default:static('img/courses/default.jpg') }}">
+<meta property="og:image" content="{% firstof course_image_url default_course_img %}">
 {% endblock %}
 
 {% block content %}
