@@ -5,190 +5,186 @@
 
 {% block content %}
 <div class="container py-4">
-    <div class="row">
-        <!-- Основной контент -->
-        <div class="col-lg-8">
-            <!-- Хлебные крошки -->
-            <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans "Главная" %}</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'courses_list' %}">{% trans "Курсы" %}</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'course_detail' course.slug %}">{{ course.title }}</a></li>
-                    <li class="breadcrumb-item active">{{ lesson.title }}</li>
-                </ol>
-            </nav>
+  <div class="row">
+    <!-- Основной контент -->
+    <div class="col-lg-8">
+      <!-- Хлебные крошки -->
+      <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans "Главная" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'courses_list' %}">{% trans "Курсы" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'course_detail' course.slug %}">{{ course.title }}</a></li>
+          <li class="breadcrumb-item active">{{ lesson.title }}</li>
+        </ol>
+      </nav>
 
-            <!-- Заголовок -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h2 fw-bold">{{ lesson.title }}</h1>
-                <span class="badge bg-primary fs-6">{% trans "Урок" %} {{ lesson.order }}</span>
+      <!-- Заголовок -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 fw-bold">{{ lesson.title }}</h1>
+        <span class="badge bg-primary fs-6">{% trans "Урок" %} {{ lesson.order }}</span>
+      </div>
+
+      <!-- Видео -->
+      <div class="card mb-4">
+        {% if lesson.video_url %}
+          {% if "youtube.com/watch?v=" in lesson.video_url %}
+            <div class="ratio ratio-16x9">
+              <iframe src="{{ lesson.video_url|cut:'watch?v='|add:'embed/' }}"
+                      frameborder="0" allowfullscreen></iframe>
             </div>
-
-            <!-- Видео -->
-            <div class="card mb-4">
-                {% if lesson.video_url %}
-                <div class="ratio ratio-16x9">
-                    <iframe src="{{ lesson.video_url }}"
-                            frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen></iframe>
-                </div>
-                {% else %}
-                <div class="card-body text-center p-5">
-                    <i class="bi bi-play-circle fs-1 text-muted mb-3"></i>
-                    <p class="text-muted">{% trans "Видео материал будет добавлен скоро" %}</p>
-                </div>
-                {% endif %}
+          {% else %}
+            <div class="ratio ratio-16x9">
+              <iframe src="{{ lesson.video_url }}" frameborder="0" allowfullscreen></iframe>
             </div>
+          {% endif %}
+        {% else %}
+          <div class="card-body text-center p-5">
+            <i class="bi bi-play-circle fs-1 text-muted mb-3"></i>
+            <p class="text-muted">{% trans "Видео материал будет добавлен скоро" %}</p>
+          </div>
+        {% endif %}
+      </div>
 
-            <!-- Контент урока -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    {{ lesson.content|safe }}
-                </div>
-            </div>
+      <!-- Контент урока -->
+      <div class="card mb-4">
+        <div class="card-body">{{ lesson.content|safe }}</div>
+      </div>
 
-            <!-- Дополнительные материалы -->
-            {% if lesson.additional_materials %}
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <i class="bi bi-paperclip me-2"></i>{% trans "Дополнительные материалы" %}
-                </div>
-                <div class="card-body">
-                    {{ lesson.additional_materials|linebreaks }}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Навигация между уроками -->
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                {% if prev_lesson %}
-                <a href="{% url 'lesson_detail' course.slug prev_lesson.slug %}" class="btn btn-outline-primary">
-                    <i class="bi bi-arrow-left me-2"></i>{% trans "Предыдущий урок" %}
-                </a>
-                {% else %}
-                <span></span>
-                {% endif %}
-
-                {% if not lesson in enrollment.completed_lessons.all %}
-                <form method="post" action="{% url 'mark_lesson_complete' course.slug lesson.slug %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-check-circle me-2"></i>{% trans "Завершить урок" %}
-                    </button>
-                </form>
-                {% else %}
-                <span class="badge bg-success fs-6 p-3">
-                    <i class="bi bi-check-circle-fill me-2"></i>{% trans "Завершено" %}
-                </span>
-                {% endif %}
-
-                {% if next_lesson %}
-                <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-primary">
-                    {% trans "Следующий урок" %}<i class="bi bi-arrow-right ms-2"></i>
-                </a>
-                {% else %}
-                <a href="{% url 'course_detail' course.slug %}" class="btn btn-success">
-                    <i class="bi bi-trophy me-2"></i>{% trans "Завершить курс" %}
-                </a>
-                {% endif %}
-            </div>
-
-            <!-- Комментарии -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">{% trans "Обсуждение урока" %}</h5>
-                </div>
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-chat-dots fs-1 text-muted"></i>
-                    <p class="text-muted mt-2">{% trans "Функция обсуждения будет добавлена в ближайшее время" %}</p>
-                    <button class="btn btn-outline-primary">{% trans "Получить уведомление" %}</button>
-                </div>
-            </div>
+      <!-- Дополнительные материалы -->
+      {% if lesson.additional_materials %}
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <i class="bi bi-paperclip me-2"></i>{% trans "Дополнительные материалы" %}
         </div>
+        <div class="card-body">{{ lesson.additional_materials|linebreaks }}</div>
+      </div>
+      {% endif %}
 
-        <!-- Боковая панель -->
-        <div class="col-lg-4">
-            <div class="sticky-top" style="top: 80px; z-index: 100;">
-                <!-- Прогресс -->
-                <div class="card mb-4 text-center">
-                    <div class="card-body">
-                        <h6 class="card-title">{% trans "Прогресс курса" %}</h6>
-                        <div class="progress-circle mx-auto mb-3" style="--progress: {{ enrollment.progress_percentage }}%;">
-                            <div class="progress-inner">{{ enrollment.progress_percentage|floatformat:0 }}%</div>
-                        </div>
-                        <p class="text-muted">
-                            {{ enrollment.completed_lessons.count }} из {{ course.lessons.count }} {% trans "уроков завершено" %}
-                        </p>
-                        {% if enrollment.completed %}
-                        <div class="alert alert-success mt-3">
-                            <i class="bi bi-trophy-fill me-2"></i>{% trans "Курс завершен!" %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
+      <!-- Навигация между уроками -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        {% if prev_lesson %}
+          <a href="{% url 'lesson_detail' course.slug prev_lesson.slug %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-2"></i>{% trans "Предыдущий урок" %}
+          </a>
+        {% else %}<span></span>{% endif %}
 
-                <!-- Содержание -->
-                <div class="card mb-4">
-                    <div class="card-header bg-dark text-white">
-                        <h6 class="mb-0">{% trans "Содержание курса" %}</h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            {% for module in course.modules.all %}
-                            <div class="list-group-item bg-light fw-bold">{{ module.title }}</div>
-                            {% for lesson_item in module.lessons.all %}
-                            <a href="{% url 'lesson_detail' course.slug lesson_item.slug %}"
-                               class="list-group-item list-group-item-action {% if lesson_item == lesson %}active{% endif %}">
-                                <div class="d-flex align-items-center">
-                                    {% if lesson_item in enrollment.completed_lessons.all %}
-                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                    {% else %}
-                                    <i class="bi bi-play-circle me-2"></i>
-                                    {% endif %}
-                                    <span>{{ lesson_item.title }}</span>
-                                    {% if lesson_item == lesson %}
-                                    <i class="bi bi-arrow-right-short ms-auto"></i>
-                                    {% endif %}
-                                </div>
-                            </a>
-                            {% endfor %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+        {% if enrollment and lesson not in enrollment.completed_lessons.all %}
+          <form method="post" action="{% url 'mark_lesson_complete' course.slug lesson.slug %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-circle me-2"></i>{% trans "Завершить урок" %}
+            </button>
+          </form>
+        {% elif enrollment %}
+          <span class="badge bg-success fs-6 p-3">
+            <i class="bi bi-check-circle-fill me-2"></i>{% trans "Завершено" %}
+          </span>
+        {% endif %}
 
-                <!-- Быстрые действия -->
-                <div class="card">
-                    <div class="card-body">
-                        <h6 class="card-title">{% trans "Быстрые действия" %}</h6>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline-primary">
-                                <i class="bi bi-info-circle me-2"></i>{% trans "О курсе" %}
-                            </a>
-                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-speedometer2 me-2"></i>{% trans "В дашборд" %}
-                            </a>
-                            <a href="{% url 'my_courses' %}" class="btn btn-outline-info">
-                                <i class="bi bi-collection me-2"></i>{% trans "Мои курсы" %}
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        {% if next_lesson %}
+          <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-primary">
+            {% trans "Следующий урок" %}<i class="bi bi-arrow-right ms-2"></i>
+          </a>
+        {% else %}
+          <a href="{% url 'course_detail' course.slug %}" class="btn btn-success">
+            <i class="bi bi-trophy me-2"></i>{% trans "Завершить курс" %}
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Комментарии -->
+      <div class="card">
+        <div class="card-header"><h5 class="mb-0">{% trans "Обсуждение урока" %}</h5></div>
+        <div class="card-body text-center py-4">
+          <i class="bi bi-chat-dots fs-1 text-muted"></i>
+          <p class="text-muted mt-2">{% trans "Функция обсуждения будет добавлена в ближайшее время" %}</p>
+          <button class="btn btn-outline-primary">{% trans "Получить уведомление" %}</button>
         </div>
+      </div>
     </div>
+
+    <!-- Боковая панель -->
+    <div class="col-lg-4">
+      <div class="sticky-top" style="top: 80px; z-index: 100;">
+        <!-- Прогресс -->
+        <div class="card mb-4 text-center">
+          <div class="card-body">
+            <h6 class="card-title">{% trans "Прогресс курса" %}</h6>
+            <div class="progress-circle mx-auto mb-3"
+                 style="--progress: {{ enrollment.progress_percentage|default:0 }}%;
+                        background: conic-gradient(var(--color-primary) {{ enrollment.progress_percentage|default:0 }}%, #eee 0);">
+              <div class="progress-inner">{{ enrollment.progress_percentage|default:0|floatformat:0 }}%</div>
+            </div>
+            <p class="text-muted">
+              {{ enrollment.completed_lessons.count|default:0 }} из {{ course.lessons.count|default:0 }} {% trans "уроков завершено" %}
+            </p>
+            {% if enrollment and enrollment.completed %}
+              <div class="alert alert-success mt-3">
+                <i class="bi bi-trophy-fill me-2"></i>{% trans "Курс завершен!" %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Содержание курса -->
+        <div class="card mb-4">
+          <div class="card-header bg-dark text-white">
+            <h6 class="mb-0">{% trans "Содержание курса" %}</h6>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              {% for module in course.modules.all %}
+                <div class="list-group-item bg-light fw-bold">{{ module.title }}</div>
+                {% for lesson_item in module.lessons.all %}
+                  <a href="{% url 'lesson_detail' course.slug lesson_item.slug %}"
+                     class="list-group-item list-group-item-action {% if lesson_item == lesson %}active{% endif %}">
+                    <div class="d-flex align-items-center">
+                      {% if enrollment and lesson_item in enrollment.completed_lessons.all %}
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                      {% else %}
+                        <i class="bi bi-play-circle me-2"></i>
+                      {% endif %}
+                      <span>{{ lesson_item.title }}</span>
+                      {% if lesson_item == lesson %}
+                        <i class="bi bi-arrow-right-short ms-auto"></i>
+                      {% endif %}
+                    </div>
+                  </a>
+                {% endfor %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="card">
+          <div class="card-body">
+            <h6 class="card-title">{% trans "Быстрые действия" %}</h6>
+            <div class="d-grid gap-2">
+              <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline-primary">
+                <i class="bi bi-info-circle me-2"></i>{% trans "О курсе" %}
+              </a>
+              <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2 me-2"></i>{% trans "В дашборд" %}
+              </a>
+              <a href="{% url 'my_courses' %}" class="btn btn-outline-info">
+                <i class="bi bi-collection me-2"></i>{% trans "Мои курсы" %}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const circle = document.querySelector('.progress-circle');
-    if (circle) {
-        circle.style.transition = 'background 1s ease';
-    }
-    window.scrollTo(0, 0);
+  const circle = document.querySelector('.progress-circle');
+  if (circle) circle.style.transition = 'background 1s ease';
+  window.scrollTo(0, 0);
 });
 </script>
 {% endblock %}

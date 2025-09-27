@@ -13,16 +13,12 @@
       <p class="text-muted">Выберите курс, который поможет вам достичь карьерных целей</p>
     </div>
 
-    <!-- Поиск и кнопка фильтров на мобилке -->
+    <!-- Поиск -->
     <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem;">
       <form action="{% url 'courses_list' %}" method="get" class="hero-search" style="max-width:520px; flex:1;">
         <input type="text" name="q" value="{{ q }}" placeholder="Поиск курсов" aria-label="Поисковый запрос">
         <button type="submit">Поиск</button>
       </form>
-
-      <button class="btn btn-outline-primary" type="button" style="display: none;" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
-        <i class="bi bi-sliders"></i> Фильтры
-      </button>
     </div>
   </div>
 </section>
@@ -33,23 +29,24 @@
     <div style="display: grid; grid-template-columns: 1fr 3fr; gap: 1.5rem;">
 
       <!-- Сайдбар -->
-      <aside style="display: block;">
+      <aside>
         <div class="card" style="margin-bottom: 1rem;">
           <div class="card-body">
             <h5 class="card-title" style="margin-bottom: 1rem;">Категории</h5>
             <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-              <a href="{% url 'courses_list' %}{% if q or selected_levels or price_filter %}?{% endif %}
-                 {% if q %}q={{ q|urlencode }}{% endif %}
-                 {% for lvl in selected_levels %}{% if forloop.first and not q %}?{% else %}&{% endif %}level={{ lvl|urlencode }}{% endfor %}
-                 {% if price_filter %}{% if q or selected_levels %}&{% else %}?{% endif %}price={{ price_filter }}{% endif %}"
-                 class="list-group-item {% if not selected_categories %}active{% endif %}" 
-                 style="display: block; padding: 0.75rem 1rem; text-decoration: none; border-radius: 8px; background: {% if not selected_categories %}var(--color-primary){% else %}transparent{% endif %}; color: {% if not selected_categories %}#fff{% else %}var(--color-text-primary){% endif %};">
+              <a href="{% url 'courses_list' %}"
+                 class="list-group-item {% if not selected_categories %}active{% endif %}"
+                 style="display: block; padding: 0.75rem 1rem; text-decoration: none; border-radius: 8px;
+                        background: {% if not selected_categories %}var(--color-primary){% else %}transparent{% endif %};
+                        color: {% if not selected_categories %}#fff{% else %}var(--color-text-primary){% endif %};">
                 Все курсы
               </a>
               {% for cat in categories %}
-                <a href="{% url 'courses_list' %}?category={{ cat.slug }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for lvl in selected_levels %}&level={{ lvl|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}"
+                <a href="{% url 'courses_list' %}?category={{ cat.slug }}"
                    class="list-group-item {% if selected_categories and cat.slug in selected_categories %}active{% endif %}"
-                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; border-radius: 8px; background: {% if selected_categories and cat.slug in selected_categories %}var(--color-primary){% else %}transparent{% endif %}; color: {% if selected_categories and cat.slug in selected_categories %}#fff{% else %}var(--color-text-primary){% endif %};">
+                   style="display: block; padding: 0.75rem 1rem; text-decoration: none; border-radius: 8px;
+                          background: {% if selected_categories and cat.slug in selected_categories %}var(--color-primary){% else %}transparent{% endif %};
+                          color: {% if selected_categories and cat.slug in selected_categories %}#fff{% else %}var(--color-text-primary){% endif %};">
                   {{ cat.name }}
                 </a>
               {% empty %}
@@ -58,88 +55,28 @@
             </div>
           </div>
         </div>
-
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title" style="margin-bottom: 1rem;">Фильтры</h5>
-            <form action="{% url 'courses_list' %}" method="get" style="display: flex; flex-direction: column; gap: 1rem;">
-              {% for cat in selected_categories %}
-                <input type="hidden" name="category" value="{{ cat }}">
-              {% endfor %}
-              {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
-
-              <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Уровень</label>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                  <label style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="checkbox" name="level" value="beginner" id="f-beg" {% if 'beginner' in selected_levels %}checked{% endif %}>
-                    Начинающий
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="checkbox" name="level" value="intermediate" id="f-int" {% if 'intermediate' in selected_levels %}checked{% endif %}>
-                    Средний
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="checkbox" name="level" value="advanced" id="f-adv" {% if 'advanced' in selected_levels %}checked{% endif %}>
-                    Продвинутый
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Цена</label>
-                <select name="price" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--color-border);">
-                  <option value="" {% if not price_filter %}selected{% endif %}>Любая</option>
-                  <option value="free" {% if price_filter == 'free' %}selected{% endif %}>Бесплатные</option>
-                  <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>Платные</option>
-                </select>
-              </div>
-
-              <button class="btn btn-primary" type="submit" style="width: 100%;">
-                <i class="bi bi-filter"></i> Применить
-              </button>
-            </form>
-          </div>
-        </div>
       </aside>
 
       <!-- Список курсов -->
       <div>
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-          <form method="get" style="display: flex; gap: 0.5rem; align-items: center;">
-            {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
-            {% for lvl in selected_levels %}<input type="hidden" name="level" value="{{ lvl }}">{% endfor %}
-            {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
-            {% if price_filter %}<input type="hidden" name="price" value="{{ price_filter }}">{% endif %}
-
-            <label style="margin-right: 0.5rem; color: var(--color-text-tertiary); font-size: 0.875rem;">Сортировка</label>
-            <select name="sort" onchange="this.form.submit()" style="padding: 0.375rem 0.75rem; border-radius: 6px; border: 1px solid var(--color-border);">
-              <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Сначала новые</option>
-              <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Популярные</option>
-              <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>По рейтингу</option>
-              <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Цена: низкая → высокая</option>
-              <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Цена: высокая → низкая</option>
-            </select>
-          </form>
-        </div>
-
         <div class="courses-grid">
           {% for course in courses %}
             <div class="course-card">
-              <!-- ИСПРАВЛЕННЫЙ блок картинки курса -->
+
+              <!-- исправлено: добавлен endif -->
               {% if course.thumbnail %}
                 <img src="{{ course.thumbnail.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
               {% elif course.image %}
                 <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
               {% else %}
-                <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+                <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+              {% endif %}
 
               <div class="course-card-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                   <span class="course-category">{{ course.category.name|default:"Без категории" }}</span>
                   <div class="course-rating">
-                    <i class="bi bi-star-fill" aria-hidden="true"></i>
-                    {{ course.average_rating|default:"4.8" }}
+                    <i class="bi bi-star-fill"></i> {{ course.average_rating|default:"4.8" }}
                   </div>
                 </div>
 
@@ -147,22 +84,15 @@
                 <p class="course-card-text">{{ course.short_description|default:course.description|truncatewords:18 }}</p>
 
                 <div class="course-card-meta">
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    {% if course.price and course.price > 0 %}
-                      {% if course.discount_price %}
-                        <span style="color: var(--color-text-tertiary); text-decoration: line-through;">{{ course.price }} ₸</span>
-                        <span class="course-price">{{ course.discount_price }} ₸</span>
-                      {% else %}
-                        <span class="course-price">{{ course.price }} ₸</span>
-                      {% endif %}
+                  {% if course.price and course.price > 0 %}
+                    {% if course.discount_price %}
+                      <span style="color: var(--color-text-tertiary); text-decoration: line-through;">{{ course.price }} ₸</span>
+                      <span class="course-price">{{ course.discount_price }} ₸</span>
                     {% else %}
-                      <span class="course-price">Бесплатно</span>
+                      <span class="course-price">{{ course.price }} ₸</span>
                     {% endif %}
-                  </div>
-                  {% if course.duration_hours %}
-                    <span style="color: var(--color-text-tertiary); font-size: 0.875rem;">
-                      <i class="bi bi-clock" style="margin-right: 0.25rem;"></i>{{ course.duration_hours }} часов
-                    </span>
+                  {% else %}
+                    <span class="course-price">Бесплатно</span>
                   {% endif %}
                 </div>
               </div>
@@ -190,40 +120,6 @@
             </div>
           {% endfor %}
         </div>
-
-        <!-- Пагинация -->
-        {% if is_paginated %}
-          <nav style="margin-top: 3rem;" aria-label="Навигация по страницам">
-            <ul style="display: flex; justify-content: center; gap: 0.5rem; list-style: none;">
-              {% if page_obj.has_previous %}
-                <li>
-                  <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for cat in selected_categories %}&category={{ cat|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
-                     style="display: block; padding: 0.5rem 1rem; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none;">
-                    Назад
-                  </a>
-                </li>
-              {% endif %}
-
-              {% for num in page_obj.paginator.page_range %}
-                <li>
-                  <a href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for cat in selected_categories %}&category={{ cat|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
-                     style="display: block; padding: 0.5rem 1rem; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none; background: {% if page_obj.number == num %}var(--color-primary){% else %}transparent{% endif %}; color: {% if page_obj.number == num %}#fff{% else %}var(--color-text-primary){% endif %};">
-                    {{ num }}
-                  </a>
-                </li>
-              {% endfor %}
-
-              {% if page_obj.has_next %}
-                <li>
-                  <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for cat in selected_categories %}&category={{ cat|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
-                     style="display: block; padding: 0.5rem 1rem; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none;">
-                    Вперед
-                  </a>
-                </li>
-              {% endif %}
-            </ul>
-          </nav>
-        {% endif %}
       </div>
     </div>
   </div>

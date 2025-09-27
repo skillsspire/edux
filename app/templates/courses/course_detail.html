@@ -8,7 +8,7 @@
 <meta name="description" content="{{ course.short_description }}">
 <meta property="og:title" content="{{ course.title }}">
 <meta property="og:description" content="{{ course.short_description }}">
-<meta property="og:image" content="{% firstof course_image_url default_course_img %}">
+<meta property="og:image" content="{% if course.image %}{{ course.image.url }}{% else %}{{ default_course_img }}{% endif %}">
 {% endblock %}
 
 {% block content %}
@@ -109,11 +109,6 @@
                 <li class="mb-2"><i class="bi bi-award text-primary me-2"></i> Сертификат</li>
               </ul>
             </div>
-
-            <div class="mt-3">
-              <a href="https://t.me/share/url?url={{ request.build_absolute_uri }}" target="_blank" class="btn btn-outline-primary btn-sm">Telegram</a>
-              <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" target="_blank" class="btn btn-outline-primary btn-sm">Facebook</a>
-            </div>
           </div>
         </div>
       </div>
@@ -133,9 +128,7 @@
       </div>
 
       <div id="course-content" class="card mb-4">
-        <div class="card-header">
-          <h4 class="mb-0">Программа курса</h4>
-        </div>
+        <div class="card-header"><h4 class="mb-0">Программа курса</h4></div>
         <div class="card-body">
           {% if lessons %}
             <div class="list-group">
@@ -145,7 +138,9 @@
                     <i class="bi bi-play-circle text-muted me-3"></i>
                     <div>
                       <h6 class="mb-1">{{ lesson.title }}</h6>
-                      {% if lesson.duration_minutes %}<small class="text-muted">{{ lesson.duration_minutes }} мин.</small>{% endif %}
+                      {% if lesson.duration_minutes %}
+                        <small class="text-muted">{{ lesson.duration_minutes }} мин.</small>
+                      {% endif %}
                     </div>
                   </div>
                   {% if has_access %}
@@ -179,14 +174,13 @@
     </div>
 
     <div class="col-lg-4">
-      <!-- Блок преподавателя с исправленным путем к аватару -->
+      <!-- Преподаватель -->
       <div class="card mb-4 text-center">
         <div class="card-body">
           {% if teacher and teacher.avatar %}
             <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100">
           {% else %}
-            <!-- Используем безопасный метод из модели -->
-            <img src="{{ teacher.avatar_safe_url|default:static('img/default.jpg') }}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
+            <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
           {% endif %}
           {% if teacher %}
             <h5>{{ teacher.get_full_name|default:teacher.username }}</h5>
@@ -198,12 +192,12 @@
         </div>
       </div>
 
+      <!-- Похожие курсы -->
       <div class="card">
         <div class="card-body">
           <h5>Похожие курсы</h5>
           {% for related_course in related_courses %}
             <div class="d-flex mb-3">
-              <!-- Исправленная проверка для изображений -->
               {% if related_course.thumbnail %}
                 <img src="{{ related_course.thumbnail.url }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
               {% elif related_course.image %}
@@ -213,7 +207,9 @@
               {% endif %}
               <div>
                 <h6 class="mb-1">{{ related_course.title }}</h6>
-                {% if related_course.duration_hours %}<small class="text-muted">{{ related_course.duration_hours }} часов</small>{% endif %}
+                {% if related_course.duration_hours %}
+                  <small class="text-muted">{{ related_course.duration_hours }} часов</small>
+                {% endif %}
                 {% if related_course.price and related_course.price|floatformat != "0" %}
                   <div class="text-primary fw-bold">{{ related_course.price }} ₸</div>
                 {% else %}
@@ -227,10 +223,10 @@
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
+<!-- Модалка записи -->
 <div class="modal fade" id="enrollModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -240,13 +236,6 @@
       </div>
       <div class="modal-body">
         <p>Вы уверены, что хотите записаться на курс "{{ course.title }}"?</p>
-        <div class="mb-3">
-          <label for="promo_code" class="form-label">Промокод</label>
-          <div class="input-group">
-            <input type="text" id="promo_code" name="promo_code" class="form-control">
-            <button type="button" class="btn btn-outline-secondary" id="applyPromo">Применить</button>
-          </div>
-        </div>
         <div class="d-flex justify-content-between align-items-center mb-3">
           <span>Стоимость:</span>
           <span class="h4 text-primary fw-bold" id="coursePrice">
@@ -288,14 +277,6 @@ if (wishlistBtn) {
     .then(res => res.json())
     .then(data => alert(data.message))
     .catch(() => alert('Не удалось обновить избранное'));
-  });
-}
-
-const applyPromo = document.getElementById('applyPromo');
-if (applyPromo) {
-  applyPromo.addEventListener('click', function(){
-    const code = document.getElementById('promo_code').value || '';
-    alert('Промокод применён: ' + code);
   });
 }
 </script>
