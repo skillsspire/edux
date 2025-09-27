@@ -9,6 +9,7 @@
 
 {% block content %}
 
+<!-- HERO -->
 <section class="course-hero">
   <div class="container text-center">
     <span class="course-badge">🚀 Самый популярный курс 2025</span>
@@ -29,6 +30,7 @@
   </div>
 </section>
 
+<!-- CATEGORIES -->
 <section class="categories-section">
   <div class="container">
     <div class="section-header text-center">
@@ -47,7 +49,9 @@
             </a>
           </div>
         {% empty %}
-          <p>Категории пока не добавлены.</p>
+          <div class="swiper-slide">
+            <div class="category-card">Категории пока не добавлены.</div>
+          </div>
         {% endfor %}
       </div>
 
@@ -57,6 +61,7 @@
   </div>
 </section>
 
+<!-- COURSES -->
 <section id="courses" class="section">
   <div class="container">
     <div class="section-header text-center">
@@ -68,6 +73,8 @@
         <div class="course-card">
           {% if course.image %}
             <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}">
+          {% elif course.thumbnail %}
+            <img src="{{ course.thumbnail.url }}" class="course-card-img" alt="{{ course.title }}">
           {% else %}
             <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}">
           {% endif %}
@@ -81,7 +88,7 @@
               <div class="course-rating">
                 <i class="bi bi-star-fill" aria-hidden="true"></i>
                 {{ course.average_rating|default:"4.8" }}
-                <span class="course-reviews">({{ course.reviews.count }} отзывов)</span>
+                <span class="course-reviews">({{ course.reviews.count|default:0 }} отзывов)</span>
               </div>
               <span class="course-price">
                 {% if course.price and course.price > 0 %}
@@ -113,6 +120,7 @@
   </div>
 </section>
 
+<!-- REVIEWS -->
 <section class="testimonials-section">
   <div class="container">
     <div class="section-header text-center">
@@ -145,7 +153,7 @@
               </div>
               {% endwith %}
 
-              <p>"{{ review.comment|default:review.content|default:"" |truncatewords:25 }}"</p>
+              <p>"{{ review.comment|default:""|truncatewords:25 }}"</p>
             </div>
           </div>
         {% empty %}
@@ -161,6 +169,7 @@
   </div>
 </section>
 
+<!-- FAQ -->
 <section class="faq-section">
   <div class="container">
     <div class="section-header text-center">
@@ -180,6 +189,7 @@
   </div>
 </section>
 
+<!-- CTA -->
 <section class="cta-section">
   <div class="container">
     <h2 class="cta-title">Готовы начать карьеру в IT?</h2>
@@ -199,7 +209,7 @@
     navigation: {
       nextEl: '.categories-section .swiper-button-next',
       prevEl: '.categories-section .swiper-button-prev'
-    },
+    }
   });
 
   new Swiper('.testimonials-swiper', {
