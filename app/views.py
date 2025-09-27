@@ -56,11 +56,7 @@ def kaspi_webhook(request):
     secret = getattr(settings, "KASPI_SECRET", None)
     if not secret:
         return JsonResponse({"error": "KASPI_SECRET is not set"}, status=500)
-    expected_signature = hmac.new(
-        key=secret.encode(),
-        msg=body,
-        digestmod=hashlib.sha256,
-    ).hexdigest()
+    expected_signature = hmac.new(key=secret.encode(), msg=body, digestmod=hashlib.sha256).hexdigest()
     if signature != expected_signature:
         return JsonResponse({"error": "Invalid signature"}, status=403)
     try:
@@ -107,6 +103,7 @@ def home(request):
     featured_courses = Course.objects.filter(is_featured=True).select_related("category")[:6]
     popular_courses = (
         Course.objects.select_related("category")
+        .prefetch_related("reviews")
         .annotate(num_students=Count("students", distinct=True))
         .order_by("-num_students")[:6]
     )
@@ -114,10 +111,23 @@ def home(request):
         categories = Category.objects.filter(is_active=True)[:8]
     except Exception:
         categories = Category.objects.all()[:8]
+    reviews = (
+        Review.objects.filter(is_active=True)
+        .select_related("user", "course")
+        .order_by("-created_at")[:10]
+    )
+    faqs = [
+        {"question": "Как проходит обучение?", "answer": "Онлайн в личном кабинете: видео, задания и обратная связь."},
+        {"question": "Будет ли доступ к материалам после окончания?", "answer": "Да, бессрочный доступ ко всем урокам курса."},
+        {"question": "Как оплатить курс?", "answer": "Через Kaspi QR. После оплаты запись активируется автоматически."},
+        {"question": "Выдаётся ли сертификат?", "answer": "Да, после завершения всех модулей."},
+    ]
     return render(request, "home.html", {
         "featured_courses": featured_courses,
         "popular_courses": popular_courses,
         "categories": categories,
+        "reviews": reviews,
+        "faqs": faqs,
     })
 
 
@@ -197,11 +207,13 @@ def course_detail(request, slug):
         .exclude(id=course.id).select_related("category")[:4]
     )
     reviews = Review.objects.filter(course=course, is_active=True).select_related("user")[:10]
+    instructor_profile = None
+    if course.instructor_id:
+        instructor_profile = getattr(course.instructor, "instructor_profile", None)
+    teacher = instructor_profile
     thumb_name = getattr(getattr(course, "thumbnail", None), "name", None)
     image_name = getattr(getattr(course, "image", None), "name", None)
     course_image_url = public_storage_url(first_nonempty(thumb_name, image_name))
-    teacher = course.instructor
-    teacher_profile = getattr(teacher, "instructor_profile", None) if teacher else None
     return render(request, "courses/detail.html", {
         "course": course,
         "lessons": lessons,
@@ -209,7 +221,6 @@ def course_detail(request, slug):
         "reviews": reviews,
         "has_access": has_access,
         "teacher": teacher,
-        "teacher_profile": teacher_profile,
         "course_image_url": course_image_url,
     })
 
@@ -254,7 +265,7 @@ def lesson_detail(request, course_slug, lesson_slug):
     try:
         enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
     except Exception:
-        pass
+        enrollment = None
     return render(request, "courses/lesson_detail.html", {
         "course": course,
         "lesson": lesson,
@@ -300,14 +311,13 @@ def create_payment(request, slug):
 @login_required
 def payment_claim(request, slug):
     course = get_object_or_404(Course, slug=slug)
-    payment = Payment.objects.filter(user=request.user, course=course, status="pending").last()
+    payment = Payment.objects.filter(user=request.user, course=course).order_by("-created").first()
     if not payment:
         messages.error(request, "Платеж не найден")
         return redirect("course_detail", slug=slug)
     if request.method == "POST" and request.FILES.get("receipt"):
-        receipt = request.FILES["receipt"]
-        payment.receipt = receipt
-        payment.status = "waiting"
+        if hasattr(payment, "receipt"):
+            payment.receipt = request.FILES["receipt"]
         payment.save()
         messages.success(request, "Чек успешно загружен, ожидайте подтверждения")
         return redirect("payment_thanks", slug=slug)
