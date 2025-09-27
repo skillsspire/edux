@@ -8,7 +8,7 @@
 <meta name="description" content="{{ course.short_description }}">
 <meta property="og:title" content="{{ course.title }}">
 <meta property="og:description" content="{{ course.short_description }}">
-<meta property="og:image" content="{% if course.image %}{{ course.image.url }}{% else %}{{ default_course_img }}{% endif %}">
+<meta property="og:image" content="{{ course_image_url|default:default_course_img }}">
 {% endblock %}
 
 {% block content %}
@@ -174,7 +174,6 @@
     </div>
 
     <div class="col-lg-4">
-      <!-- Преподаватель -->
       <div class="card mb-4 text-center">
         <div class="card-body">
           {% if teacher and teacher.avatar %}
@@ -192,7 +191,6 @@
         </div>
       </div>
 
-      <!-- Похожие курсы -->
       <div class="card">
         <div class="card-body">
           <h5>Похожие курсы</h5>
@@ -226,7 +224,6 @@
   </div>
 </div>
 
-<!-- Модалка записи -->
 <div class="modal fade" id="enrollModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -263,7 +260,6 @@ function getCSRFToken() {
   const m = document.cookie.match(/csrftoken=([^;]+)/);
   return m ? m[1] : '';
 }
-
 const wishlistBtn = document.getElementById('wishlistBtn');
 if (wishlistBtn) {
   wishlistBtn.addEventListener('click', function(){

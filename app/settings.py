@@ -6,7 +6,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
-
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 CSRF_TRUSTED_ORIGINS = [
@@ -22,6 +21,8 @@ if RENDER_EXTERNAL_HOSTNAME:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
 KASPI_WEBHOOK_SECRET = os.environ.get("KASPI_WEBHOOK_SECRET", "dev-secret")
+KASPI_PAYMENT_URL = os.environ.get("KASPI_PAYMENT_URL", "https://pay.kaspi.kz/pay/fhljzakr")
+KASPI_SECRET = os.environ.get("KASPI_SECRET", "dev-secret")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
@@ -88,6 +89,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.media",
+                "app.context.kaspi",
             ],
         },
     },
@@ -161,36 +163,22 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365
 
-# ==================== ИСПРАВЛЕННЫЕ НАСТРОЙКИ SUPABASE STORAGE ====================
-
-# Вариант 1: Простая настройка с прямым URL (рекомендую)
 SUPABASE_PROJECT_ID = "pyttzlcuxyfkhrwggrwi"
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "media")
-
-# Используем прямое URL для медиафайлов
 MEDIA_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET_NAME}/"
 
-# Настройки для загрузки файлов через S3 API
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
 AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
 AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET_NAME
-AWS_S3_ENDPOINT_URL = f"https://{SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/s3"
+AWS_S3_ENDPOINT_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/s3"
 AWS_S3_REGION_NAME = "eu-central-1"
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_QUERYSTRING_AUTH = False
-AWS_DEFAULT_ACL = "public-read"  # Важно: файлы должны быть публичными
+AWS_DEFAULT_ACL = None
 AWS_S3_FILE_OVERWRITE = False
-
-# Отключаем custom domain, чтобы URL генерировались правильно
 AWS_S3_CUSTOM_DOMAIN = None
-
-# Альтернативный вариант: если нужен красивый URL, можно использовать эту настройку
-# AWS_S3_CUSTOM_DOMAIN = f"{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public"
-# Но тогда нужно настроить правильный путь
-
-# ================================================================================
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
@@ -212,13 +200,8 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "console": {"class": "logging.StreamHandler"},
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": LOG_LEVEL,
-    },
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
         "django.db.backends": {"handlers": ["console"], "level": os.getenv("DB_LOG_LEVEL", "WARNING")},
