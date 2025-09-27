@@ -27,15 +27,15 @@
             <i class="bi bi-people stat-icon"></i>
             <span>{{ course.students.count }} студентов</span>
           </div>
-          {% if course.duration %}
+          {% if course.duration_hours %}
           <div class="stat-item">
             <i class="bi bi-clock stat-icon"></i>
-            <span>{{ course.duration }}</span>
+            <span>{{ course.duration_hours }} часов</span>
           </div>
           {% endif %}
           <div class="stat-item">
             <i class="bi bi-star stat-icon"></i>
-            <span>Рейтинг: {{ course.average_rating|default_if_none:"4.8"|floatformat:1 }}</span>
+            <span>Рейтинг: {{ course.average_rating|default:"4.8" }}</span>
           </div>
         </div>
 
@@ -145,7 +145,7 @@
                     <i class="bi bi-play-circle text-muted me-3"></i>
                     <div>
                       <h6 class="mb-1">{{ lesson.title }}</h6>
-                      {% if lesson.duration %}<small class="text-muted">{{ lesson.duration }}</small>{% endif %}
+                      {% if lesson.duration_minutes %}<small class="text-muted">{{ lesson.duration_minutes }} мин.</small>{% endif %}
                     </div>
                   </div>
                   {% if has_access %}
@@ -179,17 +179,18 @@
     </div>
 
     <div class="col-lg-4">
-      {% comment %} Блок преподавателя: используем переменную teacher из контекста {% endcomment %}
+      <!-- Блок преподавателя с исправленным путем к аватару -->
       <div class="card mb-4 text-center">
         <div class="card-body">
-          {% if teacher and teacher.avatar and teacher.avatar.name %}
+          {% if teacher and teacher.avatar %}
             <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100">
           {% else %}
-            <img src="{% static 'img/avatars/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
+            <!-- Используем безопасный метод из модели -->
+            <img src="{{ teacher.avatar_safe_url|default:static('img/default.jpg') }}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
           {% endif %}
           {% if teacher %}
             <h5>{{ teacher.get_full_name|default:teacher.username }}</h5>
-            {% if teacher.position %}<p class="text-muted">{{ teacher.position }}</p>{% endif %}
+            {% if teacher.specialization %}<p class="text-muted">{{ teacher.specialization }}</p>{% endif %}
             {% if teacher.bio %}<p class="small">{{ teacher.bio|truncatewords:20 }}</p>{% endif %}
           {% else %}
             <h5>SkillsSpire</h5>
@@ -202,16 +203,17 @@
           <h5>Похожие курсы</h5>
           {% for related_course in related_courses %}
             <div class="d-flex mb-3">
-              {% if related_course.thumbnail and related_course.thumbnail.name %}
+              <!-- Исправленная проверка для изображений -->
+              {% if related_course.thumbnail %}
                 <img src="{{ related_course.thumbnail.url }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
-              {% elif related_course.image and related_course.image.name %}
+              {% elif related_course.image %}
                 <img src="{{ related_course.image.url }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
               {% else %}
-                <img src="{% static 'img/courses/default-sm.jpg' %}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
+                <img src="{% static 'img/courses/default.jpg' %}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
               {% endif %}
               <div>
                 <h6 class="mb-1">{{ related_course.title }}</h6>
-                {% if related_course.duration %}<small class="text-muted">{{ related_course.duration }}</small>{% endif %}
+                {% if related_course.duration_hours %}<small class="text-muted">{{ related_course.duration_hours }} часов</small>{% endif %}
                 {% if related_course.price and related_course.price|floatformat != "0" %}
                   <div class="text-primary fw-bold">{{ related_course.price }} ₸</div>
                 {% else %}
