@@ -9,7 +9,6 @@
 
 {% block content %}
 
-<!-- HERO -->
 <section class="course-hero">
   <div class="container text-center">
     <span class="course-badge">🚀 Самый популярный курс 2025</span>
@@ -30,7 +29,6 @@
   </div>
 </section>
 
-<!-- CATEGORIES -->
 <section class="categories-section">
   <div class="container">
     <div class="section-header text-center">
@@ -59,7 +57,6 @@
   </div>
 </section>
 
-<!-- COURSES -->
 <section id="courses" class="section">
   <div class="container">
     <div class="section-header text-center">
@@ -116,7 +113,6 @@
   </div>
 </section>
 
-<!-- REVIEWS -->
 <section class="testimonials-section">
   <div class="container">
     <div class="section-header text-center">
@@ -129,21 +125,27 @@
           <div class="swiper-slide">
             <div class="testimonial-card">
               <div style="margin-bottom:1rem;">
-                <h3 style="margin:0">{{ review.user.get_full_name|default:review.user.username }}</h3>
-                <p class="text-muted mb-0">{{ review.course.title }}</p>
+                {% if review.user %}
+                  <h3 style="margin:0">{{ review.user.get_full_name|default:review.user.username }}</h3>
+                {% else %}
+                  <h3 style="margin:0">{{ review.name|default:"Гость" }}</h3>
+                {% endif %}
+                <p class="text-muted mb-0">{{ review.course.title|default:"Курс" }}</p>
               </div>
 
+              {% with r=review.rating|default_if_none:0 %}
               <div class="course-rating mb-2">
-                {% for i in "12345" %}
-                  {% if forloop.counter <= review.rating %}
+                {% for _ in "12345" %}
+                  {% if forloop.counter <= r %}
                     <i class="bi bi-star-fill"></i>
                   {% else %}
                     <i class="bi bi-star"></i>
                   {% endif %}
                 {% endfor %}
               </div>
+              {% endwith %}
 
-              <p>"{{ review.comment|truncatewords:25 }}"</p>
+              <p>"{{ review.comment|default:review.content|default:"" |truncatewords:25 }}"</p>
             </div>
           </div>
         {% empty %}
@@ -159,7 +161,6 @@
   </div>
 </section>
 
-<!-- FAQ -->
 <section class="faq-section">
   <div class="container">
     <div class="section-header text-center">
@@ -179,7 +180,6 @@
   </div>
 </section>
 
-<!-- CTA -->
 <section class="cta-section">
   <div class="container">
     <h2 class="cta-title">Готовы начать карьеру в IT?</h2>
@@ -193,7 +193,6 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-  // Categories slider
   new Swiper('.categories-swiper', {
     slidesPerView: 'auto',
     spaceBetween: 20,
@@ -203,7 +202,6 @@
     },
   });
 
-  // Reviews slider
   new Swiper('.testimonials-swiper', {
     slidesPerView: 1,
     spaceBetween: 20,
@@ -218,7 +216,6 @@
     }
   });
 
-  // FAQ accordion
   document.querySelectorAll('.faq-question').forEach(btn => {
     btn.addEventListener('click', () => {
       const item = btn.parentElement;
