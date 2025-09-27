@@ -192,7 +192,7 @@ class Course(models.Model):
         try:
             return self.reviews.filter(is_active=True).count()
         except DatabaseError:
-        return 0
+            return 0
 
     @property
     def image_safe_url(self):
