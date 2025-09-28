@@ -1,543 +1,350 @@
-import hmac
-import hashlib
-import json
-import os
+from decimal import Decimal
 from typing import Optional
 
 from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.core.paginator import Paginator
-from django.db import DatabaseError, ProgrammingError
-from django.db.models import Q, Avg, Count
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.db import models
+from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
+from django.utils.text import slugify
 
-from .forms import ContactForm, CustomUserCreationForm, ReviewForm
-from .models import (
-    Category,
-    Course,
-    Enrollment,
-    InstructorProfile,
-    Lesson,
-    LessonProgress,
-    Payment,
-    Review,
-    Wishlist,
-)
+User = settings.AUTH_USER_MODEL
 
 
-# ---------- helpers ----------
+# =========================
+#      БАЗОВЫЕ МОДЕЛИ
+# =========================
 
-def public_storage_url(path: Optional[str]) -> Optional[str]:
-    """Make a public Supabase URL (fallback to a default base)."""
-    if not path:
-        return None
-    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
-    bucket = os.environ.get("SUPABASE_BUCKET", "media").strip("/")
-    if not base:
-        base = "https://pyttzlcuxyfkhrwggrwi.supabase.co"
-    return f"{base}/storage/v1/object/public/{bucket}/{path.lstrip('/')}"
+class TimestampedModel(models.Model):
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлено", auto_now=True)
 
-
-def first_nonempty(*vals):
-    for v in vals:
-        if v:
-            return v
-    return None
+    class Meta:
+        abstract = True
 
 
-# ---------- webhooks/payments ----------
+class Category(TimestampedModel):
+    name = models.CharField("Название", max_length=150, unique=True)
+    slug = models.SlugField("Слаг", max_length=160, unique=True, blank=True)
+    is_active = models.BooleanField("Активна", default=True)
 
-@csrf_exempt
-def kaspi_webhook(request):
-    """Kaspi QR webhook: validates signature, updates Payment, enrolls on success."""
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid method"}, status=400)
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
 
-    signature = request.headers.get("X-Kaspi-Signature") or ""
-    body = request.body
-    secret = getattr(settings, "KASPI_SECRET", None)
-    if not secret:
-        return JsonResponse({"error": "KASPI_SECRET is not set"}, status=500)
+    def __str__(self):
+        return self.name
 
-    expected_signature = hmac.new(key=secret.encode(), msg=body, digestmod=hashlib.sha256).hexdigest()
-    if signature != expected_signature:
-        return JsonResponse({"error": "Invalid signature"}, status=403)
-
-    try:
-        data = json.loads(body)
-        invoice_id = data.get("invoiceId")
-        status = data.get("status")
-        amount = data.get("amount")
-        payment = Payment.objects.get(kaspi_invoice_id=invoice_id)
-    except (Payment.DoesNotExist, json.JSONDecodeError, KeyError, TypeError):
-        return JsonResponse({"error": "Payment not found or invalid data"}, status=404)
-
-    # amount check (optional)
-    try:
-        if amount is not None and float(amount) < float(payment.amount or 0):
-            return JsonResponse({"error": "Invalid amount"}, status=400)
-    except (TypeError, ValueError):
-        return JsonResponse({"error": "Invalid amount format"}, status=400)
-
-    payment.status = status
-    payment.save(update_fields=["status"])
-
-    if status == "success":
-        Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
-        payment.course.students.add(payment.user)
-
-    return JsonResponse({"status": "ok"})
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)[:155]
+        super().save(*args, **kwargs)
 
 
-# ---------- auth/basic pages ----------
-
-def signup(request):
-    if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            auth_user = authenticate(
-                request,
-                username=form.cleaned_data["username"],
-                password=form.cleaned_data["password1"],
-            )
-            if auth_user is not None:
-                login(request, auth_user)
-                messages.success(request, "Регистрация прошла успешно! Добро пожаловать!")
-                return redirect("home")
-            messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
-            return redirect("login")
-        messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
-    else:
-        form = CustomUserCreationForm()
-    return render(request, "registration/signup.html", {"form": form})
-
-
-def home(request):
-    featured_courses = Course.objects.filter(is_featured=True).select_related("category")[:6]
-    popular_courses = (
-        Course.objects.select_related("category")
-        .prefetch_related("reviews")
-        .annotate(num_students=Count("students", distinct=True))
-        .order_by("-num_students")[:6]
+class InstructorProfile(TimestampedModel):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="instructor_profile", verbose_name="Пользователь"
     )
-    try:
-        categories = Category.objects.filter(is_active=True)[:8]
-    except Exception:
-        categories = Category.objects.all()[:8]
+    specialization = models.CharField("Специализация", max_length=255, blank=True)
+    bio = models.TextField("О себе", blank=True)
+    avatar = models.ImageField("Аватар", upload_to="instructors/", blank=True, null=True)
+    is_approved = models.BooleanField("Профиль подтверждён", default=True)
 
-    reviews = (
-        Review.objects.filter(is_active=True)
-        .select_related("user", "course")
-        .order_by("-created_at")[:10]
-    )
+    class Meta:
+        verbose_name = "Профиль инструктора"
+        verbose_name_plural = "Профили инструкторов"
 
-    faqs = [
-        {"question": "Как проходит обучение?", "answer": "Онлайн в личном кабинете: видео, задания и обратная связь."},
-        {"question": "Будет ли доступ к материалам после окончания?", "answer": "Да, бессрочный доступ ко всем урокам курса."},
-        {"question": "Как оплатить курс?", "answer": "Через Kaspi QR. После оплаты запись активируется автоматически."},
-        {"question": "Выдаётся ли сертификат?", "answer": "Да, после завершения всех модулей."},
-    ]
-    return render(request, "home.html", {
-        "featured_courses": featured_courses,
-        "popular_courses": popular_courses,
-        "categories": categories,
-        "reviews": reviews,
-        "faqs": faqs,
-    })
+    def __str__(self):
+        return f"Инструктор: {getattr(self.user, 'username', 'user')}"
 
-
-# ---------- catalog ----------
-
-def courses_list(request):
-    courses_qs = (
-        Course.objects.select_related("category")
-        .prefetch_related("students", "reviews")
-        .annotate(avg_rating=Avg("reviews__rating"))
-    )
-
-    selected_categories = request.GET.getlist("category")
-    selected_levels = request.GET.getlist("level")
-    search_query = request.GET.get("q", "").strip()
-    price_filter = request.GET.get("price")
-    sort_by = request.GET.get("sort", "newest")
-
-    if selected_categories:
-        courses_qs = courses_qs.filter(category__slug__in=selected_categories)
-
-    if search_query:
-        courses_qs = courses_qs.filter(
-            Q(title__icontains=search_query) |
-            Q(short_description__icontains=search_query) |
-            Q(category__name__icontains=search_query)
-        )
-
-    if selected_levels:
-        courses_qs = courses_qs.filter(level__in=selected_levels)
-
-    if price_filter == "free":
-        courses_qs = courses_qs.filter(price=0)
-    elif price_filter == "paid":
-        courses_qs = courses_qs.filter(price__gt=0)
-
-    if sort_by == "popular":
-        courses_qs = courses_qs.annotate(
-            students_count=Count("students", distinct=True)
-        ).order_by("-students_count", "-created_at")
-    elif sort_by == "rating":
-        courses_qs = courses_qs.order_by("-avg_rating", "-created_at")
-    elif sort_by == "price_low":
-        courses_qs = courses_qs.order_by("price", "-created_at")
-    elif sort_by == "price_high":
-        courses_qs = courses_qs.order_by("-price", "-created_at")
-    else:
-        courses_qs = courses_qs.order_by("-created_at")
-
-    try:
-        categories = Category.objects.filter(is_active=True)
-    except Exception:
-        categories = Category.objects.all()
-
-    paginator = Paginator(courses_qs, 12)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, "courses/list.html", {
-        "courses": page_obj,
-        "categories": categories,
-        "is_paginated": page_obj.has_other_pages(),
-        "page_obj": page_obj,
-        "q": search_query,
-        "selected_levels": selected_levels,
-        "selected_categories": selected_categories,
-        "price_filter": price_filter,
-        "sort_by": sort_by,
-    })
-
-
-# ---------- course detail & lessons ----------
-
-def course_detail(request, slug):
-    course = get_object_or_404(
-        Course.objects.select_related("category", "instructor").prefetch_related("students", "reviews"),
-        slug=slug
-    )
-
-    # access
-    has_access = True
-    if course.price and float(course.price or 0) > 0:
-        has_access = request.user.is_authenticated and course.students.filter(id=request.user.id).exists()
-
-    # lessons
-    try:
-        lessons = (
-            Lesson.objects.filter(module__course=course, is_active=True)
-            .select_related("module")
-            .order_by("module__order", "order")
-        )
-    except (ProgrammingError, DatabaseError):
-        lessons = Lesson.objects.none()
-
-    # related courses (+ image helper)
-    related_courses = (
-        Course.objects.filter(category=course.category)
-        .exclude(id=course.id).select_related("category")[:4]
-    )
-    related_courses_with_images = [
-        {"course": rc, "image_url": getattr(rc, "display_image_url", None)}
-        for rc in related_courses
-    ]
-
-    # reviews
-    reviews = Review.objects.filter(course=course, is_active=True).select_related("user")[:10]
-
-    # instructor/teacher
-    teacher_user = getattr(course, "instructor", None)  # обычно User
-    teacher_profile = getattr(teacher_user, "instructor_profile", None)  # обычно OneToOne -> InstructorProfile
-
-    # wishlist state for current user
-    is_in_wishlist = False
-    if request.user.is_authenticated:
-        is_in_wishlist = Wishlist.objects.filter(user=request.user, course=course).exists()
-
-    # NOTE: user_progress не считаем здесь (шаблон корректно работает и без него)
-    return render(request, "courses/detail.html", {
-        "course": course,
-        "lessons": lessons,
-        "related_courses_with_images": related_courses_with_images,
-        "reviews": reviews,
-        "has_access": has_access,
-        "teacher": teacher_user,
-        "teacher_profile": teacher_profile,
-        "course_image_url": getattr(course, "display_image_url", None),
-        "is_in_wishlist": is_in_wishlist,
-    })
-
-
-@login_required
-def lesson_detail(request, course_slug, lesson_slug):
-    course = get_object_or_404(Course.objects.prefetch_related("students"), slug=course_slug)
-
-    try:
-        lesson = get_object_or_404(
-            Lesson.objects.select_related("module"),
-            slug=lesson_slug, module__course=course, is_active=True
-        )
-    except (ProgrammingError, DatabaseError):
-        messages.error(request, "Секции модулей пока недоступны. Попробуйте позже.")
-        return redirect("course_detail", slug=course_slug)
-
-    if course.price and float(course.price or 0) > 0 and not course.students.filter(id=request.user.id).exists():
-        messages.error(request, "У вас нет доступа к этому уроку")
-        return redirect("course_detail", slug=course_slug)
-
-    # соседние уроки
-    try:
-        lessons_list = list(
-            Lesson.objects.filter(module__course=course, is_active=True)
-            .order_by("module__order", "order")
-        )
-    except (ProgrammingError, DatabaseError):
-        lessons_list = [lesson]
-
-    try:
-        current_index = lessons_list.index(lesson)
-    except ValueError:
-        current_index = 0
-
-    previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
-    next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
-
-    LessonProgress.objects.update_or_create(
-        user=request.user,
-        lesson=lesson,
-        defaults={
-            "is_completed": False if (course.price and float(course.price or 0) > 0) else True,
-            "percent": 0,
-            "updated_at": timezone.now(),
-        }
-    )
-
-    enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
-
-    return render(request, "courses/lesson_detail.html", {
-        "course": course,
-        "lesson": lesson,
-        "prev_lesson": previous_lesson,
-        "next_lesson": next_lesson,
-        "enrollment": enrollment,
-    })
-
-
-# ---------- enrollment & payments ----------
-
-@login_required
-def enroll_course(request, slug):
-    course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
-
-    if course.students.filter(id=request.user.id).exists():
-        messages.info(request, "Вы уже записаны на этот курс")
-        return redirect("course_detail", slug=slug)
-
-    if course.price and float(course.price or 0) > 0:
-        return redirect("create_payment", slug=slug)
-
-    Enrollment.objects.get_or_create(user=request.user, course=course)
-    course.students.add(request.user)
-    messages.success(request, f'Вы успешно записаны на курс "{course.title}"')
-    return redirect("course_detail", slug=slug)
-
-
-@login_required
-def create_payment(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    amount = course.discount_price or course.price or 0
-    payment = Payment.objects.create(
-        user=request.user,
-        course=course,
-        amount=amount,
-        status="pending",
-        kaspi_invoice_id=f"QR{timezone.now().timestamp()}",
-    )
-    return render(request, "payments/payment_page.html", {
-        "course": course,
-        "amount": amount,
-        "kaspi_url": getattr(settings, "KASPI_PAYMENT_URL", ""),
-        "payment": payment,
-    })
-
-
-@login_required
-def payment_claim(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    payment = Payment.objects.filter(user=request.user, course=course).order_by("-id").first()
-    if not payment:
-        messages.error(request, "Платеж не найден")
-        return redirect("course_detail", slug=slug)
-
-    if request.method == "POST" and request.FILES.get("receipt"):
-        # предполагаем, что у Payment есть FileField/ImageField 'receipt'
-        if hasattr(payment, "receipt"):
-            payment.receipt = request.FILES["receipt"]
-            payment.save(update_fields=["receipt"])
-            messages.success(request, "Чек успешно загружен, ожидайте подтверждения")
-            return redirect("payment_thanks", slug=slug)
-        messages.error(request, "В модели Payment не предусмотрено поле для чека")
-    return render(request, "payments/payment_claim.html", {"course": course, "payment": payment})
-
-
-@login_required
-def payment_thanks(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    return render(request, "payments/payment_thanks.html", {"course": course})
-
-
-# ---------- user area ----------
-
-@login_required
-def my_courses(request):
-    enrollments = Enrollment.objects.filter(user=request.user).select_related("course")
-    in_progress = enrollments.filter(completed=False)
-    completed = enrollments.filter(completed=True)
-    return render(request, "courses/my_courses.html", {
-        "in_progress": in_progress,
-        "completed": completed,
-    })
-
-
-@login_required
-def dashboard(request):
-    user = request.user
-
-    my_courses = Course.objects.filter(students__id=user.id).select_related("category")
-    total_courses = my_courses.count()
-    recent_courses = my_courses.order_by("-created_at")[:5]
-
-    # completed courses (попытка с fallback по разным related_names)
-    try:
-        completed_courses = Enrollment.objects.filter(user_id=user.id, completed=True).count()
-    except Exception:
+    @property
+    def display_avatar_url(self) -> Optional[str]:
         try:
-            completed_courses = Enrollment.objects.filter(student_id=user.id, completed=True).count()
+            return self.avatar.url if self.avatar else None
         except Exception:
-            completed_courses = 0
-
-    # lessons progress
-    try:
-        progress_qs = LessonProgress.objects.filter(user=user).select_related("lesson")
-        total_lessons = progress_qs.count()
-        completed_lessons = progress_qs.filter(is_completed=True).count()
-    except Exception:
-        total_lessons = 0
-        completed_lessons = 0
-
-    context = {
-        "total_courses": total_courses,
-        "completed_courses": completed_courses,
-        "total_lessons": total_lessons,
-        "completed_lessons": completed_lessons,
-        "recent_courses": recent_courses,
-        "enrollments": None,
-    }
-    return render(request, "users/dashboard.html", context)
+            return None
 
 
-# ---------- reviews & wishlist ----------
+# =========================
+#          КУРСЫ
+# =========================
 
-@login_required
-def add_review(request, slug):
-    course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
-
-    if not course.students.filter(id=request.user.id).exists():
-        messages.error(request, "Только студенты курса могут оставлять отзывы")
-        return redirect("course_detail", slug=slug)
-
-    if Review.objects.filter(course=course, user=request.user).exists():
-        messages.error(request, "Вы уже оставили отзыв на этот курс")
-        return redirect("course_detail", slug=slug)
-
-    if request.method == "POST":
-        form = ReviewForm(request.POST)
-        if form.is_valid():
-            review = form.save(commit=False)
-            review.course = course
-            review.user = request.user
-            review.save()
-            messages.success(request, "Ваш отзыв успешно добавлен")
-            return redirect("course_detail", slug=slug)
-    else:
-        form = ReviewForm()
-
-    return render(request, "courses/add_review.html", {"course": course, "form": form})
-
-
-@login_required
-def toggle_wishlist(request, slug):
-    """AJAX/HTML toggle for wishlist. Frontend ожидает ключ `in_wishlist`."""
-    course = get_object_or_404(Course, slug=slug)
-    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, course=course)
-
-    if created:
-        message = "Курс добавлен в избранное"
-        in_wishlist = True
-    else:
-        wishlist_item.delete()
-        message = "Курс удален из избранного"
-        in_wishlist = False
-
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"success": True, "message": message, "in_wishlist": in_wishlist})
-
-    messages.success(request, message)
-    return redirect("course_detail", slug=slug)
-
-
-# ---------- static pages ----------
-
-def about(request):
-    try:
-        instructors = InstructorProfile.objects.filter(is_approved=True)
-        total_instructors = instructors.count()
-    except Exception:
-        instructors, total_instructors = [], 0
-
-    try:
-        stats = {
-            "total_courses": Course.objects.count(),
-            "total_students": User.objects.filter(enrolled_courses__isnull=False).distinct().count(),
-            "total_instructors": total_instructors,
-        }
-    except Exception:
-        stats = {"total_courses": 0, "total_students": 0, "total_instructors": total_instructors}
-
-    return render(request, "about.html", {"instructors": instructors, "stats": stats})
-
-
-def contact(request):
-    if request.method == "POST":
-        form = ContactForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Ваше сообщение успешно отправлено!")
-            return redirect("contact")
-    else:
-        form = ContactForm()
-    return render(request, "contact.html", {"form": form})
-
-
-def design_wireframe(request):
-    features = [
-        {"title": "Практика", "description": "Проекты в портфолио"},
-        {"title": "Наставник", "description": "Обратная связь"},
-        {"title": "Гибкий формат", "description": "Онлайн и записи"},
-        {"title": "Комьюнити", "description": "Чаты и ревью"},
-        {"title": "Карьерный трек", "description": "Помощь с резюме"},
-        {"title": "Сертификат", "description": "После защиты"},
+class Course(TimestampedModel):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+    LEVEL_CHOICES = [
+        (BEGINNER, "Начинающий"),
+        (INTERMEDIATE, "Средний"),
+        (ADVANCED, "Продвинутый"),
     ]
-    return render(request, "design_wireframe.html", {"features": features})
+
+    title = models.CharField("Название", max_length=255)
+    slug = models.SlugField("Слаг", max_length=255, unique=True, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="courses")
+    instructor = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="taught_courses", verbose_name="Инструктор"
+    )
+
+    short_description = models.CharField("Короткое описание", max_length=500, blank=True)
+    description = models.TextField("Описание", blank=True)
+
+    # Медиа
+    image = models.ImageField("Обложка", upload_to="courses/", blank=True, null=True)
+    thumbnail = models.ImageField("Превью", upload_to="courses/thumbs/", blank=True, null=True)
+
+    # Метаданные
+    level = models.CharField("Уровень", max_length=20, choices=LEVEL_CHOICES, default=BEGINNER)
+    duration_hours = models.PositiveIntegerField("Длительность (часы)", null=True, blank=True)
+    is_featured = models.BooleanField("В подборке", default=False)
+
+    # Цены
+    price = models.DecimalField("Цена", max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    discount_price = models.DecimalField("Цена со скидкой", max_digits=10, decimal_places=2, null=True, blank=True)
+
+    # Записанные студенты (через Enrollment)
+    students = models.ManyToManyField(
+        User, through="Enrollment", related_name="enrolled_courses", blank=True, verbose_name="Студенты"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Курс"
+        verbose_name_plural = "Курсы"
+        indexes = [
+            models.Index(fields=["slug"]),
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title)[:230]
+            self.slug = base or f"course-{int(timezone.now().timestamp())}"
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("course_detail", args=[self.slug])
+
+    @property
+    def display_image_url(self) -> Optional[str]:
+        """Без внешних хелперов: отдаём thumbnail/url, если настроено хранилище."""
+        try:
+            if self.thumbnail:
+                return self.thumbnail.url
+        except Exception:
+            pass
+        try:
+            if self.image:
+                return self.image.url
+        except Exception:
+            pass
+        return None
+
+
+class Module(TimestampedModel):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules", verbose_name="Курс")
+    title = models.CharField("Название модуля", max_length=255)
+    order = models.PositiveIntegerField("Порядок", default=1)
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Модуль"
+        verbose_name_plural = "Модули"
+        unique_together = [("course", "order")]
+
+    def __str__(self):
+        return f"{self.course.title} — {self.title}"
+
+
+class Lesson(TimestampedModel):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons", verbose_name="Модуль")
+    title = models.CharField("Название урока", max_length=255)
+    slug = models.SlugField("Слаг", max_length=255, blank=True)
+    order = models.PositiveIntegerField("Порядок", default=1)
+    duration_minutes = models.PositiveIntegerField("Длительность (мин.)", null=True, blank=True)
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        ordering = ["module__order", "order", "id"]
+        verbose_name = "Урок"
+        verbose_name_plural = "Уроки"
+        unique_together = [("module", "slug")]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title)[:230]
+            self.slug = base or f"lesson-{int(timezone.now().timestamp())}"
+        super().save(*args, **kwargs)
+
+
+class Enrollment(TimestampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments", verbose_name="Пользователь")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments", verbose_name="Курс")
+    completed = models.BooleanField("Курс завершён", default=False)
+
+    class Meta:
+        verbose_name = "Запись на курс"
+        verbose_name_plural = "Записи на курсы"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "course"], name="uniq_enrollment_user_course"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "course"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} → {self.course}"
+
+
+class LessonProgress(TimestampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="lesson_progress", verbose_name="Пользователь")
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="progress", verbose_name="Урок")
+    is_completed = models.BooleanField("Завершён", default=False)
+    percent = models.PositiveIntegerField("Прогресс, %", default=0)
+
+    class Meta:
+        verbose_name = "Прогресс по уроку"
+        verbose_name_plural = "Прогресс по урокам"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "lesson"], name="uniq_progress_user_lesson"),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.lesson} ({self.percent}%)"
+
+
+# =========================
+#      ОТЗЫВЫ/ИЗБРАННОЕ
+# =========================
+
+class Review(TimestampedModel):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews", verbose_name="Курс")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviews",
+                             verbose_name="Пользователь")
+    rating = models.PositiveSmallIntegerField("Оценка (1–5)", default=5)
+    comment = models.TextField("Отзыв", blank=True)
+    is_active = models.BooleanField("Показывать", default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+        indexes = [models.Index(fields=["course"])]
+
+    def __str__(self):
+        return f"Отзыв {self.user} о {self.course} — {self.rating}"
+
+
+class Wishlist(TimestampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist", verbose_name="Пользователь")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="wishlisted_in", verbose_name="Курс")
+
+    class Meta:
+        verbose_name = "Избранное"
+        verbose_name_plural = "Избранное"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "course"], name="uniq_wishlist_user_course"),
+        ]
+
+    def __str__(self):
+        return f"★ {self.user} — {self.course}"
+
+
+# =========================
+#          ОПЛАТЫ
+# =========================
+
+class Payment(TimestampedModel):
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+    STATUS_CHOICES = [
+        (PENDING, "В ожидании"),
+        (SUCCESS, "Успешно"),
+        (FAILED, "Ошибка"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments", verbose_name="Пользователь")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments", verbose_name="Курс")
+    amount = models.DecimalField("Сумма", max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    status = models.CharField("Статус", max_length=16, choices=STATUS_CHOICES, default=PENDING)
+    kaspi_invoice_id = models.CharField("Kaspi invoice ID", max_length=64, unique=True)
+    receipt = models.FileField("Чек", upload_to="payments/receipts/", blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Платёж"
+        verbose_name_plural = "Платежи"
+        indexes = [
+            models.Index(fields=["kaspi_invoice_id"]),
+            models.Index(fields=["user", "course"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.course} — {self.amount} ({self.status})"
+
+
+# =========================
+#     КОНТАКТЫ/СТАТЬИ
+# =========================
+
+class ContactMessage(TimestampedModel):
+    name = models.CharField("Имя", max_length=120)
+    email = models.EmailField("Email")
+    subject = models.CharField("Тема", max_length=200)
+    message = models.TextField("Сообщение")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Сообщение контактов"
+        verbose_name_plural = "Сообщения контактов"
+
+    def __str__(self):
+        return f"{self.email}: {self.subject}"
+
+
+# Опционально: CKEditor, если подключён
+try:
+    from ckeditor_uploader.fields import RichTextUploadingField  # type: ignore
+    _RichField = RichTextUploadingField
+except Exception:
+    _RichField = models.TextField  # fallback на обычный текст
+
+
+class Article(TimestampedModel):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    STATUS_CHOICES = [(DRAFT, "Черновик"), (PUBLISHED, "Опубликовано")]
+
+    title = models.CharField("Заголовок", max_length=255)
+    slug = models.SlugField("Слаг", max_length=255, unique=True, blank=True)
+    excerpt = models.TextField("Краткое описание", blank=True)
+    body = _RichField("Текст", blank=True)  # CKEditor если есть, иначе TextField
+    cover = models.ImageField("Обложка", upload_to="articles/", blank=True, null=True)
+
+    status = models.CharField("Статус", max_length=10, choices=STATUS_CHOICES, default=DRAFT)
+    published_at = models.DateTimeField("Опубликовано", blank=True, null=True)
+
+    class Meta:
+        ordering = ["-published_at", "-created_at"]
+        verbose_name = "Статья"
+        verbose_name_plural = "Статьи"
+        indexes = [models.Index(fields=["slug"])]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)[:250]
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("articles_detail", args=[self.slug])
