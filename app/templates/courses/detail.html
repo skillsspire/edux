@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}{{ course.title }} - SkillsSpire{% endblock %}
 
@@ -8,12 +8,14 @@
 <meta name="description" content="{{ course.short_description }}">
 <meta property="og:title" content="{{ course.title }}">
 <meta property="og:description" content="{{ course.short_description }}">
-<meta property="og:image" content="{{ course_image_url|default:default_course_img }}">
+<meta property="og:image" content="{% if course_image_url %}{{ course_image_url }}{% elif course.image %}{{ course.image.url }}{% else %}{{ default_course_img }}{% endif %}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
 {% endblock %}
 
 {% block content %}
-<!-- Hero -->
-<div class="course-hero" style="background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%);">
+{% if course %}
+<div class="course-hero">
   <div class="container py-5">
     <div class="row g-4 align-items-center">
       <div class="col-lg-8">
@@ -24,6 +26,15 @@
         <h1 class="course-title text-white mb-2">{{ course.title }}</h1>
         {% if course.short_description %}
           <p class="course-subtitle text-white-50 mb-4">{{ course.short_description }}</p>
+        {% endif %}
+
+        {% if has_access and user_progress %}
+        <div class="progress mb-3" style="height: 6px; max-width: 300px;">
+          <div class="progress-bar bg-success" style="--p: {{ user_progress.completion_percentage|default:0 }}%" data-pbar></div>
+        </div>
+        <small class="text-white-50 d-block mb-3">
+          Пройдено: {{ user_progress.completed_lessons_count }}/{{ lessons|length }} уроков
+        </small>
         {% endif %}
 
         <div class="d-flex flex-wrap align-items-center gap-3 mb-4 text-white-50">
@@ -43,16 +54,20 @@
           </div>
         </div>
 
-        {% with first_lesson=lessons.0 %}
         <div class="d-flex flex-wrap gap-2">
-          {% if has_access and first_lesson %}
-            <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-light">
-              <i class="bi bi-play-circle me-1"></i> Продолжить обучение
-            </a>
-          {% elif has_access %}
-            <a href="#course-content" class="btn btn-light">
-              <i class="bi bi-play-circle me-1"></i> Перейти к урокам
-            </a>
+          {% if has_access %}
+            {% if lessons %}
+              {% with next_lesson=user_progress.next_lesson|default:lessons.0 %}
+              <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-light">
+                <i class="bi bi-play-circle me-1"></i>
+                {% if user_progress and user_progress.current_lesson %}Продолжить обучение{% else %}Начать обучение{% endif %}
+              </a>
+              {% endwith %}
+            {% else %}
+              <button class="btn btn-light" disabled>
+                <i class="bi bi-clock me-1"></i> Уроки скоро появятся
+              </button>
+            {% endif %}
           {% else %}
             <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtn">
               <i class="bi bi-cart me-1"></i> Записаться на курс
@@ -63,44 +78,53 @@
             <i class="bi bi-list-ul me-1"></i> Программа курса
           </a>
         </div>
-        {% endwith %}
       </div>
 
       <div class="col-lg-4">
         <div class="card shadow-sm">
           <div class="card-body text-center">
-            {% if course.discount_price %}
-              <div class="d-flex justify-content-center align-items-baseline gap-2 mb-2">
-                <span class="text-decoration-line-through text-muted h6 mb-0">{{ course.price }} ₸</span>
-                <span class="h3 fw-bold text-primary mb-0">{{ course.discount_price }} ₸</span>
-              </div>
-            {% else %}
-              {% if course.price and course.price|floatformat != "0" %}
-                <div class="h3 fw-bold text-primary mb-2">{{ course.price }} ₸</div>
+            {% with old=course.price new=course.discount_price %}
+              {% if new and old and new < old %}
+                <div class="d-flex justify-content-center align-items-baseline gap-2 mb-2">
+                  <span class="text-decoration-line-through text-muted h6 mb-0">{{ old|floatformat:0|intcomma }} ₸</span>
+                  <span class="h3 fw-bold text-primary mb-0">{{ new|floatformat:0|intcomma }} ₸</span>
+                </div>
               {% else %}
-                <div class="h4 fw-bold text-success mb-2">Бесплатно</div>
+                {% if old and old|floatformat != "0" %}
+                  <div class="h3 fw-bold text-primary mb-2">{{ old|floatformat:0|intcomma }} ₸</div>
+                {% else %}
+                  <div class="h4 fw-bold text-success mb-2">Бесплатно</div>
+                {% endif %}
               {% endif %}
-            {% endif %}
+            {% endwith %}
 
             <div class="d-grid gap-2">
-              {% with first_lesson=lessons.0 %}
-                {% if has_access and first_lesson %}
-                  <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-success" id="startBtn">
-                    <i class="bi bi-play-circle me-1"></i> Начать обучение
+              {% if has_access %}
+                {% if lessons %}
+                  {% with next_lesson=user_progress.next_lesson|default:lessons.0 %}
+                  <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-success" id="startBtn">
+                    <i class="bi bi-play-circle me-1"></i>
+                    {% if user_progress and user_progress.current_lesson %}Продолжить{% else %}Начать обучение{% endif %}
                   </a>
-                {% elif has_access %}
-                  <a href="#course-content" class="btn btn-success" id="startBtnNoLesson">
-                    <i class="bi bi-play-circle me-1"></i> Начать обучение
-                  </a>
+                  {% endwith %}
                 {% else %}
-                  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtnSide">
-                    <i class="bi bi-cart me-1"></i> Записаться на курс
+                  <button class="btn btn-success" disabled>
+                    <i class="bi bi-clock me-1"></i> Уроки скоро появятся
                   </button>
                 {% endif %}
-              {% endwith %}
+              {% else %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtnSide">
+                  <i class="bi bi-cart me-1"></i> Записаться на курс
+                </button>
+              {% endif %}
 
-              <button id="wishlistBtn" class="btn btn-outline-primary">
-                <i class="bi bi-heart me-1"></i> Добавить в избранное
+              {# передаём исходное состояние избранного безопасно через data-attr #}
+              <button
+                id="wishlistBtn"
+                class="btn btn-outline-primary"
+                data-initial="{{ is_in_wishlist|yesno:'true,false,false' }}">
+                <i class="bi {% if is_in_wishlist %}bi-heart-fill{% else %}bi-heart{% endif %} me-1"></i>
+                <span class="btn-text">{% if is_in_wishlist %}В избранном{% else %}Добавить в избранное{% endif %}</span>
               </button>
             </div>
 
@@ -118,17 +142,15 @@
             </div>
           </div>
         </div>
-      </div> <!-- /col -->
+      </div>
+
     </div>
   </div>
 </div>
-<!-- /Hero -->
 
 <div class="container py-5">
   <div class="row g-4">
-    <!-- Контент -->
     <div class="col-lg-8">
-      <!-- О курсе -->
       <div class="card mb-4">
         <div class="card-body">
           <h3 class="h4 mb-3">О курсе</h3>
@@ -138,7 +160,6 @@
         </div>
       </div>
 
-      <!-- Программа курса -->
       <div id="course-content" class="card mb-4">
         <div class="card-header"><h4 class="mb-0 h5">Программа курса</h4></div>
         <div class="card-body p-0">
@@ -147,7 +168,7 @@
               {% for lesson in lessons %}
                 <div class="list-group-item d-flex justify-content-between align-items-center">
                   <div class="d-flex align-items-center">
-                    <i class="bi bi-play-circle text-muted fs-5 me-3"></i>
+                    <i class="bi {% if user_progress and lesson in user_progress.completed_lessons.all %}bi-check-circle-fill text-success{% else %}bi-play-circle text-muted{% endif %} fs-5 me-3"></i>
                     <div>
                       <h6 class="mb-1">{{ lesson.title }}</h6>
                       {% if lesson.duration_minutes %}
@@ -171,36 +192,51 @@
         </div>
       </div>
 
-      <!-- Отзывы -->
       <div class="card mb-4">
         <div class="card-body">
-          <h5 class="mb-3">Отзывы студентов</h5>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Отзывы студентов</h5>
+            <span class="badge bg-primary">{{ reviews|length }} отзывов</span>
+          </div>
+          
           {% for review in reviews %}
-            <div class="mb-3">
-              {% if review.user %}
-                <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
-              {% else %}
-                <strong>{{ review.name|default:"Аноним" }}</strong>
-              {% endif %}
-              <span class="text-muted ms-2">{{ review.created_at|date:"d M Y" }}</span>
-              <p class="mb-0 mt-1">{{ review.comment }}</p>
+          <div class="border-bottom pb-3 mb-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                {% if review.user %}
+                  <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                {% else %}
+                  <strong>{{ review.name|default:"Аноним" }}</strong>
+                {% endif %}
+                {% if review.rating %}
+                <div class="star-rating small text-warning">
+                  {% for i in "12345" %}
+                    <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <small class="text-muted">{{ review.created_at|date:"d M Y" }}</small>
             </div>
+            <p class="mb-0">{{ review.comment }}</p>
+          </div>
           {% empty %}
-            <p class="text-muted mb-0">Пока нет отзывов.</p>
+          <div class="text-center py-4">
+            <i class="bi bi-chat-quote display-4 text-muted mb-3"></i>
+            <p class="text-muted">Пока нет отзывов. Будьте первым!</p>
+          </div>
           {% endfor %}
         </div>
       </div>
     </div>
 
-    <!-- Сайдбар -->
     <div class="col-lg-4">
-      <!-- Преподаватель -->
       <div class="card mb-4 text-center">
         <div class="card-body">
           {% if teacher_profile and teacher_profile.display_avatar_url %}
-            <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100" style="object-fit:cover;">
+            <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100">
           {% else %}
-            <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100" style="object-fit:cover;">
+            <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
           {% endif %}
           {% if teacher %}
             <h5 class="mb-1">{{ teacher.get_full_name|default:teacher.username }}</h5>
@@ -212,27 +248,27 @@
         </div>
       </div>
 
-      <!-- Похожие курсы -->
       <div class="card">
         <div class="card-body">
           <h5 class="mb-3">Похожие курсы</h5>
-          {% for related_course in related_courses %}
-            <a href="{{ related_course.get_absolute_url }}" class="d-flex align-items-center mb-3 text-decoration-none">
-              {% if related_course.thumbnail %}
-                <img src="{{ related_course.thumbnail.url }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
-              {% elif related_course.image %}
-                <img src="{{ related_course.image.url }}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
+          {% for item in related_courses_with_images %}
+            <a href="{% url 'course_detail' item.course.slug %}" class="d-flex align-items-center mb-3 text-decoration-none">
+              {% if item.image_url %}
+                <img src="{{ item.image_url }}" alt="{{ item.course.title }}" class="rounded me-3" width="60" height="60">
               {% else %}
-                <img src="{% static 'img/courses/default.jpg' %}" alt="{{ related_course.title }}" class="rounded me-3" width="60" height="60" style="object-fit: cover;">
+                <img src="{% static 'img/courses/default.jpg' %}" alt="{{ item.course.title }}" class="rounded me-3" width="60" height="60">
               {% endif %}
               <div class="flex-grow-1">
-                <h6 class="mb-1 text-body">{{ related_course.title }}</h6>
-                {% if related_course.duration_hours %}
-                  <small class="text-muted">{{ related_course.duration_hours }} часов</small>
+                <h6 class="mb-1 text-body">{{ item.course.title }}</h6>
+                {% if item.course.duration_hours %}
+                  <small class="text-muted">{{ item.course.duration_hours }} часов</small>
                 {% endif %}
                 <div class="mt-1">
-                  {% if related_course.price and related_course.price|floatformat != "0" %}
-                    <span class="text-primary fw-bold">{{ related_course.price }} ₸</span>
+                  {% if item.course.discount_price and item.course.price and item.course.discount_price < item.course.price %}
+                    <span class="text-primary fw-bold">{{ item.course.discount_price|floatformat:0|intcomma }} ₸</span>
+                    <small class="text-decoration-line-through text-muted ms-1">{{ item.course.price|floatformat:0|intcomma }} ₸</small>
+                  {% elif item.course.price and item.course.price|floatformat != "0" %}
+                    <span class="text-primary fw-bold">{{ item.course.price|floatformat:0|intcomma }} ₸</span>
                   {% else %}
                     <span class="text-success fw-bold">Бесплатно</span>
                   {% endif %}
@@ -245,10 +281,11 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Модалка записи/оплаты -->
+{# enroll modal #}
 <div class="modal fade" id="enrollModal" tabindex="-1" aria-labelledby="enrollModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -261,61 +298,136 @@
         <div class="d-flex justify-content-between align-items-center">
           <span>Стоимость:</span>
           <span class="h4 text-primary fw-bold" id="coursePrice">
-            {% if course.discount_price %}{{ course.discount_price }}{% else %}{{ course.price }}{% endif %} ₸
+            {% if course.discount_price and course.price and course.discount_price < course.price %}
+              {{ course.discount_price|floatformat:0|intcomma }}
+            {% else %}
+              {{ course.price|default:"0"|floatformat:0|intcomma }}
+            {% endif %} ₸
           </span>
         </div>
+        {% if not course.price or course.price|floatformat == "0" %}
+        <div class="alert alert-info mt-3 mb-0">
+          <i class="bi bi-info-circle me-2"></i>Этот курс бесплатный
+        </div>
+        {% endif %}
       </div>
       <div class="modal-footer">
         <form action="{% url 'enroll_course' course.slug %}" method="post" class="ms-auto" id="enrollForm">
           {% csrf_token %}
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
           <button type="submit" class="btn btn-primary" id="enrollSubmit">
-            Оплатить и записаться
+            {% if course.price and course.price|floatformat != "0" %}Оплатить и записаться{% else %}Записаться бесплатно{% endif %}
           </button>
         </form>
       </div>
     </div>
   </div>
 </div>
+{% else %}
+<div class="container py-5">
+  <div class="alert alert-danger text-center">
+    <h4 class="alert-heading">Курс не найден</h4>
+    <p class="mb-0">Запрошенный курс не существует или был удален.</p>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
-<script>
-(function () {
-  function getCSRFToken() {
-    const input = document.querySelector('input[name=csrfmiddlewaretoken]');
-    if (input) return input.value;
-    const m = document.cookie.match(/(?:^|;)\s*csrftoken=([^;]+)/);
-    return m ? m[1] : '';
-  }
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Course",
+  "name": "{{ course.title|escapejs }}",
+  "description": "{{ course.short_description|escapejs }}",
+  "provider": { "@type": "Organization", "name": "SkillsSpire" }
+}
+</script>
 
-  const enrollSubmit = document.getElementById('enrollSubmit');
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // блокер двойной отправки в модалке
   const enrollForm = document.getElementById('enrollForm');
-  if (enrollForm && enrollSubmit) {
-    enrollForm.addEventListener('submit', function () {
-      enrollSubmit.disabled = true;
-      enrollSubmit.classList.add('disabled');
-      enrollSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Обработка...';
+  if (enrollForm) {
+    enrollForm.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработка...';
+      }
     });
   }
 
+  // Избранное: без шаблонных вставок внутрь JS
   const wishlistBtn = document.getElementById('wishlistBtn');
   if (wishlistBtn) {
-    wishlistBtn.addEventListener('click', function () {
-      fetch("{% url 'toggle_wishlist' course.slug %}", {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': getCSRFToken()
+    let isInWishlist = (wishlistBtn.dataset.initial === 'true');
+
+    wishlistBtn.addEventListener('click', async function () {
+      try {
+        const response = await fetch("{% url 'toggle_wishlist' course.slug %}", {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          isInWishlist = !!data.in_wishlist;
+          updateWishlistButton();
+          if (data.message) showToast(data.message, 'success');
+        } else {
+          throw new Error('Network error');
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert((data && data.message) ? data.message : 'Статус избранного обновлён.');
-      })
-      .catch(() => alert('Не удалось обновить избранное'));
+      } catch (error) {
+        showToast('Не удалось обновить избранное', 'error');
+      }
     });
+
+    function updateWishlistButton() {
+      const icon = wishlistBtn.querySelector('i');
+      const text = wishlistBtn.querySelector('.btn-text');
+      if (isInWishlist) {
+        icon.className = 'bi bi-heart-fill me-1';
+        text.textContent = 'В избранном';
+        wishlistBtn.classList.add('active');
+      } else {
+        icon.className = 'bi bi-heart me-1';
+        text.textContent = 'Добавить в избранное';
+        wishlistBtn.classList.remove('active');
+      }
+    }
+    updateWishlistButton();
   }
-})();
+
+  function showToast(message, type) {
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-bg-' + (type === 'error' ? 'danger' : 'success') + ' border-0';
+    toast.innerHTML = '<div class="d-flex"><div class="toast-body">' + message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    toast.addEventListener('hidden.bs.toast', function() { toast.remove(); });
+  }
+
+  function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+  }
+});
 </script>
+
+<style>
+.course-hero { background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%); }
+.course-hero img, .card img { object-fit: cover; }
+/* ширина прогресс-бара из CSS-переменной (убирает ворнинг линтера) */
+.progress [data-pbar]{ width: var(--p, 0%); }
+</style>
 {% endblock %}

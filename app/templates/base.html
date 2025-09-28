@@ -21,7 +21,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
-  {# небольшой анти-конфликт маскота и AI-баббла #}
   <style>
     #ai-bubble{ z-index:1300; }
     .mskt{ bottom:88px; }
@@ -31,10 +30,8 @@
 </head>
 <body>
 
-{# МАСКОТ — обязательно внутри <body> #}
 {% include "components/mascot_snowleopard.html" %}
 
-<!-- NAVIGATION -->
 <nav class="main-nav">
   <div class="container nav-container">
     <a class="nav-brand" href="{% url 'home' %}">
@@ -72,7 +69,6 @@
                     aria-disabled="true"
                     disabled>
               <i class="bi bi-bell"></i>
-              {# <span class="nav-badge">3</span> #}
             </button>
           </div>
 
@@ -123,7 +119,6 @@
   </div>
 </nav>
 
-<!-- MESSAGES -->
 {% if messages %}
 <div class="messages-container">
   <div class="container">
@@ -143,12 +138,10 @@
 </div>
 {% endif %}
 
-<!-- MAIN CONTENT -->
 <main>
   {% block content %}{% endblock %}
 </main>
 
-<!-- FOOTER -->
 <footer class="main-footer">
   <div class="container">
     <div class="footer-grid">
@@ -207,7 +200,6 @@
   </div>
 </footer>
 
-<!-- ===== AI Widget (перед закрывающим body) ===== -->
 <link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}">
 <div id="ai-bubble" title="Открыть ассистента">ИИ</div>
 <div id="ai-panel" role="dialog" aria-label="AI Assistant">
@@ -226,9 +218,7 @@
   window.AI_WIDGET_CONFIG = { kbUrl: "{% static 'ai-widget/kb.json' %}" };
 </script>
 <script type="module" src="{% static 'ai-widget/ai-widget.js' %}"></script>
-<!-- ===== /AI Widget ===== -->
 
-<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
 <script defer src="{% static 'js/main.js' %}"></script>
 {% block extra_js %}{% endblock %}

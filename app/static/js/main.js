@@ -232,3 +232,105 @@
     setTimeout(()=> window.mascot.say('начни с поиска курса 👇'), 1200);
   }
 })();
+
+(function(){
+  const root = document.getElementById('assist-root');
+  if(!root) return;
+
+  const fab = root.querySelector('[data-fab]');
+  const panel = document.getElementById('assist-panel');
+  const btnClose = root.querySelector('[data-panel-close]');
+  const teaser = root.querySelector('[data-teaser]');
+  const teaserClose = root.querySelector('[data-teaser-close]');
+  const nowEl = root.querySelector('[data-now]');
+  const autoshow = parseInt(root.dataset.teaserAutoshowMs || "0", 10);
+  const aiEnabled = (root.dataset.aiEnabled === "true");
+  const askForm = root.querySelector('[data-ask-form]');
+  const chatBox = root.querySelector('[data-chat]');
+
+  // time label
+  try {
+    const t = new Date();
+    nowEl && (nowEl.textContent = t.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+  } catch(e){}
+
+  // teaser autoshow once
+  if (teaser && !localStorage.getItem('assistTeaserSeen')) {
+    if (autoshow > 0) setTimeout(()=> teaser.hidden = false, autoshow);
+  }
+
+  teaserClose && teaserClose.addEventListener('click', () => {
+    teaser.hidden = true;
+    localStorage.setItem('assistTeaserSeen','1');
+  });
+
+  function openPanel(){
+    panel.setAttribute('aria-hidden','false');
+    fab.setAttribute('aria-expanded','true');
+    teaser && (teaser.hidden = true);
+  }
+  function closePanel(){
+    panel.setAttribute('aria-hidden','true');
+    fab.setAttribute('aria-expanded','false');
+  }
+
+  fab && fab.addEventListener('click', () => {
+    const isOpen = panel.getAttribute('aria-hidden') === 'false';
+    isOpen ? closePanel() : openPanel();
+  });
+  btnClose && btnClose.addEventListener('click', closePanel);
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closePanel(); });
+
+  // AI form (disabled by default)
+  if (!aiEnabled && askForm) {
+    askForm.hidden = true;
+  } else if (askForm) {
+    askForm.hidden = false;
+    if (chatBox) chatBox.hidden = false;
+
+    askForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const input = askForm.querySelector('input[name="q"]');
+      const text = (input.value || '').trim();
+      if (!text) return;
+
+      appendMsg(text, 'user');
+      input.value = '';
+      appendMsg('Печатаю…', 'bot', true);
+
+      try{
+        const res = await fetch('/api/assistant/ask/', {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'X-CSRFToken': getCSRF()
+          },
+          body: JSON.stringify({ question: text, page: location.pathname })
+        });
+        const data = await res.json();
+        replaceLastTyping(data.answer || 'Готово.');
+      }catch(err){
+        replaceLastTyping('Скоро подключим ИИ. Пока напишите нам в мессенджер 👇');
+      }
+    });
+  }
+
+  function appendMsg(text, who='bot', typing=false){
+    chatBox.hidden = false;
+    const div = document.createElement('div');
+    div.className = 'assist-msg ' + (who === 'user' ? 'assist-msg--user' : 'assist-msg--bot');
+    div.textContent = text;
+    if(typing) div.dataset.typing = "1";
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+  function replaceLastTyping(text){
+    const last = chatBox.querySelector('[data-typing="1"]');
+    if (last){ last.remove(); }
+    appendMsg(text, 'bot', false);
+  }
+  function getCSRF(){
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+})();

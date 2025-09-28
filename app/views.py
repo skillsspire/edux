@@ -204,10 +204,23 @@ def course_detail(request, slug):
         )
     except (ProgrammingError, DatabaseError):
         lessons = Lesson.objects.none()
+    
     related_courses = (
         Course.objects.filter(category=course.category)
         .exclude(id=course.id).select_related("category")[:4]
     )
+    
+    related_courses_with_images = []
+    for related_course in related_courses:
+        thumb_name = getattr(related_course.thumbnail, 'name', None) if related_course.thumbnail else None
+        image_name = getattr(related_course.image, 'name', None) if related_course.image else None
+        image_url = public_storage_url(first_nonempty(thumb_name, image_name))
+        
+        related_courses_with_images.append({
+            'course': related_course,
+            'image_url': image_url
+        })
+    
     reviews = Review.objects.filter(course=course, is_active=True).select_related("user")[:10]
     instructor_profile = None
     if course.instructor_id:
@@ -216,10 +229,11 @@ def course_detail(request, slug):
     thumb_name = getattr(getattr(course, "thumbnail", None), "name", None)
     image_name = getattr(getattr(course, "image", None), "name", None)
     course_image_url = public_storage_url(first_nonempty(thumb_name, image_name))
+    
     return render(request, "courses/detail.html", {
         "course": course,
         "lessons": lessons,
-        "related_courses": related_courses,
+        "related_courses_with_images": related_courses_with_images,
         "reviews": reviews,
         "has_access": has_access,
         "teacher": teacher,

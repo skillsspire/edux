@@ -1,0 +1,65 @@
+{% load static %}
+<!-- Assistant widget -->
+<div id="assist-root" class="assist" data-ai-enabled="false" data-teaser-autoshow-ms="4000">
+  <!-- teaser bubble -->
+  <div class="assist__teaser" data-teaser hidden>
+    <div class="assist__bubble" role="dialog" aria-live="polite">
+      <div class="assist__head">
+        <div class="assist__avatar">S</div>
+        <div class="assist__title">
+          <b>EDUX — ваш помощник</b>
+          <span class="assist__time" data-now></span>
+        </div>
+        <button class="assist__close" type="button" data-teaser-close aria-label="Закрыть">✕</button>
+      </div>
+      <div class="assist__text">
+        <p>Готовы к переменам? 🎓</p>
+        <p>Узнайте всё о курсах, которые поднимут вас на новый уровень! Выбирайте мессенджер ⬇️</p>
+      </div>
+    </div>
+    <a href="https://t.me/your_channel"
+       class="assist__tg"
+       target="_blank" rel="noopener">Telegram</a>
+  </div>
+
+  <!-- floating button -->
+  <button class="assist__fab" data-fab aria-expanded="false" aria-controls="assist-panel" title="Задать вопрос">
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 21l1.6-5.6A9 9 0 1110 22H9a1 1 0 01-.7-.3l-6.3-6.3L2 21z" fill="currentColor"/></svg>
+  </button>
+
+  <!-- panel -->
+  <div id="assist-panel" class="assist__panel" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="assist__panel-head">
+      <div class="assist__avatar">S</div>
+      <div>
+        <div class="assist__panel-title">EDUX — ваш помощник</div>
+        <div class="assist__panel-status">Мы онлайн 👋</div>
+      </div>
+      <button class="assist__collapse" data-panel-close aria-label="Свернуть">▾</button>
+    </div>
+
+    <div class="assist__panel-body">
+      <p class="assist__lead">Чем можем помочь? Задайте вопрос в любом из мессенджеров 😉</p>
+
+      <div class="assist__messengers">
+        <a href="https://t.me/your_channel"
+           class="assist__btn assist__btn--tg"
+           target="_blank" rel="noopener">Telegram</a>
+
+        <a href="https://wa.me/1234567890?text=Здравствуйте!%20Хочу%20узнать%20о%20курсах"
+           class="assist__btn assist__btn--wa"
+           target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+
+      <div class="assist__divider"><span>или</span></div>
+
+      <!-- AI ask (выключено по умолчанию data-ai-enabled="false") -->
+      <form class="assist__ask" data-ask-form hidden>
+        <input name="q" placeholder="Спросить ИИ об учебных программах…" autocomplete="off" />
+        <button type="submit" class="assist__send">Отправить</button>
+      </form>
+
+      <div class="assist__chat" data-chat hidden aria-live="polite"></div>
+    </div>
+  </div>
+</div>

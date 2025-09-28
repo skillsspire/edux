@@ -5,7 +5,6 @@
 
 {% block content %}
 
-<!-- HERO -->
 <section class="section" style="padding-top: 3rem; padding-bottom: 2rem;">
   <div class="container">
     <div class="section-header text-center">
@@ -13,10 +12,8 @@
       <p class="text-muted">Выберите курс, который поможет вам достичь карьерных целей</p>
     </div>
 
-    <!-- Поиск -->
     <div class="d-flex justify-content-center mt-3">
       <form action="{% url 'courses_list' %}" method="get" class="hero-search w-100" style="max-width:600px;">
-        {# сохраняем текущие фильтры при поиске #}
         {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
         {% for lvl in selected_levels %}<input type="hidden" name="level" value="{{ lvl }}">{% endfor %}
         {% if price_filter %}<input type="hidden" name="price" value="{{ price_filter }}">{% endif %}
@@ -31,18 +28,14 @@
   </div>
 </section>
 
-<!-- ОСНОВНАЯ СЕКЦИЯ -->
 <section class="section pt-0">
   <div class="container">
     <div class="row g-4">
-      <!-- Сайдбар -->
       <aside class="col-lg-3">
-        <!-- Категории -->
         <div class="card mb-3">
           <div class="card-body">
             <h5 class="card-title mb-3">Категории</h5>
             <div class="d-flex flex-column gap-1">
-              {# ссылка "Все курсы" — без category, но с остальными параметрами #}
               {% if not selected_categories %}
                 <a
                   href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if price_filter %}price={{ price_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
@@ -76,20 +69,17 @@
           </div>
         </div>
 
-        <!-- Фильтры -->
         <div class="card">
           <div class="card-body">
             <h5 class="card-title mb-3">Фильтры</h5>
 
             <form action="{% url 'courses_list' %}" method="get" class="d-flex flex-column gap-3">
-              {# сохраняем выбранные категории #}
               {% for cat in selected_categories %}
                 <input type="hidden" name="category" value="{{ cat }}">
               {% endfor %}
               {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
               {% if sort_by %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
 
-              <!-- Уровень -->
               <div>
                 <label class="form-label fw-semibold">Уровень</label>
                 <div class="d-flex flex-column gap-2">
@@ -108,7 +98,6 @@
                 </div>
               </div>
 
-              <!-- Цена -->
               <div>
                 <label class="form-label fw-semibold">Цена</label>
                 <select name="price" class="form-select">
@@ -126,9 +115,7 @@
         </div>
       </aside>
 
-      <!-- Список курсов -->
       <div class="col-lg-9">
-        <!-- Сортировка -->
         <div class="d-flex justify-content-end align-items-center mb-3">
           <form method="get" class="d-flex align-items-center gap-2">
             {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
@@ -147,18 +134,10 @@
           </form>
         </div>
 
-        <!-- Сетка курсов -->
         <div class="courses-grid">
           {% for course in courses %}
             <div class="course-card">
-
-              {% if course.thumbnail %}
-                <img src="{{ course.thumbnail.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
-              {% elif course.image %}
-                <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
-              {% else %}
-                <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
-              {% endif %}
+              <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
 
               <div class="course-card-content">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -210,7 +189,6 @@
           {% endfor %}
         </div>
 
-        <!-- Пагинация -->
         {% if is_paginated %}
           <nav class="mt-4" aria-label="Навигация по страницам">
             <ul class="pagination justify-content-center mb-0">

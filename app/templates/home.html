@@ -95,13 +95,7 @@
     <div class="courses-grid">
       {% for course in popular_courses %}
         <div class="course-card">
-          {% if course.image %}
-            <img src="{{ course.image.url }}" class="course-card-img" alt="{{ course.title }}">
-          {% elif course.thumbnail %}
-            <img src="{{ course.thumbnail.url }}" class="course-card-img" alt="{{ course.title }}">
-          {% else %}
-            <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ course.title }}">
-          {% endif %}
+          <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}">
           <div class="course-card-content">
             <span class="course-category">{{ course.category.name|default:"Без категории" }}</span>
             <h3 class="course-card-title">{{ course.title }}</h3>
@@ -110,7 +104,7 @@
               <div class="course-rating">
                 <i class="bi bi-star-fill" aria-hidden="true"></i>
                 {{ course.average_rating|default:"4.8" }}
-                <span class="course-reviews">({{ course.reviews.count|default:0 }} отзывов)</span>
+                <span class="course-reviews">({{ course.reviews_count|default:0 }} отзывов)</span>
               </div>
               <span class="course-price">
                 {% if course.price and course.price > 0 %}
