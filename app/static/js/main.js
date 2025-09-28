@@ -127,150 +127,108 @@
 })();
 
 /* =========================================================
-   MASCOT CONTROLLER (Snow Leopard helper)
-   - eye tracking (cursor-look)
-   - peek from edges occasionally
-   - low-frequency patrol walk
-   - wave on click, hint/celebrate events
-   Requires SVG structure from mascot_snowleopard.html (ids/classes used below)
+   MASCOT CONTROLLER (PNG version)
+   - tilt-to-cursor (лёгкий наклон головы)
+   - peek из краёв, patrol по низу
+   - клики, подсказки
+   - публичное API: mascot.hop/nod/shake/wink/say
 ========================================================= */
-(function () {
+(function(){
   const root = document.getElementById('mskt');
-  if (!root) return;
+  if(!root) return;
 
-  // Respect reduced motion
+  const wrap   = root.querySelector('.mskt-imgwrap');
+  const winkImg= root.querySelector('.mskt-wink-img'); // может отсутствовать
+  const bubble = root.querySelector('.mskt-bubble');
+  const textEl = root.querySelector('.mskt-text');
+
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Elements inside SVG
-  const irises  = root.querySelectorAll('.eye-i');    // pupils
-  const eyelids = root.querySelectorAll('.eyelid');   // blink rects
+  // ---- Helpers
+  const clamp = (v,min,max)=>Math.max(min, Math.min(max,v));
+  function pulse(cls, ms=500){ root.classList.add(cls); setTimeout(()=>root.classList.remove(cls), ms); }
 
-  // State / timers
-  let peekTimer = null;
-  let patrolTimer = null;
-  let visibleForPeek = true;
-
-  // Config (tune if нужно)
-  const CFG = {
-    peekMin: 6000,          // 6s
-    peekMax: 15000,         // 15s
-    patrolMin: 20000,       // 20s
-    patrolMax: 40000,       // 40s
-    waveDuration: 800
+  // ---- Public API
+  window.mascot = {
+    hop(){ pulse('hop', 520); },
+    shake(){ pulse('shake', 420); },
+    nod(){ pulse('nod', 460); },
+    wink(){
+      if(!winkImg){ pulse('nod', 320); return; } // fallback без слоя-века
+      root.classList.add('wink');
+      setTimeout(()=> root.classList.add('wink-off'), 280);
+      setTimeout(()=> { root.classList.remove('wink','wink-off'); }, 360);
+    },
+    say(msg='подсказка', ms=2400){
+      if(!bubble || !textEl) return;
+      textEl.textContent = msg;
+      bubble.style.opacity = '1';
+      setTimeout(()=> bubble.style.opacity = '', ms);
+    }
   };
 
-  /* ---------- Eye tracking (cursor-look) ---------- */
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-  let lastTilt = 0;
-
-  function onPointerMove(e) {
-    const rect = root.getBoundingClientRect();
-    const headX = rect.left + rect.width / 2;
-    const headY = rect.top + rect.height / 2;
-    const dx = clamp((e.clientX - headX) / 28, -3, 3);
-    const dy = clamp((e.clientY - headY) / 28, -3, 3);
-    irises.forEach(el => el.setAttribute('transform', `translate(${dx} ${dy})`));
-
-    lastTilt = clamp((e.clientX - headX) / 120, -6, 6);
-    root.style.setProperty('--mskt-tilt', lastTilt.toFixed(2) + 'deg');
+  // ---- Tilt to cursor
+  function onPointerMove(e){
+    const r = wrap.getBoundingClientRect();
+    const cx = r.left + r.width/2;
+    const dx = clamp((e.clientX - cx)/120, -6, 6);
+    root.style.setProperty('--mskt-tilt', dx.toFixed(2) + 'deg');
     root.classList.add('look');
   }
-  window.addEventListener('pointermove', onPointerMove, { passive: true });
+  window.addEventListener('pointermove', onPointerMove, { passive:true });
 
-  /* ---------- Peek behavior (from screen edges) ---------- */
-  const edges = ['peek-left', 'peek-right', 'peek-top', 'peek-bottom'];
+  // ---- Peek & Patrol
+  const edges = ['peek-left','peek-right','peek-top','peek-bottom'];
+  const CFG = { peekMin:6000, peekMax:15000, patrolMin:20000, patrolMax:40000 };
+  let peekTimer=null, patrolTimer=null, allowPeek=true;
 
-  function schedulePeek() {
-    if (reduceMotion) return;
-    const delay = CFG.peekMin + Math.random() * (CFG.peekMax - CFG.peekMin);
+  function schedulePeek(){
+    if(reduceMotion) return;
     clearTimeout(peekTimer);
-    peekTimer = setTimeout(doPeek, delay);
+    peekTimer = setTimeout(doPeek, CFG.peekMin + Math.random()*(CFG.peekMax-CFG.peekMin));
   }
-  function doPeek() {
-    if (document.hidden || !visibleForPeek) { schedulePeek(); return; }
-    const edgeClass = edges[Math.floor(Math.random() * edges.length)];
-    root.classList.add(edgeClass, 'peek-enter');
-    setTimeout(() => root.classList.remove('peek-enter'), 500);
-
-    // look roughly to center
-    irises.forEach(el => el.setAttribute('transform', 'translate(1 0)'));
-
-    // hide back
-    setTimeout(() => {
+  function doPeek(){
+    if(document.hidden || !allowPeek){ schedulePeek(); return; }
+    const edge = edges[(Math.random()*edges.length)|0];
+    root.classList.add(edge,'peek-enter');
+    setTimeout(()=> root.classList.remove('peek-enter'), 500);
+    setTimeout(()=>{
       root.classList.add('peek-exit');
-      setTimeout(() => {
-        root.classList.remove('peek-exit', edgeClass);
-        schedulePeek();
-      }, 380);
+      setTimeout(()=>{ root.classList.remove('peek-exit', edge); schedulePeek(); }, 380);
     }, 2500);
   }
   schedulePeek();
 
-  /* ---------- Patrol walk (across bottom) ---------- */
-  function schedulePatrol() {
-    if (reduceMotion) return;
-    const delay = CFG.patrolMin + Math.random() * (CFG.patrolMax - CFG.patrolMin);
+  function schedulePatrol(){
+    if(reduceMotion) return;
     clearTimeout(patrolTimer);
-    patrolTimer = setTimeout(patrol, delay);
+    patrolTimer = setTimeout(patrol, CFG.patrolMin + Math.random()*(CFG.patrolMax-CFG.patrolMin));
   }
-  function patrol() {
-    if (document.hidden) { schedulePatrol(); return; }
-    // don't patrol while peeking
-    if (edges.some(c => root.classList.contains(c))) { schedulePatrol(); return; }
-
-    root.classList.add('patrol');
-    visibleForPeek = false;
-
-    // after animation ends (~14.5s in CSS), reset back to corner
-    setTimeout(() => {
+  function patrol(){
+    if(document.hidden) { schedulePatrol(); return; }
+    if(edges.some(c=>root.classList.contains(c))) { schedulePatrol(); return; }
+    root.classList.add('patrol'); allowPeek=false;
+    setTimeout(()=>{
       root.classList.remove('patrol');
-      root.style.left = '';
-      root.style.top = '';
-      root.style.right = '18px';
-      root.style.bottom = '18px';
-      visibleForPeek = true;
-      schedulePatrol();
+      root.style.left=''; root.style.top=''; root.style.right='18px'; root.style.bottom='88px';
+      allowPeek=true; schedulePatrol();
     }, 14500);
   }
   schedulePatrol();
 
-  /* ---------- Interactions ---------- */
-  root.addEventListener('click', () => {
-    root.classList.add('wave');
-    setTimeout(() => root.classList.remove('wave'), CFG.waveDuration);
+  // ---- Interactions & events
+  root.addEventListener('click', ()=> window.mascot.hop());
+  document.addEventListener('mascot:celebrate', ()=> window.mascot.hop());
+  document.addEventListener('mascot:hint', (e)=> window.mascot.say(e.detail?.text || 'подсказка'));
+
+  // ---- Visibility
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ clearTimeout(peekTimer); clearTimeout(patrolTimer); }
+    else { schedulePeek(); schedulePatrol(); }
   });
 
-  document.addEventListener('mascot:celebrate', () => {
-    root.classList.add('wave');
-    setTimeout(() => root.classList.remove('wave'), CFG.waveDuration);
-  });
-
-  document.addEventListener('mascot:hint', (e) => {
-    const msg = e.detail?.text || 'подсказка';
-    const bubble = root.querySelector('.mskt-bubble');
-    const text = root.querySelector('.mskt-text');
-    if (!bubble || !text) return;
-    text.textContent = msg;
-    bubble.style.opacity = '1';
-    setTimeout(() => bubble.style.opacity = '', 2600);
-  });
-
-  // pause/resume when tab visibility changes
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      clearTimeout(peekTimer);
-      clearTimeout(patrolTimer);
-    } else {
-      schedulePeek();
-      schedulePatrol();
-    }
-  });
-
-  // Optional: greeting on hero
-  if (document.querySelector('.course-hero')) {
-    setTimeout(() => {
-      const evt = new CustomEvent('mascot:hint', { detail: { text: 'начни с поиска курса 👇' } });
-      document.dispatchEvent(evt);
-    }, 1200);
+  // Greeting on hero
+  if(document.querySelector('.course-hero')){
+    setTimeout(()=> window.mascot.say('начни с поиска курса 👇'), 1200);
   }
 })();
