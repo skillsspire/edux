@@ -1,0 +1,57 @@
+{# components/mascot_snowleopard.html #}
+<div id="mskt" class="mskt" aria-hidden="true">
+  <div class="mskt-bubble" role="status">
+    <span class="mskt-text">нужна помощь?</span>
+  </div>
+
+  <!-- Snow Leopard SVG (white; accents = --color-primary) -->
+  <svg class="mskt-svg" viewBox="0 0 120 120" width="92" height="92" aria-hidden="true">
+    <!-- тень -->
+    <ellipse cx="60" cy="112" rx="20" ry="6" class="mskt-shadow"/>
+    <!-- шапочка -->
+    <g class="mskt-cap">
+      <path d="M32 35 l28 -12 28 12 -28 12z" />
+      <rect x="57" y="37" width="6" height="18" rx="2"/>
+      <circle cx="86" cy="45" r="3"/>
+    </g>
+    <!-- морда -->
+    <g class="mskt-face">
+      <circle cx="60" cy="58" r="38" class="f-base"/>
+      <g class="ears">
+        <path d="M28 38 a12 12 0 0 1 20 -8 v10 a12 12 0 0 1 -20 0z" class="ear"/>
+        <path d="M92 38 a12 12 0 0 0 -20 -8 v10 a12 12 0 0 0 20 0z" class="ear"/>
+      </g>
+      <!-- снежные пятна/полосы -->
+      <g class="spots">
+        <path d="M44 40 c-6 4 -6 8 0 10"/>
+        <path d="M76 40 c6 4 6 8 0 10"/>
+        <path d="M60 30 c-8 6 -8 10 0 12"/>
+        <path d="M38 60 c-8 0 -8 8 0 8"/>
+        <path d="M82 60 c8 0 8 8 0 8"/>
+      </g>
+      <!-- глаза -->
+      <g class="eyes">
+        <ellipse cx="46" cy="58" rx="7" ry="8" class="eye-w"/>
+        <circle cx="46" cy="58" r="3" class="eye-i"/>
+        <ellipse cx="74" cy="58" rx="7" ry="8" class="eye-w"/>
+        <circle cx="74" cy="58" r="3" class="eye-i"/>
+        <!-- веки для моргания -->
+        <rect x="38" y="48" width="16" height="20" rx="8" class="eyelid"/>
+        <rect x="66" y="48" width="16" height="20" rx="8" class="eyelid"/>
+      </g>
+      <!-- нос+рот -->
+      <ellipse cx="60" cy="73" rx="8" ry="5" class="nose"/>
+      <path d="M50 82 q10 8 20 0" class="mouth"/>
+      <!-- лапа для «взмаха» -->
+      <g class="paw">
+        <path d="M88 86 q-6 -4 -10 0 q-6 6 0 12 q6 6 12 0 q6 -6 -2 -12" class="paw-pad"/>
+        <circle cx="84" cy="92" r="2.2"/><circle cx="88" cy="90" r="2.2"/><circle cx="90" cy="94" r="2.2"/>
+      </g>
+      <!-- книга -->
+      <g class="book">
+        <rect x="28" y="80" width="26" height="18" rx="3"/>
+        <rect x="30" y="82" width="22" height="14" rx="2" class="book-p"/>
+      </g>
+    </g>
+  </svg>
+</div>
