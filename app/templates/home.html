@@ -30,6 +30,73 @@
   </div>
 </section>
 
+<!-- PARTNERS -->
+<section class="partners-section">
+  <div class="container">
+    <div class="section-header text-center">
+      <h2>Наши партнёры</h2>
+      <p class="text-muted">Курсы и программы от ведущих университетов и компаний</p>
+    </div>
+
+    <ul class="partners-grid">
+      {# Если partners пришли из бэкенда #}
+      {% if partners %}
+        {% for p in partners %}
+          <li class="partner-item">
+            <a href="{{ p.url|default:'#' }}" class="partner-card" title="{{ p.name }}">
+              {% if p.logo %}
+                {# File/ImageField #}
+                <img src="{{ p.logo.url }}" alt="{{ p.name }}">
+              {% else %}
+                <span class="partner-fallback">{{ p.name }}</span>
+              {% endif %}
+              {% if p.tagline %}<span class="partner-tagline">{{ p.tagline }}</span>{% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      {% else %}
+        {# Запасные лого из статики #}
+        <li class="partner-item">
+          <div class="partner-card">
+            <img src="{% static 'img/partners/michigan.svg' %}" alt="University of Michigan">
+            <span class="partner-tagline">Data Science, Python</span>
+          </div>
+        </li>
+        <li class="partner-item">
+          <div class="partner-card">
+            <img src="{% static 'img/partners/duke.svg' %}" alt="Duke University">
+            <span class="partner-tagline">Cloud &amp; DevOps</span>
+          </div>
+        </li>
+        <li class="partner-item">
+          <div class="partner-card">
+            <img src="{% static 'img/partners/google.svg' %}" alt="Google">
+            <span class="partner-tagline">Career Certificates</span>
+          </div>
+        </li>
+        <li class="partner-item">
+          <div class="partner-card">
+            <img src="{% static 'img/partners/ibm.svg' %}" alt="IBM">
+            <span class="partner-tagline">Data / AI</span>
+          </div>
+        </li>
+        <li class="partner-item">
+          <div class="partner-card">
+            <img src="{% static 'img/partners/vanderbilt.svg' %}" alt="Vanderbilt University">
+            <span class="partner-tagline">Prompt Engineering</span>
+          </div>
+        </li>
+        <li class="partner-item">
+          <div class="partner-card">
+            <img src="{% static 'img/partners/jhu.svg' %}" alt="Johns Hopkins">
+            <span class="partner-tagline">Healthcare &amp; Data</span>
+          </div>
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+</section>
+
 <!-- CATEGORIES -->
 <section class="categories-section">
   <div class="container">

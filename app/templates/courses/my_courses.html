@@ -1,59 +1,86 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n app_extras %}
 
-{% block title %}Мои курсы — SkillsSpire{% endblock %}
+{% block title %}{% trans "My Courses" %} — SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <h1 class="mb-4">Мои курсы</h1>
-    <div class="row">
-        {% for enrollment in enrollments %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                {% if enrollment.course.thumbnail and enrollment.course.thumbnail.name %}
-                    <img src="{{ enrollment.course.thumbnail.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" style="height:200px; object-fit:cover;">
-                {% elif enrollment.course.image and enrollment.course.image.name %}
-                    <img src="{{ enrollment.course.image.url }}" class="card-img-top" alt="{{ enrollment.course.title }}" style="height:200px; object-fit:cover;">
-                {% else %}
-                    <img src="{% static 'img/courses/default.jpg' %}" class="card-img-top" alt="Default course image" style="height:200px; object-fit:cover;">
-                {% endif %}
+<div class="container py-4">
+  <h1 class="mb-3">{% trans "My Courses" %}</h1>
 
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">{{ enrollment.course.title }}</h5>
-                    <p class="card-text text-muted">{{ enrollment.course.short_description|default:enrollment.course.description|truncatewords:20 }}</p>
+  {% if enrollments %}
+    <div class="courses-grid">
+      {% for e in enrollments %}
+        {% with c=e.course %}
+        {% with p=progress_map|get_item:c.id|default:0 %}
+        <div class="course-card">
+          {% if c.thumbnail and c.thumbnail.name %}
+            <img src="{{ c.thumbnail.url }}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
+          {% elif c.image and c.image.name %}
+            <img src="{{ c.image.url }}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
+          {% else %}
+            <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
+          {% endif %}
 
-                    <p class="mb-1">
-                        <strong>Дата записи:</strong>
-                        {% if enrollment.enrolled_at %}
-                            {{ enrollment.enrolled_at|date:"d M Y" }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </p>
+          <div class="course-card-content">
+            <span class="course-category">
+              {% if c.category %}{{ c.category.name }} · {% endif %}
+              {% trans "Instructor:" %}
+              {% if c.instructor %}{{ c.instructor.get_full_name|default:c.instructor.username }}{% else %}SkillsSpire{% endif %}
+            </span>
 
-                    <p class="mb-3">
-                        <strong>Статус:</strong>
-                        {% if enrollment.completed %}
-                            <span class="badge bg-success">Завершен</span>
-                        {% else %}
-                            <span class="badge bg-warning text-dark">В процессе</span>
-                        {% endif %}
-                    </p>
+            <h3 class="course-card-title">{{ c.title }}</h3>
+            <p class="course-card-text">{{ c.short_description|default:c.description|truncatewords:20 }}</p>
 
-                    <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-primary mt-auto">
-                        {% if enrollment.completed %}Открыть курс{% else %}Продолжить обучение{% endif %}
-                    </a>
-                </div>
+            <div class="course-card-meta">
+              <div class="progressbar" role="progressbar"
+                   aria-label="{% trans 'Course progress' %}"
+                   aria-valuenow="{{ p }}" aria-valuemin="0" aria-valuemax="100"
+                   title="{{ p }}%">
+                <span class="bar" data-w="{{ p }}"></span>
+              </div>
+              <small class="text-muted">{{ p }}% {% trans "completed" %}</small>
             </div>
+
+            <div class="mt-2 flex items-center gap-2">
+              <span class="badge {% if e.completed %}badge-success{% else %}badge-warning{% endif %}">
+                {% if e.completed %}{% trans "Completed" %}{% else %}{% trans "In progress" %}{% endif %}
+              </span>
+              <small class="text-muted">
+                {% trans "Enrolled on" %}:
+                {% if e.enrolled_at %}{{ e.enrolled_at|date:"d M Y" }}{% else %}—{% endif %}
+              </small>
+            </div>
+          </div>
+
+          <div class="course-card-footer">
+            <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
+              {% if e.completed %}{% trans "View course" %}{% else %}{% trans "Continue learning" %}{% endif %}
+            </a>
+          </div>
         </div>
-        {% empty %}
-        <div class="col-12 text-center py-5">
-            <i class="bi bi-collection display-1 text-muted"></i>
-            <h4 class="text-muted mt-3">Вы ещё не записаны на курсы</h4>
-            <p class="text-muted">Начните обучение прямо сейчас, выбрав курс ниже.</p>
-            <a href="{% url 'courses_list' %}" class="btn btn-primary">Смотреть курсы</a>
-        </div>
-        {% endfor %}
+        {% endwith %}
+        {% endwith %}
+      {% endfor %}
     </div>
+  {% else %}
+    <div class="empty-state text-center py-5">
+      <i class="bi bi-collection display-1 text-muted"></i>
+      <h4 class="text-muted mt-3">{% trans "You are not enrolled in any courses yet." %}</h4>
+      <p class="text-muted">{% trans "Start learning right now by choosing a course below." %}</p>
+      <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse Courses" %}</a>
+    </div>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ширина прогресса из data-w (без инлайн-CSS, чтобы линтер не ругался)
+  document.querySelectorAll('.progressbar .bar').forEach(function(el){
+    var v = Number(el.dataset.w || 0);
+    if (isNaN(v)) v = 0;
+    v = Math.max(0, Math.min(100, v));
+    el.style.width = v + '%';
+  });
+</script>
 {% endblock %}
