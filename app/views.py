@@ -29,8 +29,10 @@ from .models import (
     Wishlist,
 )
 
+from typing import Optional, List, Dict, Any
 
-def public_storage_url(path: str | None) -> str | None:
+
+def public_storage_url(path: Optional[str]) -> Optional[str]:
     if not path:
         return None
     base = os.environ.get("SUPABASE_URL", "").rstrip("/")

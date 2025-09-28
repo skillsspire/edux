@@ -43,18 +43,32 @@
             <h5 class="card-title mb-3">Категории</h5>
             <div class="d-flex flex-column gap-1">
               {# ссылка "Все курсы" — без category, но с остальными параметрами #}
-              <a
-                href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if price_filter %}price={{ price_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
-                class="list-group-item d-block px-3 py-2 rounded {% if not selected_categories %}active text-white{% endif %}"
-                style="{% if not selected_categories %}background: var(--color-primary);{% endif %}"
-              >Все курсы</a>
+              {% if not selected_categories %}
+                <a
+                  href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if price_filter %}price={{ price_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
+                  class="list-group-item d-block px-3 py-2 rounded active text-white"
+                  style="background-color: var(--color-primary);"
+                >Все курсы</a>
+              {% else %}
+                <a
+                  href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if price_filter %}price={{ price_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
+                  class="list-group-item d-block px-3 py-2 rounded"
+                >Все курсы</a>
+              {% endif %}
 
               {% for cat in categories %}
-                <a
-                  href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
-                  class="list-group-item d-block px-3 py-2 rounded {% if selected_categories and cat.slug in selected_categories %}active text-white{% endif %}"
-                  style="{% if selected_categories and cat.slug in selected_categories %}background: var(--color-primary);{% endif %}"
-                >{{ cat.name }}</a>
+                {% if selected_categories and cat.slug in selected_categories %}
+                  <a
+                    href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                    class="list-group-item d-block px-3 py-2 rounded active text-white"
+                    style="background-color: var(--color-primary);"
+                  >{{ cat.name }}</a>
+                {% else %}
+                  <a
+                    href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                    class="list-group-item d-block px-3 py-2 rounded"
+                  >{{ cat.name }}</a>
+                {% endif %}
               {% empty %}
                 <span class="text-muted">Нет категорий</span>
               {% endfor %}
