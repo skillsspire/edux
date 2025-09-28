@@ -1,24 +1,26 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from .models import ContactMessage, Review
 
+User = get_user_model()
 
-# Универсально навешиваем Bootstrap-классы
+
+# Универсально навешиваем Bootstrap-классы на все поля формы
 class BootstrapFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for _, field in self.fields.items():
-            w = field.widget
-            classes = w.attrs.get("class", "")
-            if isinstance(w, (forms.Select, forms.SelectMultiple)):
+            widget = field.widget
+            existing = widget.attrs.get("class", "")
+            if isinstance(widget, (forms.Select, forms.SelectMultiple)):
                 base = "form-select"
-            elif isinstance(w, forms.CheckboxInput):
+            elif isinstance(widget, forms.CheckboxInput):
                 base = "form-check-input"
             else:
                 base = "form-control"
-            w.attrs["class"] = f"{classes} {base}".strip()
+            widget.attrs["class"] = f"{existing} {base}".strip()
 
 
 class EmailAuthenticationForm(BootstrapFormMixin, AuthenticationForm):
@@ -43,13 +45,14 @@ class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
     first_name = forms.CharField(max_length=30, required=True, label=_("First name"))
     last_name = forms.CharField(max_length=30, required=True, label=_("Last name"))
 
-    class Meta:
+    class Meta(UserCreationForm.Meta):
         model = User
         fields = ("username", "email", "first_name", "last_name", "password1", "password2")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # плейсхолдеры + autocomplete
+
+        # Плейсхолдеры + autocomplete
         self.fields["username"].widget.attrs.update({
             "placeholder": _("Create a username"),
             "autocomplete": "username",
@@ -74,14 +77,15 @@ class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
             "placeholder": _("Repeat the password"),
             "autocomplete": "new-password",
         })
-        # убираем шум из help_text
-        for k in ("username", "password1", "password2"):
-            if k in self.fields:
-                self.fields[k].help_text = ""
+
+        # Убираем шум из help_text
+        for name in ("username", "password1", "password2"):
+            if name in self.fields:
+                self.fields[name].help_text = ""
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
-        if User.objects.filter(email__iexact=email).exists():
+        if email and User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(_("A user with this email already exists."))
         return email
 
@@ -98,6 +102,7 @@ class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
 class ContactForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = ContactMessage
+        # Оставляю subject, раз он используется в проекте.
         fields = ["name", "email", "subject", "message"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": _("Your name")}),
@@ -110,7 +115,7 @@ class ContactForm(BootstrapFormMixin, forms.ModelForm):
 class ReviewForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Review
-        fields = ["rating", "comment"]  # если в модели поле называется 'content', замените на ["rating", "content"]
+        fields = ["rating", "comment"]  # если в модели поле текста называется иначе, замени "comment" на актуальное
         widgets = {
             "rating": forms.NumberInput(attrs={"min": 1, "max": 5, "placeholder": _("Rating 1–5")}),
             "comment": forms.Textarea(attrs={"rows": 4, "placeholder": _("Your review about the course")}),

@@ -7,6 +7,8 @@ from django.conf.urls.static import static
 from .forms import EmailAuthenticationForm
 from . import views
 
+kaspi_secret = getattr(settings, "KASPI_WEBHOOK_SECRET", "dev-secret")
+
 urlpatterns = [
     # --- Админка ---
     path("admin/", admin.site.urls),
@@ -19,20 +21,16 @@ urlpatterns = [
 
     # --- Курсы ---
     path("courses/", views.courses_list, name="courses_list"),
-    path("course/<slug:slug>/", views.course_detail, name="course_detail"),
-    path("course/<slug:slug>/enroll/", views.enroll_course, name="enroll_course"),
-    path("course/<slug:slug>/review/", views.add_review, name="add_review"),
-    path("course/<slug:slug>/wishlist/", views.toggle_wishlist, name="toggle_wishlist"),
-    path(
-        "course/<slug:course_slug>/lesson/<slug:lesson_slug>/",
-        views.lesson_detail,
-        name="lesson_detail",
-    ),
+    path("courses/<slug:slug>/", views.course_detail, name="course_detail"),
+    path("courses/<slug:slug>/enroll/", views.enroll_course, name="enroll_course"),
+    path("courses/<slug:slug>/review/", views.add_review, name="add_review"),
+    path("courses/<slug:slug>/wishlist/", views.toggle_wishlist, name="toggle_wishlist"),
+    path("courses/<slug:course_slug>/lesson/<slug:lesson_slug>/", views.lesson_detail, name="lesson_detail"),
 
     # --- Оплата ---
-    path("course/<slug:slug>/pay/", views.create_payment, name="create_payment"),
-    path("course/<slug:slug>/pay/claim/", views.payment_claim, name="payment_claim"),
-    path("course/<slug:slug>/pay/thanks/", views.payment_thanks, name="payment_thanks"),
+    path("courses/<slug:slug>/pay/", views.create_payment, name="create_payment"),
+    path("courses/<slug:slug>/pay/claim/", views.payment_claim, name="payment_claim"),
+    path("courses/<slug:slug>/pay/thanks/", views.payment_thanks, name="payment_thanks"),
 
     # --- Пользовательский кабинет ---
     path("my-courses/", views.my_courses, name="my_courses"),
@@ -51,44 +49,24 @@ urlpatterns = [
     path("signup/", views.signup, name="signup"),
 
     # --- Сброс пароля ---
-    path(
-        "password-reset/",
-        auth_views.PasswordResetView.as_view(
-            template_name="registration/password_reset_form.html"
-        ),
-        name="password_reset",
-    ),
-    path(
-        "password-reset/done/",
-        auth_views.PasswordResetDoneView.as_view(
-            template_name="registration/password_reset_done.html"
-        ),
-        name="password_reset_done",
-    ),
-    path(
-        "reset/<uidb64>/<token>/",
-        auth_views.PasswordResetConfirmView.as_view(
-            template_name="registration/password_reset_confirm.html"
-        ),
-        name="password_reset_confirm",
-    ),
-    path(
-        "reset/done/",
-        auth_views.PasswordResetCompleteView.as_view(
-            template_name="registration/password_reset_complete.html"
-        ),
-        name="password_reset_complete",
-    ),
+    path("password-reset/", auth_views.PasswordResetView.as_view(
+        template_name="registration/password_reset_form.html"
+    ), name="password_reset"),
+    path("password-reset/done/", auth_views.PasswordResetDoneView.as_view(
+        template_name="registration/password_reset_done.html"
+    ), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(
+        template_name="registration/password_reset_confirm.html"
+    ), name="password_reset_confirm"),
+    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(
+        template_name="registration/password_reset_complete.html"
+    ), name="password_reset_complete"),
 
     # --- Локализация ---
     path("i18n/", include("django.conf.urls.i18n")),
 
     # --- Kaspi webhook ---
-    path(
-        f"payment/webhook/{getattr(settings, 'KASPI_WEBHOOK_SECRET', 'dev-secret')}/",
-        views.kaspi_webhook,
-        name="kaspi_webhook",
-    ),
+    path(f"payment/webhook/{kaspi_secret}/", views.kaspi_webhook, name="kaspi_webhook"),
 ]
 
 # --- Статика и медиа только для DEBUG ---
