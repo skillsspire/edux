@@ -1,15 +1,16 @@
+# app/migrations/0009_fix_material_slug_like_index.py
 from django.db import migrations
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("app", "0008_add_excerpt_slug"),
+        ("app", "0007_create_articles_materials"),
     ]
 
     operations = [
-        # Удаляем лишний *_like индекс, если он вдруг есть; если нет — просто ничего не делаем
         migrations.RunSQL(
+            # оставляем только безопасный DROP — без CREATE, чтобы не требовалась колонка заранее
             sql="DROP INDEX IF EXISTS app_material_slug_c087ef9f_like;",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="",  # no-op
         ),
     ]
