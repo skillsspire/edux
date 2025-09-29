@@ -1,3 +1,19 @@
+from .models import Article, Material  # рядом с остальными импортами моделей
+
+def articles_list(request):
+    articles = Article.objects.filter(status="published").order_by("-published_at", "-created_at")
+    return render(request, "articles/list.html", {"articles": articles})
+
+def article_detail(request, slug):
+    article = get_object_or_404(Article, slug=slug, status="published")
+    # для блока "похожие" (по времени)
+    latest = Article.objects.filter(status="published").exclude(id=article.id)[:4]
+    return render(request, "articles/detail.html", {"article": article, "latest": latest})
+
+def materials_list(request):
+    materials = Material.objects.filter(is_public=True).order_by("-created_at")
+    return render(request, "materials/list.html", {"materials": materials})
+
 import hmac
 import hashlib
 import json
@@ -136,6 +152,10 @@ def home(request):
         .order_by("-created_at")[:10]
     )
 
+    # Добавляем статьи и материалы на главную
+    latest_articles = Article.objects.filter(status="published").order_by("-published_at")[:3]
+    latest_materials = Material.objects.filter(is_public=True).order_by("-created_at")[:3]
+
     faqs = [
         {"question": "Как проходит обучение?", "answer": "Онлайн в личном кабинете: видео, задания и обратная связь."},
         {"question": "Будет ли доступ к материалам после окончания?", "answer": "Да, бессрочный доступ ко всем урокам курса."},
@@ -147,6 +167,8 @@ def home(request):
         "popular_courses": popular_courses,
         "categories": categories,
         "reviews": reviews,
+        "latest_articles": latest_articles,
+        "latest_materials": latest_materials,
         "faqs": faqs,
     })
 

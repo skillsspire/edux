@@ -14,6 +14,7 @@ from .models import (
     Payment,
     ContactMessage,
     Article,
+    Material,
 )
 
 IMAGE_PREVIEW_SIZE = {"width": 100, "height": 70}
@@ -292,8 +293,23 @@ class ArticleAdmin(admin.ModelAdmin):
     list_filter = ("status", "published_at", "created_at")
     search_fields = ("title", "excerpt", "body")
     prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "published_at"
     ordering = ("-published_at", "-created_at")
+
+
+# ---------------------------
+# Material (для раздела Материалы)
+# ---------------------------
+
+@admin.register(Material)
+class MaterialAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_public", "created_at")
+    list_filter = ("is_public", "created_at")
+    search_fields = ("title", "description")
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
 
 
 # ---------------------------

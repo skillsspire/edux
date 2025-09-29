@@ -19,6 +19,11 @@ urlpatterns = [
     path("contact/", views.contact, name="contact"),
     path("design-wireframe/", views.design_wireframe, name="design_wireframe"),
 
+    # --- Статьи и материалы ---
+    path("articles/", views.articles_list, name="articles_list"),
+    path("articles/<slug:slug>/", views.article_detail, name="article_detail"),
+    path("materials/", views.materials_list, name="materials_list"),
+
     # --- Курсы ---
     path("courses/", views.courses_list, name="courses_list"),
     path("courses/<slug:slug>/", views.course_detail, name="course_detail"),

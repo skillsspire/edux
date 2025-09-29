@@ -48,6 +48,8 @@
         <ul class="nav-list">
           <li><a class="nav-link" href="{% url 'home' %}">Главная</a></li>
           <li><a class="nav-link" href="{% url 'courses_list' %}">Все курсы</a></li>
+          <li><a class="nav-link" href="{% url 'articles_list' %}">Статьи</a></li>
+          <li><a class="nav-link" href="{% url 'materials_list' %}">Материалы</a></li>
           <li><a class="nav-link" href="{% url 'about' %}">О нас</a></li>
           <li><a class="nav-link" href="{% url 'contact' %}">Контакты</a></li>
           {% if user.is_authenticated and user.is_instructor %}
@@ -164,6 +166,8 @@
         <ul>
           <li><a href="{% url 'home' %}">Главная</a></li>
           <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
+          <li><a href="{% url 'articles_list' %}">Статьи</a></li>
+          <li><a href="{% url 'materials_list' %}">Материалы</a></li>
           <li><a href="{% url 'about' %}">О нас</a></li>
           <li><a href="{% url 'contact' %}">Контакты</a></li>
         </ul>

@@ -348,3 +348,29 @@ class Article(TimestampedModel):
 
     def get_absolute_url(self):
         return reverse("articles_detail", args=[self.slug])
+
+
+# =========================
+#          МАТЕРИАЛЫ
+# =========================
+
+class Material(TimestampedModel):
+    title = models.CharField("Название", max_length=200)
+    slug = models.SlugField("Слаг", max_length=220, unique=True)
+    description = models.TextField("Описание", blank=True)
+    file = models.FileField("Файл", upload_to="materials/files/", blank=True, null=True)
+    image = models.ImageField("Превью", upload_to="materials/images/", blank=True, null=True)
+    is_public = models.BooleanField("Показывать на сайте", default=True)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлено", auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Материал"
+        verbose_name_plural = "Материалы"
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse("materials_list") + f"#{self.slug}"

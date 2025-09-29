@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Материалы — SkillsSpire{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <h1 class="mb-4">Материалы</h1>
+  {% if materials %}
+  <div class="row g-4">
+    {% for m in materials %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        {% if m.image %}<img src="{{ m.image.url }}" class="card-img-top" alt="{{ m.title }}">{% endif %}
+        <div class="card-body">
+          <h2 class="h6" id="{{ m.slug }}">{{ m.title }}</h2>
+          <p class="mb-3">{{ m.description|default_if_none:""|truncatechars:140 }}</p>
+          {% if m.file %}
+            <a class="btn btn-primary btn-sm" href="{{ m.file.url }}" target="_blank" rel="noopener">Скачать</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p>Скоро здесь появятся полезные файлы, чек-листы и шаблоны.</p>
+  {% endif %}
+</section>
+{% endblock %}
