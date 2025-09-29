@@ -1,0 +1,172 @@
+{% load i18n static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>{% trans "Certificate of Completion" %}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* Печать под A4 landscape */
+    @page { size: A4 landscape; margin: 12mm; }
+    @media print { .no-print { display:none; } }
+
+    :root {
+      --brand: #0046ad;
+      --ink: #1c1c1c;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #f5f7ff;
+    }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      color: var(--ink);
+      background: #fff;
+    }
+    .wrap {
+      max-width: 1050px;
+      margin: 32px auto;
+      padding: 28px 36px;
+      border: 18px solid transparent;
+      background:
+        linear-gradient(#fff,#fff) padding-box,
+        repeating-linear-gradient(45deg, var(--brand), var(--brand) 10px, #91b3ff 10px, #91b3ff 20px) border-box;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      position: relative;
+    }
+    .watermark {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,70,173,.05), transparent 60%);
+      pointer-events: none;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+    .title {
+      font-size: 44px;
+      line-height: 1.1;
+      margin: 4px 0 8px;
+      color: var(--brand);
+    }
+    .subtitle {
+      font-size: 16px; color: var(--muted);
+    }
+    .box {
+      margin: 28px 0;
+      padding: 22px 26px;
+      border: 1px solid var(--border);
+      background: var(--accent);
+    }
+    .label {
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .name {
+      font-size: 36px;
+      font-weight: 700;
+    }
+    .course {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--brand);
+      margin-top: 6px;
+    }
+    .meta {
+      display: flex; gap: 24px; flex-wrap: wrap;
+      margin-top: 18px; color: var(--muted);
+      font-size: 14px;
+    }
+    .signs {
+      margin-top: 34px;
+      display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: end;
+    }
+    .sign {
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      text-align: center;
+    }
+    .sign small { color: var(--muted); display:block; margin-top:4px; }
+    .qr {
+      text-align: right;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .footer {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-top: 28px; color: var(--muted); font-size: 13px;
+    }
+    .btns { margin-top: 18px; text-align:center; }
+    .btn {
+      display:inline-block; padding:10px 16px; border-radius:8px;
+      border:1px solid var(--brand); color:white; background:var(--brand);
+      text-decoration:none; margin:0 6px;
+    }
+    .btn.secondary { background:#fff; color:var(--brand); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="watermark"></div>
+
+    <header class="header">
+      <div class="brand">SkillsSpire</div>
+      <h1 class="title">{% trans "Certificate of Completion" %}</h1>
+      <div class="subtitle">{% trans "This is to certify that" %}</div>
+    </header>
+
+    <section class="box">
+      <div class="label">{% trans "Learner" %}</div>
+      <div class="name">
+        {{ enrollment.user.get_full_name|default:enrollment.user.username }}
+      </div>
+
+      <div class="label" style="margin-top:14px;">{% trans "has successfully completed the course" %}</div>
+      <div class="course">“{{ enrollment.course.title }}”</div>
+
+      <div class="meta">
+        <div>{% trans "Issued on" %}: {{ issued_at|date:"d.m.Y" }}</div>
+        {% if serial %}<div>{% trans "Serial" %}: {{ serial }}</div>{% endif %}
+        {% if hours %}<div>{% trans "Total hours" %}: {{ hours }}</div>{% endif %}
+      </div>
+    </section>
+
+    <section class="signs">
+      <div class="sign">
+        <strong>{{ instructor_name|default:_("Program Lead") }}</strong>
+        <small>{% trans "Instructor" %}</small>
+      </div>
+      <div class="sign">
+        <strong>{{ director_name|default:"—" }}</strong>
+        <small>{% trans "Academic Director" %}</small>
+      </div>
+      <div class="qr">
+        {% if qr_b64 %}
+          <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR" width="96" height="96"><br>
+          {% trans "Verify" %}: {{ verify_url }}
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="footer">
+      <div>© {{ now|date:"Y" }} SkillsSpire</div>
+      <div>{% trans "This certificate can be verified online using the QR code" %}</div>
+    </div>
+  </div>
+
+  <div class="btns no-print">
+    <a href="?pdf=0" class="btn secondary">{% trans "View HTML" %}</a>
+    <a href="?pdf=1" class="btn">{% trans "Download PDF" %}</a>
+    <a href="{% url 'dashboard' %}" class="btn secondary">{% trans "Back to Dashboard" %}</a>
+  </div>
+</body>
+</html>

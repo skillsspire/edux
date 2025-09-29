@@ -1,3 +1,4 @@
+# app/models.py
 from decimal import Decimal
 from typing import Optional
 
@@ -43,7 +44,10 @@ class Category(TimestampedModel):
 
 class InstructorProfile(TimestampedModel):
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="instructor_profile", verbose_name="Пользователь"
+        User,
+        on_delete=models.CASCADE,
+        related_name="instructor_profile",
+        verbose_name="Пользователь",
     )
     specialization = models.CharField("Специализация", max_length=255, blank=True)
     bio = models.TextField("О себе", blank=True)
@@ -81,9 +85,16 @@ class Course(TimestampedModel):
 
     title = models.CharField("Название", max_length=255)
     slug = models.SlugField("Слаг", max_length=255, unique=True, blank=True)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="courses")
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="courses"
+    )
     instructor = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="taught_courses", verbose_name="Инструктор"
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="taught_courses",
+        verbose_name="Инструктор",
     )
 
     short_description = models.CharField("Короткое описание", max_length=500, blank=True)
@@ -130,7 +141,6 @@ class Course(TimestampedModel):
 
     @property
     def display_image_url(self) -> Optional[str]:
-        """Без внешних хелперов: отдаём thumbnail/url, если настроено хранилище."""
         try:
             if self.thumbnail:
                 return self.thumbnail.url
@@ -226,8 +236,9 @@ class LessonProgress(TimestampedModel):
 
 class Review(TimestampedModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews", verbose_name="Курс")
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviews",
-                             verbose_name="Пользователь")
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviews", verbose_name="Пользователь"
+    )
     rating = models.PositiveSmallIntegerField("Оценка (1–5)", default=5)
     comment = models.TextField("Отзыв", blank=True)
     is_active = models.BooleanField("Показывать", default=True)
@@ -275,7 +286,9 @@ class Payment(TimestampedModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments", verbose_name="Курс")
     amount = models.DecimalField("Сумма", max_digits=10, decimal_places=2, default=Decimal("0.00"))
     status = models.CharField("Статус", max_length=16, choices=STATUS_CHOICES, default=PENDING)
-    kaspi_invoice_id = models.CharField("Kaspi invoice ID", max_length=255, null=True, blank=True, unique=True)
+    kaspi_invoice_id = models.CharField(
+        "Kaspi invoice ID", max_length=255, null=True, blank=True, unique=True
+    )
     receipt = models.FileField("Чек", upload_to="payments/receipts/", blank=True, null=True)
 
     class Meta:
@@ -289,6 +302,7 @@ class Payment(TimestampedModel):
 
     def __str__(self):
         return f"{self.user} — {self.course} — {self.amount} ({self.status})"
+
 
 # =========================
 #     КОНТАКТЫ/СТАТЬИ
@@ -309,7 +323,7 @@ class ContactMessage(TimestampedModel):
         return f"{self.email}: {self.subject}"
 
 
-# Опционально: CKEditor, если подключён
+# Опционально: CKEditor, если установлен
 try:
     from ckeditor_uploader.fields import RichTextUploadingField  # type: ignore
     _RichField = RichTextUploadingField
@@ -325,7 +339,7 @@ class Article(TimestampedModel):
     title = models.CharField("Заголовок", max_length=255)
     slug = models.SlugField("Слаг", max_length=255, unique=True, blank=True)
     excerpt = models.TextField("Краткое описание", blank=True)
-    body = _RichField("Текст", blank=True)  # CKEditor если есть, иначе TextField
+    body = _RichField("Текст", blank=True)
     cover = models.ImageField("Обложка", upload_to="articles/", blank=True, null=True)
 
     status = models.CharField("Статус", max_length=10, choices=STATUS_CHOICES, default=DRAFT)
@@ -342,11 +356,12 @@ class Article(TimestampedModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)[:250]
+            self.slug = slugify(self.title)[:250] or f"article-{int(timezone.now().timestamp())}"
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("articles_detail", args=[self.slug])
+        # имя url — article_detail (см. urls.py)
+        return reverse("article_detail", args=[self.slug])
 
 
 # =========================
@@ -360,8 +375,6 @@ class Material(TimestampedModel):
     file = models.FileField("Файл", upload_to="materials/files/", blank=True, null=True)
     image = models.ImageField("Превью", upload_to="materials/images/", blank=True, null=True)
     is_public = models.BooleanField("Показывать на сайте", default=True)
-    created_at = models.DateTimeField("Создано", auto_now_add=True)
-    updated_at = models.DateTimeField("Обновлено", auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -371,5 +384,12 @@ class Material(TimestampedModel):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title)[:200] or f"material-{int(timezone.now().timestamp())}"
+            self.slug = base
+        super().save(*args, **kwargs)
+
     def get_absolute_url(self):
+        # список материалов, якорь на себя
         return reverse("materials_list") + f"#{self.slug}"
