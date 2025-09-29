@@ -1,18 +1,55 @@
-from .models import Article, Material  # рядом с остальными импортами моделей
+from django.core.exceptions import FieldDoesNotExist
+
+def _has_field(model, name: str) -> bool:
+    try:
+        model._meta.get_field(name)
+        return True
+    except FieldDoesNotExist:
+        return False
 
 def articles_list(request):
-    articles = Article.objects.filter(status="published").order_by("-published_at", "-created_at")
-    return render(request, "articles/list.html", {"articles": articles})
+    qs = Article.objects.all()
+    # безопасный фильтр по статусу
+    if _has_field(Article, "status"):
+        qs = qs.filter(status="published")
+    # безопасная сортировка
+    if _has_field(Article, "published_at"):
+        qs = qs.order_by("-published_at")
+    elif _has_field(Article, "created_at"):
+        qs = qs.order_by("-created_at")
+    else:
+        qs = qs.order_by("-id")
+    return render(request, "articles/list.html", {"articles": qs[:50]})
 
 def article_detail(request, slug):
-    article = get_object_or_404(Article, slug=slug, status="published")
-    # для блока "похожие" (по времени)
-    latest = Article.objects.filter(status="published").exclude(id=article.id)[:4]
-    return render(request, "articles/detail.html", {"article": article, "latest": latest})
+    # собираем фильтр безопасно
+    flt = {"slug": slug}
+    if _has_field(Article, "status"):
+        flt["status"] = "published"
+
+    article = get_object_or_404(Article, **flt)
+
+    latest = Article.objects.exclude(pk=article.pk)
+    if _has_field(Article, "status"):
+        latest = latest.filter(status="published")
+    if _has_field(Article, "published_at"):
+        latest = latest.order_by("-published_at")
+    elif _has_field(Article, "created_at"):
+        latest = latest.order_by("-created_at")
+    else:
+        latest = latest.order_by("-id")
+
+    return render(request, "articles/detail.html", {"article": article, "latest": latest[:4]})
 
 def materials_list(request):
-    materials = Material.objects.filter(is_public=True).order_by("-created_at")
-    return render(request, "materials/list.html", {"materials": materials})
+    qs = Material.objects.all()
+    if _has_field(Material, "is_public"):
+        qs = qs.filter(is_public=True)
+    if _has_field(Material, "created_at"):
+        qs = qs.order_by("-created_at")
+    else:
+        qs = qs.order_by("-id")
+    return render(request, "materials/list.html", {"materials": qs[:50]})
 
 import hmac
 import hashlib
@@ -44,6 +81,8 @@ from .models import (
     Payment,
     Review,
     Wishlist,
+    Article,
+    Material,
 )
 
 
@@ -152,9 +191,22 @@ def home(request):
         .order_by("-created_at")[:10]
     )
 
-    # Добавляем статьи и материалы на главную
-    latest_articles = Article.objects.filter(status="published").order_by("-published_at")[:3]
-    latest_materials = Material.objects.filter(is_public=True).order_by("-created_at")[:3]
+    # Добавляем статьи и материалы на главную (безопасные версии)
+    latest_articles = Article.objects.all()
+    if _has_field(Article, "status"):
+        latest_articles = latest_articles.filter(status="published")
+    if _has_field(Article, "published_at"):
+        latest_articles = latest_articles.order_by("-published_at")
+    elif _has_field(Article, "created_at"):
+        latest_articles = latest_articles.order_by("-created_at")
+    latest_articles = latest_articles[:3]
+
+    latest_materials = Material.objects.all()
+    if _has_field(Material, "is_public"):
+        latest_materials = latest_materials.filter(is_public=True)
+    if _has_field(Material, "created_at"):
+        latest_materials = latest_materials.order_by("-created_at")
+    latest_materials = latest_materials[:3]
 
     faqs = [
         {"question": "Как проходит обучение?", "answer": "Онлайн в личном кабинете: видео, задания и обратная связь."},

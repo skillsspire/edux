@@ -275,7 +275,7 @@ class Payment(TimestampedModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments", verbose_name="Курс")
     amount = models.DecimalField("Сумма", max_digits=10, decimal_places=2, default=Decimal("0.00"))
     status = models.CharField("Статус", max_length=16, choices=STATUS_CHOICES, default=PENDING)
-    kaspi_invoice_id = models.CharField("Kaspi invoice ID", max_length=64, unique=True)
+    kaspi_invoice_id = models.CharField("Kaspi invoice ID", max_length=255, null=True, blank=True, unique=True)
     receipt = models.FileField("Чек", upload_to="payments/receipts/", blank=True, null=True)
 
     class Meta:
@@ -289,7 +289,6 @@ class Payment(TimestampedModel):
 
     def __str__(self):
         return f"{self.user} — {self.course} — {self.amount} ({self.status})"
-
 
 # =========================
 #     КОНТАКТЫ/СТАТЬИ

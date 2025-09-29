@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title|default:"Статья" }} — SkillsSpire{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <a href="{% url 'articles_list' %}" class="text-decoration-none">← Ко всем статьям</a>
+  <h1 class="mt-3">{{ article.title|default:"Статья" }}</h1>
+  {% if article.published_at %}<p class="text-muted">{{ article.published_at }}</p>{% endif %}
+  <div class="mt-4">
+    {{ article.content|default:"Контент появится позже."|safe }}
+  </div>
+
+  {% if latest %}
+    <hr class="my-5">
+    <h3>Похожие</h3>
+    <div class="row g-4">
+      {% for a in latest %}
+        <div class="col-md-6 col-lg-3">
+          <a class="text-decoration-none" href="{% url 'article_detail' a.slug %}">
+            <div class="card h-100">
+              <div class="card-body">
+                <h6 class="card-title mb-0">{{ a.title }}</h6>
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
