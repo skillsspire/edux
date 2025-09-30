@@ -226,5 +226,46 @@
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
 <script defer src="{% static 'js/main.js' %}"></script>
 {% block extra_js %}{% endblock %}
+
+// Добавьте в конец base.html перед закрывающим </body>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const mskt = document.getElementById('mskt');
+  const msktImage = mskt.querySelector('.mskt-image');
+  
+  // Клик по маскоту
+  msktImage.addEventListener('click', function() {
+    // Открыть чат помощника или показать сообщение
+    const bubble = mskt.querySelector('.mskt-bubble');
+    bubble.textContent = 'Открываю помощника...';
+    
+    // Здесь можно добавить логику открытия чата
+    setTimeout(() => {
+      bubble.textContent = 'нужна помощь?';
+    }, 2000);
+  });
+  
+  // Анимация "махания" при наведении
+  msktImage.addEventListener('mouseenter', function() {
+    this.style.animation = 'mskt-wave 0.5s ease-in-out';
+  });
+  
+  msktImage.addEventListener('animationend', function() {
+    this.style.animation = 'mskt-idle 3.6s ease-in-out infinite';
+  });
+});
+
+// Дополнительная анимация для "махания"
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes mskt-wave {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-5deg) scale(1.05); }
+    50% { transform: rotate(5deg) scale(1.05); }
+    75% { transform: rotate(-3deg) scale(1.03); }
+  }
+`;
+document.head.appendChild(style);
+</script>
 </body>
 </html>

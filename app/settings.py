@@ -4,9 +4,6 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# -----------------------
-# Base
-# -----------------------
 SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
@@ -24,16 +21,10 @@ if RENDER_EXTERNAL_HOSTNAME:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
-# -----------------------
-# Kaspi
-# -----------------------
 KASPI_WEBHOOK_SECRET = os.environ.get("KASPI_WEBHOOK_SECRET", "dev-secret")
 KASPI_PAYMENT_URL = os.environ.get("KASPI_PAYMENT_URL", "https://pay.kaspi.kz/pay/fhljzakr")
 KASPI_SECRET = os.environ.get("KASPI_SECRET", "dev-secret")
 
-# -----------------------
-# Security
-# -----------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True") == "True"
@@ -51,9 +42,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
 SECURE_REFERRER_POLICY = "same-origin"
 
-# -----------------------
-# Installed Apps
-# -----------------------
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -74,9 +62,6 @@ LOCAL_APPS = [
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# -----------------------
-# Middleware
-# -----------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -91,9 +76,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "app.urls"
 
-# -----------------------
-# Templates
-# -----------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -114,9 +96,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "app.wsgi.application"
 
-# -----------------------
-# Database
-# -----------------------
 USE_PGBOUNCER = os.environ.get("DB_PGBOUNCER", "False") == "True"
 CONN_MAX_AGE_VALUE = 0 if USE_PGBOUNCER else 600
 
@@ -137,9 +116,6 @@ else:
         }
     }
 
-# -----------------------
-# Caches / Sessions
-# -----------------------
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 REDIS_URL = os.getenv("REDIS_URL")
 if REDIS_URL:
@@ -151,9 +127,6 @@ if REDIS_URL:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
-# -----------------------
-# Auth
-# -----------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -170,9 +143,6 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 
-# -----------------------
-# I18N / L10N
-# -----------------------
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
@@ -185,27 +155,21 @@ LANGUAGES = [
 ]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
-# -----------------------
-# Static & Media
-# -----------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
+STATICFILES_DIRS = []
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365
 
-# Media files configuration
 SUPABASE_PROJECT_ID = "pyttzlcuxyfkhrwggrwi"
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "media")
 
-# Для локальной разработки используем локальное хранилище
 if DEBUG:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 else:
-    # Для продакшена используем Supabase
     MEDIA_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET_NAME}/"
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
     AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
@@ -220,9 +184,6 @@ else:
     AWS_S3_FILE_OVERWRITE = False
     AWS_S3_CUSTOM_DOMAIN = None
 
-# -----------------------
-# Email
-# -----------------------
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT") or 587)
@@ -234,9 +195,6 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "SkillsSpire <noreply@
 SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
 
-# -----------------------
-# Other
-# -----------------------
 PHONENUMBER_DEFAULT_REGION = "KZ"
 PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
 
