@@ -235,18 +235,24 @@ class ContactMessageAdmin(admin.ModelAdmin):
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ("title", "status", "published_at", "created_at")
+    list_display = ("cover_preview", "title", "status", "published_at", "created_at")
     list_filter = ("status", "published_at", "created_at")
     search_fields = ("title", "excerpt", "body", "seo_title", "seo_description", "seo_keywords")
     prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "cover_preview")
     date_hierarchy = "published_at"
     ordering = ("-published_at", "-created_at")
     fieldsets = (
-        (None, {"fields": ("title", "slug", "excerpt", "cover", "body", "status", "published_at")}),
+        (None, {"fields": ("title", "slug", "excerpt", "cover", "cover_preview", "body", "status", "published_at")}),
         ("SEO", {"fields": ("seo_title", "seo_description", "seo_keywords", "seo_schema")}),
         ("Служебное", {"fields": ("created_at", "updated_at")}),
     )
+
+    def cover_preview(self, obj):
+        if obj.cover and hasattr(obj.cover, "url"):
+            return format_html('<img src="{}" style="max-width:160px; max-height:100px; object-fit:cover; border-radius:6px;">', obj.cover.url)
+        return "—"
+    cover_preview.short_description = "Превью"
 
 
 @admin.register(Material)
