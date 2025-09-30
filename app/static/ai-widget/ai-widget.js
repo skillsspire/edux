@@ -1,11 +1,9 @@
-// AI Assistant для SkillsSpire с актуальными данными
+// ====================== УМНЫЙ AI ASSISTANT SKILLSSPIRE ======================
 class AIAssistant {
     constructor() {
-        this.config = {
-            enableAI: true
-        };
-        
-        // Актуальная база знаний по твоим курсам
+        this.config = { enableAI: true };
+
+        // 📚 База знаний
         this.knowledgeBase = [
             {
                 "title": "Бизнес-анализ и принятие решений", 
@@ -13,7 +11,10 @@ class AIAssistant {
                 "price": "15 000 ₸",
                 "originalPrice": "18 000 ₸",
                 "description": "Научитесь принимать эффективные бизнес-решения на основе данных. Анализ рынка, оценка рисков и построение финансовых моделей.",
-                "rating": "4.8"
+                "rating": "4.8",
+                "features": ["Анализ данных", "Финансовые модели", "Оценка рисков", "Принятие решений"],
+                "duration": "6 недель",
+                "level": "Начинающий"
             },
             {
                 "title": "Стратегический менеджмент и бизнес-планирование", 
@@ -21,43 +22,63 @@ class AIAssistant {
                 "price": "17 000 ₸",
                 "originalPrice": "20 000 ₸",
                 "description": "Освойте инструменты стратегического анализа и планирования для устойчивого роста вашей компании. От SWOT-анализа до разработки KPI.",
-                "rating": "4.8"
+                "rating": "4.8",
+                "features": ["SWOT-анализ", "KPI разработка", "Бизнес-планирование", "Стратегический анализ"],
+                "duration": "8 недель",
+                "level": "Средний"
             },
             {
                 "title": "Финансовая грамотность для руководителей", 
                 "category": "Управление финансами",
                 "price": "12 000 ₸",
                 "originalPrice": "15 000 ₸",
-                "description": "Научитесь читать и анализировать финансовую отчетность, чтобы принимать обоснованные управленческие решения.",
-                "rating": "4.8"
+                "description": "Научитесь читать и анализировать финансовую отчетность, чтобы принимать обоснованные управленческие решения и говорить с финансистами на одном языке.",
+                "rating": "4.8",
+                "features": ["Финансовая отчетность", "Управленческие решения", "Бюджетирование", "Анализ инвестиций"],
+                "duration": "4 недели",
+                "level": "Начинающий"
             }
         ];
 
+        // 📞 Инфо о компании
         this.companyInfo = {
             name: "SkillsSpire",
             description: "Академическое качество в современном формате. Классика, переосмысленная для будущего.",
+            mission: "Соединяем классическое университетское образование с современными бизнес-задачами",
             email: "skillsspire@gmail.com",
             phone: "+7 (701) 292-55-68",
             instagram: "@skillsspire",
             linkedin: "SkillSpire Official",
             telegram: "@SkillsSpire",
-            responseTime: "24 часа в рабочие дни (Пн-Пт с 9:00 до 18:00)"
+            responseTime: "24 часа в рабочие дни (Пн-Пт с 9:00 до 18:00)",
+            certificates: "более 100 выданных сертификатов"
         };
-        
+
+        // Контекст диалога
+        this.context = {
+            lastTopic: null,
+            userName: null,
+            userInterest: null,
+            testStage: null,
+            testAnswers: {}
+        };
+
+        // История
         this.chatHistory = [
-            { role: "bot", text: "Привет! Я ваш помощник SkillsSpire 🎓\n\nЧем могу помочь?\n• Подобрать курс\n• Рассказать о программах\n• Ответить на вопросы\n• Дать контакты" }
+            { role: "bot", text: "👋 Привет! Я ваш помощник SkillsSpire!\n\nЯ помогу:\n• Подобрать курс\n• Рассказать о программах обучения\n• Ответить на вопросы\n• Связать с поддержкой\n\nС чего начнем? 😊" }
         ];
-        
+
         this.isFollowing = false;
         this.init();
     }
-    
+
+    // -------------------- БАЗОВЫЕ МЕТОДЫ --------------------
     init() {
         this.bindElements();
         this.bindEvents();
-        console.log('🤖 ИИ помощник SkillsSpire загружен!');
+        console.log('🎯 Умный помощник SkillsSpire запущен!');
     }
-    
+
     bindElements() {
         this.bubble = document.getElementById('ai-bubble');
         this.panel = document.getElementById('ai-panel');
@@ -67,36 +88,31 @@ class AIAssistant {
         this.sendBtn = document.getElementById('ai-send');
         this.statusEl = document.getElementById('ai-status');
     }
-    
+
     bindEvents() {
         this.bubble?.addEventListener('click', () => this.togglePanel());
         this.closeBtn?.addEventListener('click', () => this.togglePanel());
         this.sendBtn?.addEventListener('click', () => this.sendMessage());
-        
+
         this.input?.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.sendMessage();
             }
         });
-        
+
         this.input?.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
-        
-        // Двойной клик для следования за курсором
+
         this.bubble?.addEventListener('dblclick', () => this.toggleFollowMode());
-        
-        // Закрытие по клику вне панели
+
         document.addEventListener('click', (e) => {
             if (this.panel?.contains(e.target) || this.bubble?.contains(e.target)) return;
-            if (this.panel?.style.display === 'flex') {
-                this.togglePanel();
-            }
+            if (this.panel?.style.display === 'flex') this.togglePanel();
         });
-        
-        // Следование за курсором
+
         document.addEventListener('mousemove', (e) => {
             if (this.isFollowing && this.bubble) {
                 this.bubble.style.left = (e.clientX - 28) + 'px';
@@ -106,194 +122,231 @@ class AIAssistant {
             }
         });
     }
-    
+
     togglePanel() {
         const isOpen = this.panel.style.display === 'flex';
         this.panel.style.display = isOpen ? 'none' : 'flex';
         this.bubble.setAttribute('aria-expanded', !isOpen);
-        
+
         if (!isOpen) {
             this.input.focus();
-            if (this.chatHistory.length === 1) {
-                setTimeout(() => this.showQuickReplies(), 500);
-            }
+            if (this.chatHistory.length === 1) setTimeout(() => this.showQuickReplies(), 500);
         }
     }
-    
+
     toggleFollowMode() {
         this.isFollowing = !this.isFollowing;
         this.bubble.style.animation = this.isFollowing ? 'none' : 'floating 3s ease-in-out infinite';
         this.bubble.title = this.isFollowing ? 'Режим следования за курсором' : 'ИИ помощник SkillsSpire';
-        
+
         if (!this.isFollowing) {
-            // Возвращаем в исходное положение
             this.bubble.style.left = '';
             this.bubble.style.top = '';
             this.bubble.style.right = '20px';
             this.bubble.style.bottom = '20px';
         }
     }
-    
+
     appendMessage(text, role = 'bot') {
         const msgDiv = document.createElement('div');
         msgDiv.className = `ai-msg ai-${role}`;
         msgDiv.textContent = text;
         this.messages.appendChild(msgDiv);
         this.messages.scrollTop = this.messages.scrollHeight;
-        
         this.chatHistory.push({ role, text });
     }
-    
+
     showTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'ai-msg ai-bot ai-typing';
         typingDiv.id = 'typing-indicator';
-        typingDiv.textContent = 'Думаю';
+        typingDiv.textContent = 'Думаю...';
         this.messages.appendChild(typingDiv);
         this.messages.scrollTop = this.messages.scrollHeight;
     }
-    
+
     hideTypingIndicator() {
         const typing = document.getElementById('typing-indicator');
         if (typing) typing.remove();
     }
-    
+
+    // -------------------- БЫСТРЫЕ ОТВЕТЫ --------------------
     showQuickReplies() {
         const quickReplies = [
-            "Какие курсы есть по бизнес-аналитике?",
-            "Сколько стоит обучение?",
-            "Как связаться с поддержкой?",
-            "Расскажи о SkillsSpire"
+            "🎯 Подобрать курс по целям",
+            "📝 Пройти тест на курс",
+            "💰 Стоимость и скидки", 
+            "📜 Сертификаты и дипломы",
+            "🚀 Как помогает в карьере",
+            "👨‍🎓 Кто преподаёт",
+            "📞 Контакты поддержки",
+            "🏫 О компании SkillsSpire"
         ];
         
         const quickDiv = document.createElement('div');
         quickDiv.className = 'ai-quick-replies';
-        
+
         quickReplies.forEach(reply => {
             const btn = document.createElement('button');
             btn.textContent = reply;
             btn.onclick = () => {
-                this.input.value = reply;
+                this.input.value = reply.replace(/[🎯💰📞🏫📚🚀👨‍🎓📜📝]/g, '').trim();
                 this.sendMessage();
             };
             quickDiv.appendChild(btn);
         });
-        
+
         this.messages.appendChild(quickDiv);
         this.messages.scrollTop = this.messages.scrollHeight;
     }
-    
-    searchCourses(query) {
-        const lowercaseQuery = query.toLowerCase();
-        return this.knowledgeBase.filter(course => 
-            course.title.toLowerCase().includes(lowercaseQuery) ||
-            course.category.toLowerCase().includes(lowercaseQuery) ||
-            course.description.toLowerCase().includes(lowercaseQuery)
-        );
-    }
-    
-    generateAIResponse(userMessage) {
-        const lowerMessage = userMessage.toLowerCase();
-        
-        // Приветствие
-        if (/(привет|здравств|добр|hi|hello|хай)/.test(lowerMessage)) {
-            return `Привет! 👋 Я помощник SkillsSpire!\n\nМы предлагаем курсы бизнес-образования с академическим качеством:\n\n• Бизнес-анализ и аналитика\n• Стратегический менеджмент  \n• Финансовая грамотность\n\nЧем могу помочь?`;
+
+    // -------------------- МИНИ-ТЕСТ --------------------
+    handleCourseTest(answer) {
+        if (!this.context.testStage) {
+            this.context.testStage = 1;
+            return "📝 Отлично! Давайте подберем курс.\nВопрос 1: Ваш уровень — начинающий или опытный?";
         }
-        
-        // Курсы
-        if (/(курс|обучен|программ|занят|урок)/.test(lowerMessage)) {
-            const foundCourses = this.searchCourses(userMessage);
-            
-            if (foundCourses.length > 0) {
-                let response = "🎯 Нашел подходящие курсы:\n\n";
-                foundCourses.forEach(course => {
-                    response += `📚 ${course.title}\n`;
-                    response += `⭐ Рейтинг: ${course.rating}/5\n`;
-                    response += `💰 Цена: ${course.price} (было ${course.originalPrice})\n`;
-                    response += `📖 ${course.description}\n\n`;
-                });
-                response += "Подробнее на странице курса!";
-                return response;
+
+        if (this.context.testStage === 1) {
+            this.context.testAnswers.level = answer.toLowerCase().includes("нач") ? "beginner" : "advanced";
+            this.context.testStage = 2;
+            return "Вопрос 2: Больше интересует управление людьми или работа с финансами?";
+        }
+
+        if (this.context.testStage === 2) {
+            if (answer.toLowerCase().includes("финанс")) this.context.testAnswers.track = "finance";
+            else if (answer.toLowerCase().includes("управ")) this.context.testAnswers.track = "management";
+            else this.context.testAnswers.track = "analytics";
+
+            this.context.testStage = 3;
+            return "Вопрос 3: Сколько времени готовы уделять обучению? (4, 6 или 8 недель)";
+        }
+
+        if (this.context.testStage === 3) {
+            this.context.testAnswers.duration = answer.match(/\d+/) ? parseInt(answer.match(/\d+/)[0]) : 6;
+
+            // Финальный подбор
+            this.context.testStage = null;
+            let recommended;
+            if (this.context.testAnswers.track === "finance") recommended = this.knowledgeBase[2];
+            else if (this.context.testAnswers.track === "management") recommended = this.knowledgeBase[1];
+            else recommended = this.knowledgeBase[0];
+
+            return `✅ По вашим ответам подходит курс:\n\n${this.formatCourse(recommended)}\n\nХотите записаться прямо сейчас?`;
+        }
+    }
+
+    // -------------------- НАМЕРЕНИЯ --------------------
+    analyzeIntent(message) {
+        const lowerMessage = message.toLowerCase();
+
+        const intents = {
+            greeting: /(привет|здравств|добр|hello|hi)/,
+            farewell: /(пока|до свидан|увидимся|bye)/,
+            thanks: /(спасиб|thank|мерси)/,
+            personal: /(как.*дел|как.*ты)/,
+            smalltalk: /(погода|день|час|шутк|анекдот|мотивируй)/,
+            name: /(меня зовут|я\s+[а-яa-z]+)/,
+            goal: /(карьер|работ|бизнес|финанс|рост|повышен)/,
+            test: /(тест|подбор|quiz|опрос)/,
+            courses: /(курс|обучен|урок)/,
+            pricing: /(цена|стоим|оплат|сколько)/,
+            contacts: /(контакт|поддерж|телефон|почт|email)/,
+            about: /(о.*компан|skillsspire|мисси|кто.*вы)/,
+            recommend: /(совет|рекоменд|что выбрать)/,
+            specific: {
+                business_analytics: /(бизнес.*анализ|аналитик)/,
+                strategy: /(стратеги|менеджмент|swot|kpi)/,
+                finance: /(финанс|отчетност|бухгалтер)/,
+                certificate: /(сертифика|диплом)/,
+                teacher: /(препод|лектор|кто ведет)/,
+                career: /(карьер|работа|повышен)/
             }
-            
-            return `📚 Наши курсы:\n\n1. Бизнес-анализ и принятие решений - 15 000 ₸\n   • Анализ данных и финансовые модели\n\n2. Стратегический менеджмент - 17 000 ₸\n   • SWOT-анализ и KPI\n\n3. Финансовая грамотность - 12 000 ₸\n   • Управленческие решения\n\nКакой курс вас интересует?`;
+        };
+
+        const detectedIntents = [];
+        for (const [intent, pattern] of Object.entries(intents)) {
+            if (intent === 'specific') {
+                for (const [subIntent, subPattern] of Object.entries(intents.specific)) {
+                    if (subPattern.test(lowerMessage)) detectedIntents.push(subIntent);
+                }
+            } else if (pattern.test(lowerMessage)) {
+                detectedIntents.push(intent);
+            }
         }
-        
-        // Цены
-        if (/(цена|стоим|оплат|деньг|сколько|стоит)/.test(lowerMessage)) {
-            return `💰 Стоимость курсов:\n\n• Бизнес-анализ: 15 000 ₸ (скидка!)\n• Стратегический менеджмент: 17 000 ₸\n• Финансовая грамотность: 12 000 ₸\n\n🎁 Все курсы со скидками! Подробности на страницах курсов.`;
-        }
-        
-        // Контакты
-        if (/(контакт|поддерж|помощ|связ|телефон|почт|email|instagram|telegram)/.test(lowerMessage)) {
-            return `📞 Контакты SkillsSpire:\n\n📧 Email: ${this.companyInfo.email}\n📱 Телефон: ${this.companyInfo.phone}\n📸 Instagram: ${this.companyInfo.instagram}\n💼 LinkedIn: ${this.companyInfo.linkedin}\n✈️ Telegram: ${this.companyInfo.telegram}\n\n⏰ Время ответа: ${this.companyInfo.responseTime}`;
-        }
-        
-        // О компании
-        if (/(о.*компан|о.*вас|skillsspire|мисси|ценност)/.test(lowerMessage)) {
-            return `🏫 О SkillsSpire:\n\n"${this.companyInfo.description}"\n\n• Академическое качество от профессоров с PhD\n• Практическое применение знаний\n• Более 100 выданных сертификатов\n• Бесплатное обучение для оценки качества\n• Партнёрства с университетами\n\nМы соединяем классическое образование с современными технологиями!`;
-        }
-        
-        // Бесплатное обучение
-        if (/(бесплат|free|подарок|акци)/.test(lowerMessage)) {
-            return `🎁 Бесплатное обучение!\n\nДа, мы предлагаем бесплатные курсы как инвестицию в качество. Так вы можете оценить глубину и практичность нашего материала перед оплатой.\n\nОбратитесь к нам для получения доступа!`;
-        }
-        
-        // Сертификаты
-        if (/(сертифика|документ|подтвержден|диплом)/.test(lowerMessage)) {
-            return `📜 Сертификация:\n\nПосле окончания курсов вы получаете сертификат, подтверждающий ваши компетенции. Уже более 100 студентов получили наши сертификаты!`;
-        }
-        
-        // Бизнес-аналитика
-        if (/(бизнес.*анализ|анализ.*данн|финансов.*модел|риск)/.test(lowerMessage)) {
-            const course = this.knowledgeBase[0];
-            return `📊 ${course.title}\n\n${course.description}\n\n⭐ Рейтинг: ${course.rating}/5\n💰 Цена: ${course.price} (скидка от ${course.originalPrice})\n\nИдеально для:\n• Менеджеров проектов\n• Аналитиков\n• Руководителей\n\nНаучитесь принимать решения на основе данных!`;
-        }
-        
-        // Стратегический менеджмент
-        if (/(стратеги|менеджмент|swot|kpi|планирован)/.test(lowerMessage)) {
-            const course = this.knowledgeBase[1];
-            return `🎯 ${course.title}\n\n${course.description}\n\n⭐ Рейтинг: ${course.rating}/5\n💰 Цена: ${course.price} (скидка от ${course.originalPrice})\n\nДля руководителей и собственников бизнеса!`;
-        }
-        
-        // Финансы
-        if (/(финанс|деньг|отчетност|бухгалтер)/.test(lowerMessage)) {
-            const course = this.knowledgeBase[2];
-            return `💼 ${course.title}\n\n${course.description}\n\n⭐ Рейтинг: ${course.rating}/5\n💰 Цена: ${course.price} (скидка от ${course.originalPrice})\n\nНаучитесь говорить с финансистами на одном языке!`;
-        }
-        
-        // Умный ответ по умолчанию
-        const smartResponses = [
-            "Интересный вопрос! 🤔 Рекомендую посмотреть подробности на нашем сайте или связаться с поддержкой для точного ответа.",
-            "Хороший вопрос! Чтобы дать максимально точный ответ, загляните в раздел 'Все курсы' или напишите нам напрямую.",
-            "Понял ваш запрос! 📚 Для детальной информации рекомендую:\n• Посмотреть программы курсов\n• Почитать о нашей миссии\n• Написать в поддержку\n\nТак вы получите самую актуальную информацию!"
-        ];
-        
-        return smartResponses[Math.floor(Math.random() * smartResponses.length)];
+
+        return detectedIntents.length > 0 ? detectedIntents : ['general'];
     }
-    
+
+    // -------------------- ГЕНЕРАЦИЯ ОТВЕТОВ --------------------
+    generateAIResponse(userMessage) {
+        if (this.context.testStage) return this.handleCourseTest(userMessage);
+
+        const intents = this.analyzeIntent(userMessage);
+        const lowerMessage = userMessage.toLowerCase();
+        this.context.lastTopic = intents[0];
+
+        // Имя
+        if (intents.includes('name')) {
+            const match = lowerMessage.match(/меня зовут\s+([а-яa-z]+)/i);
+            if (match) {
+                this.context.userName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                return `Очень приятно, ${this.context.userName}! 🙌`;
+            }
+        }
+
+        if (intents.includes('greeting')) return "👋 Привет! Чем могу помочь — подбор курса, цены или тест?";
+        if (intents.includes('farewell')) return "До встречи! 🚀 Успехов в обучении!";
+        if (intents.includes('thanks')) return "Всегда рад помочь 🙌";
+        if (intents.includes('personal')) return "У меня всё отлично! А у вас как дела?";
+        if (intents.includes('smalltalk')) return "Сегодня отличный день, чтобы учиться 🎓🚀";
+        if (intents.includes('test')) return this.handleCourseTest("");
+
+        if (intents.includes('goal')) {
+            if (lowerMessage.includes("финанс")) return this.formatCourse(this.knowledgeBase[2]);
+            if (lowerMessage.includes("карьер")) return this.formatCourse(this.knowledgeBase[1]);
+            return this.formatCourse(this.knowledgeBase[0]);
+        }
+
+        if (intents.includes('courses')) return this.knowledgeBase.map(c => this.formatCourse(c)).join("\n\n");
+        if (intents.includes('pricing')) return this.knowledgeBase.map(c => `• ${c.title}: ${c.price}`).join("\n");
+        if (intents.includes('contacts')) return `Email: ${this.companyInfo.email}\nТел: ${this.companyInfo.phone}`;
+        if (intents.includes('about')) return `${this.companyInfo.name}: ${this.companyInfo.description}`;
+
+        if (intents.includes('certificate')) return `🎓 Сертификат выдается после окончания курса (${this.companyInfo.certificates})`;
+        if (intents.includes('teacher')) return "👨‍🏫 Преподаватели — практики и PhD из топ-университетов.";
+        if (intents.includes('career')) return "🚀 Наши выпускники получают повышение и новые карьерные возможности.";
+
+        if (intents.includes('business_analytics')) return this.formatCourse(this.knowledgeBase[0]);
+        if (intents.includes('strategy')) return this.formatCourse(this.knowledgeBase[1]);
+        if (intents.includes('finance')) return this.formatCourse(this.knowledgeBase[2]);
+
+        return "Не совсем понял 🤔 Хотите пройти тест или показать список курсов?";
+    }
+
+    formatCourse(course) {
+        return `📖 ${course.title}\n${course.description}\n💰 ${course.price} | ⏱️ ${course.duration} | ⭐ ${course.rating}`;
+    }
+
+    // -------------------- ОТПРАВКА --------------------
     sendMessage() {
         const text = this.input.value.trim();
         if (!text) return;
-        
         this.input.value = '';
         this.appendMessage(text, 'user');
         this.showTypingIndicator();
-        
+
+        const delay = 600 + Math.random() * 1000;
         setTimeout(() => {
             this.hideTypingIndicator();
             const response = this.generateAIResponse(text);
             this.appendMessage(response, 'bot');
-            
-            // Показываем быстрые ответы после некоторых сообщений
-            if (this.chatHistory.length <= 6) {
-                setTimeout(() => this.showQuickReplies(), 300);
-            }
-        }, 800 + Math.random() * 800);
+            if (this.chatHistory.length <= 8) setTimeout(() => this.showQuickReplies(), 400);
+        }, delay);
     }
 }
 
-// Инициализация при загрузке страницы
+// -------------------- ИНИЦИАЛИЗАЦИЯ --------------------
 document.addEventListener('DOMContentLoaded', () => {
     window.aiAssistant = new AIAssistant();
 });

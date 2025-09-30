@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% load static humanize %}
 
-{% block title %}{{ course.title }} - SkillsSpire{% endblock %}
+{% block title %}{{ course.title|default:"Курс" }} - SkillsSpire{% endblock %}
 
 {% block meta %}
 {% static 'img/courses/default.jpg' as default_course_img %}
-<meta name="description" content="{{ course.short_description }}">
-<meta property="og:title" content="{{ course.title }}">
-<meta property="og:description" content="{{ course.short_description }}">
-<meta property="og:image" content="{% if course_image_url %}{{ course_image_url }}{% elif course.image %}{{ course.image.url }}{% else %}{{ default_course_img }}{% endif %}">
+<meta name="description" content="{{ course.short_description|default:'' }}">
+<meta property="og:title" content="{{ course.title|default:'Курс' }}">
+<meta property="og:description" content="{{ course.short_description|default:'' }}">
+<meta property="og:image" content="{% if course_image_url %}{{ course_image_url }}{% elif course.image %}{{ course.image.url|default:default_course_img }}{% else %}{{ default_course_img }}{% endif %}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:url" content="{{ request.build_absolute_uri|default:'' }}">
 {% endblock %}
 
 {% block content %}
@@ -19,11 +19,13 @@
   <div class="container py-5">
     <div class="row g-4 align-items-center">
       <div class="col-lg-8">
+
         {% if course.category %}
-          <span class="course-badge badge bg-light text-dark mb-2">{{ course.category.name }}</span>
+          <span class="course-badge badge bg-light text-dark mb-2">{{ course.category.name|default:"" }}</span>
         {% endif %}
 
-        <h1 class="course-title text-white mb-2">{{ course.title }}</h1>
+        <h1 class="course-title text-white mb-2">{{ course.title|default:"Курс" }}</h1>
+
         {% if course.short_description %}
           <p class="course-subtitle text-white-50 mb-4">{{ course.short_description }}</p>
         {% endif %}
@@ -33,24 +35,24 @@
           <div class="progress-bar bg-success" style="--p: {{ user_progress.completion_percentage|default:0 }}%" data-pbar></div>
         </div>
         <small class="text-white-50 d-block mb-3">
-          Пройдено: {{ user_progress.completed_lessons_count }}/{{ lessons|length }} уроков
+          Пройдено: {{ user_progress.completed_lessons_count|default:0 }}/{{ lessons|length|default:0 }} уроков
         </small>
         {% endif %}
 
         <div class="d-flex flex-wrap align-items-center gap-3 mb-4 text-white-50">
           <div class="d-inline-flex align-items-center gap-2">
             <i class="bi bi-people"></i>
-            <span>{{ course.students.count }} студентов</span>
+            <span>{{ course.students.count|default:0 }} студентов</span>
           </div>
           {% if course.duration_hours %}
           <div class="d-inline-flex align-items-center gap-2">
             <i class="bi bi-clock"></i>
-            <span>{{ course.duration_hours }} часов</span>
+            <span>{{ course.duration_hours|default:0 }} часов</span>
           </div>
           {% endif %}
           <div class="d-inline-flex align-items-center gap-2">
             <i class="bi bi-star"></i>
-            <span>Рейтинг: {{ course.average_rating|default:"4.8" }}</span>
+            <span>Рейтинг: {{ course.average_rating|default:"-" }}</span>
           </div>
         </div>
 
@@ -69,7 +71,7 @@
               </button>
             {% endif %}
           {% else %}
-            <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtn">
+            <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#enrollModal">
               <i class="bi bi-cart me-1"></i> Записаться на курс
             </button>
           {% endif %}
@@ -102,7 +104,7 @@
               {% if has_access %}
                 {% if lessons %}
                   {% with next_lesson=user_progress.next_lesson|default:lessons.0 %}
-                  <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-success" id="startBtn">
+                  <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-success">
                     <i class="bi bi-play-circle me-1"></i>
                     {% if user_progress and user_progress.current_lesson %}Продолжить{% else %}Начать обучение{% endif %}
                   </a>
@@ -113,12 +115,11 @@
                   </button>
                 {% endif %}
               {% else %}
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal" id="enrollOpenBtnSide">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
                   <i class="bi bi-cart me-1"></i> Записаться на курс
                 </button>
               {% endif %}
 
-              {# передаём исходное состояние избранного безопасно через data-attr #}
               <button
                 id="wishlistBtn"
                 class="btn btn-outline-primary"
@@ -133,11 +134,11 @@
             <div class="text-start">
               <h6 class="mb-3">В курс входит:</h6>
               <ul class="list-unstyled mb-0">
-                <li class="mb-2"><i class="bi bi-play-circle text-primary me-2"></i> {{ lessons|length }} уроков</li>
-                <li class="mb-2"><i class="bi bi-file-text text-primary me-2"></i> Материалы для скачивания</li>
-                <li class="mb-2"><i class="bi bi-infinity text-primary me-2"></i> Бессрочный доступ</li>
-                <li class="mb-2"><i class="bi bi-phone text-primary me-2"></i> Доступ с мобильного</li>
-                <li class="mb-0"><i class="bi bi-award text-primary me-2"></i> Сертификат</li>
+                <li><i class="bi bi-play-circle text-primary me-2"></i> {{ lessons|length|default:0 }} уроков</li>
+                <li><i class="bi bi-file-text text-primary me-2"></i> Материалы для скачивания</li>
+                <li><i class="bi bi-infinity text-primary me-2"></i> Бессрочный доступ</li>
+                <li><i class="bi bi-phone text-primary me-2"></i> Доступ с мобильного</li>
+                <li><i class="bi bi-award text-primary me-2"></i> Сертификат</li>
               </ul>
             </div>
           </div>
@@ -151,11 +152,12 @@
 <div class="container py-5">
   <div class="row g-4">
     <div class="col-lg-8">
+
       <div class="card mb-4">
         <div class="card-body">
           <h3 class="h4 mb-3">О курсе</h3>
           <div class="course-content">
-            {{ course.description|safe }}
+            {{ course.description|safe|default:"Описание скоро появится." }}
           </div>
         </div>
       </div>
@@ -170,7 +172,7 @@
                   <div class="d-flex align-items-center">
                     <i class="bi {% if user_progress and lesson in user_progress.completed_lessons.all %}bi-check-circle-fill text-success{% else %}bi-play-circle text-muted{% endif %} fs-5 me-3"></i>
                     <div>
-                      <h6 class="mb-1">{{ lesson.title }}</h6>
+                      <h6 class="mb-1">{{ lesson.title|default:"Урок" }}</h6>
                       {% if lesson.duration_minutes %}
                         <small class="text-muted">{{ lesson.duration_minutes }} мин.</small>
                       {% endif %}
@@ -185,9 +187,7 @@
               {% endfor %}
             </div>
           {% else %}
-            <div class="p-3">
-              <p class="text-muted mb-0">Уроки появятся скоро.</p>
-            </div>
+            <div class="p-3"><p class="text-muted mb-0">Уроки появятся скоро.</p></div>
           {% endif %}
         </div>
       </div>
@@ -196,55 +196,51 @@
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0">Отзывы студентов</h5>
-            <span class="badge bg-primary">{{ reviews|length }} отзывов</span>
+            <span class="badge bg-primary">{{ reviews|length|default:0 }} отзывов</span>
           </div>
           
           {% for review in reviews %}
           <div class="border-bottom pb-3 mb-3">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <div>
+            <div>
+              <strong>
                 {% if review.user %}
-                  <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                  {{ review.user.get_full_name|default:review.user.username }}
                 {% else %}
-                  <strong>{{ review.name|default:"Аноним" }}</strong>
+                  {{ review.name|default:"Аноним" }}
                 {% endif %}
-                {% if review.rating %}
-                <div class="star-rating small text-warning">
-                  {% for i in "12345" %}
-                    <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
-                  {% endfor %}
-                </div>
-                {% endif %}
+              </strong>
+              {% if review.rating %}
+              <div class="star-rating small text-warning">
+                {% for i in "12345" %}
+                  <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
+                {% endfor %}
               </div>
+              {% endif %}
               <small class="text-muted">{{ review.created_at|date:"d M Y" }}</small>
             </div>
-            <p class="mb-0">{{ review.comment }}</p>
+            <p class="mb-0">{{ review.comment|default:"Без комментария" }}</p>
           </div>
           {% empty %}
           <div class="text-center py-4">
-            <i class="bi bi-chat-quote display-4 text-muted mb-3"></i>
             <p class="text-muted">Пока нет отзывов. Будьте первым!</p>
           </div>
           {% endfor %}
         </div>
       </div>
+
     </div>
 
     <div class="col-lg-4">
       <div class="card mb-4 text-center">
         <div class="card-body">
           {% if teacher_profile and teacher_profile.display_avatar_url %}
-            <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name|default:teacher.username }}" class="rounded-circle mb-3" width="100" height="100">
+            <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name|default:teacher.username|default:'Инструктор' }}" class="rounded-circle mb-3" width="100" height="100">
           {% else %}
             <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
           {% endif %}
-          {% if teacher %}
-            <h5 class="mb-1">{{ teacher.get_full_name|default:teacher.username }}</h5>
-            {% if teacher_profile and teacher_profile.specialization %}<p class="text-muted mb-1">{{ teacher_profile.specialization }}</p>{% endif %}
-            {% if teacher_profile and teacher_profile.bio %}<p class="small text-muted mb-0">{{ teacher_profile.bio|truncatewords:20 }}</p>{% endif %}
-          {% else %}
-            <h5 class="mb-0">SkillsSpire</h5>
-          {% endif %}
+          <h5 class="mb-1">{{ teacher.get_full_name|default:teacher.username|default:"SkillsSpire" }}</h5>
+          {% if teacher_profile and teacher_profile.specialization %}<p class="text-muted mb-1">{{ teacher_profile.specialization }}</p>{% endif %}
+          {% if teacher_profile and teacher_profile.bio %}<p class="small text-muted mb-0">{{ teacher_profile.bio|truncatewords:20 }}</p>{% endif %}
         </div>
       </div>
 
@@ -256,23 +252,13 @@
               {% if item.image_url %}
                 <img src="{{ item.image_url }}" alt="{{ item.course.title }}" class="rounded me-3" width="60" height="60">
               {% else %}
-                <img src="{% static 'img/courses/default.jpg' %}" alt="{{ item.course.title }}" class="rounded me-3" width="60" height="60">
+                <img src="{% static 'img/courses/default.jpg' %}" alt="{{ item.course.title|default:'Курс' }}" class="rounded me-3" width="60" height="60">
               {% endif %}
               <div class="flex-grow-1">
-                <h6 class="mb-1 text-body">{{ item.course.title }}</h6>
+                <h6 class="mb-1 text-body">{{ item.course.title|default:"Курс" }}</h6>
                 {% if item.course.duration_hours %}
                   <small class="text-muted">{{ item.course.duration_hours }} часов</small>
                 {% endif %}
-                <div class="mt-1">
-                  {% if item.course.discount_price and item.course.price and item.course.discount_price < item.course.price %}
-                    <span class="text-primary fw-bold">{{ item.course.discount_price|floatformat:0|intcomma }} ₸</span>
-                    <small class="text-decoration-line-through text-muted ms-1">{{ item.course.price|floatformat:0|intcomma }} ₸</small>
-                  {% elif item.course.price and item.course.price|floatformat != "0" %}
-                    <span class="text-primary fw-bold">{{ item.course.price|floatformat:0|intcomma }} ₸</span>
-                  {% else %}
-                    <span class="text-success fw-bold">Бесплатно</span>
-                  {% endif %}
-                </div>
               </div>
             </a>
           {% empty %}
@@ -285,19 +271,18 @@
   </div>
 </div>
 
-{# enroll modal #}
-<div class="modal fade" id="enrollModal" tabindex="-1" aria-labelledby="enrollModalLabel" aria-hidden="true">
+<div class="modal fade" id="enrollModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="enrollModalLabel">Запись на курс</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title">Запись на курс</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-3">Вы уверены, что хотите записаться на курс «{{ course.title }}»?</p>
+        <p>Вы уверены, что хотите записаться на курс «{{ course.title|default:"Курс" }}»?</p>
         <div class="d-flex justify-content-between align-items-center">
           <span>Стоимость:</span>
-          <span class="h4 text-primary fw-bold" id="coursePrice">
+          <span class="h4 text-primary fw-bold">
             {% if course.discount_price and course.price and course.discount_price < course.price %}
               {{ course.discount_price|floatformat:0|intcomma }}
             {% else %}
@@ -306,16 +291,14 @@
           </span>
         </div>
         {% if not course.price or course.price|floatformat == "0" %}
-        <div class="alert alert-info mt-3 mb-0">
-          <i class="bi bi-info-circle me-2"></i>Этот курс бесплатный
-        </div>
+        <div class="alert alert-info mt-3">Этот курс бесплатный</div>
         {% endif %}
       </div>
       <div class="modal-footer">
         <form action="{% url 'enroll_course' course.slug %}" method="post" class="ms-auto" id="enrollForm">
           {% csrf_token %}
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary" id="enrollSubmit">
+          <button type="submit" class="btn btn-primary">
             {% if course.price and course.price|floatformat != "0" %}Оплатить и записаться{% else %}Записаться бесплатно{% endif %}
           </button>
         </form>
@@ -324,29 +307,13 @@
   </div>
 </div>
 {% else %}
-<div class="container py-5">
-  <div class="alert alert-danger text-center">
-    <h4 class="alert-heading">Курс не найден</h4>
-    <p class="mb-0">Запрошенный курс не существует или был удален.</p>
-  </div>
-</div>
+<div class="container py-5"><div class="alert alert-danger text-center">Курс не найден</div></div>
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Course",
-  "name": "{{ course.title|escapejs }}",
-  "description": "{{ course.short_description|escapejs }}",
-  "provider": { "@type": "Organization", "name": "SkillsSpire" }
-}
-</script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // блокер двойной отправки в модалке
   const enrollForm = document.getElementById('enrollForm');
   if (enrollForm) {
     enrollForm.addEventListener('submit', function() {
@@ -357,77 +324,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-
-  // Избранное: без шаблонных вставок внутрь JS
-  const wishlistBtn = document.getElementById('wishlistBtn');
-  if (wishlistBtn) {
-    let isInWishlist = (wishlistBtn.dataset.initial === 'true');
-
-    wishlistBtn.addEventListener('click', async function () {
-      try {
-        const response = await fetch("{% url 'toggle_wishlist' course.slug %}", {
-          method: 'POST',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          isInWishlist = !!data.in_wishlist;
-          updateWishlistButton();
-          if (data.message) showToast(data.message, 'success');
-        } else {
-          throw new Error('Network error');
-        }
-      } catch (error) {
-        showToast('Не удалось обновить избранное', 'error');
-      }
-    });
-
-    function updateWishlistButton() {
-      const icon = wishlistBtn.querySelector('i');
-      const text = wishlistBtn.querySelector('.btn-text');
-      if (isInWishlist) {
-        icon.className = 'bi bi-heart-fill me-1';
-        text.textContent = 'В избранном';
-        wishlistBtn.classList.add('active');
-      } else {
-        icon.className = 'bi bi-heart me-1';
-        text.textContent = 'Добавить в избранное';
-        wishlistBtn.classList.remove('active');
-      }
-    }
-    updateWishlistButton();
-  }
-
-  function showToast(message, type) {
-    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
-    const toast = document.createElement('div');
-    toast.className = 'toast align-items-center text-bg-' + (type === 'error' ? 'danger' : 'success') + ' border-0';
-    toast.innerHTML = '<div class="d-flex"><div class="toast-body">' + message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
-    toastContainer.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-    toast.addEventListener('hidden.bs.toast', function() { toast.remove(); });
-  }
-
-  function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container position-fixed top-0 end-0 p-3';
-    container.style.zIndex = '9999';
-    document.body.appendChild(container);
-    return container;
-  }
 });
 </script>
 
 <style>
 .course-hero { background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%); }
 .course-hero img, .card img { object-fit: cover; }
-/* ширина прогресс-бара из CSS-переменной (убирает ворнинг линтера) */
 .progress [data-pbar]{ width: var(--p, 0%); }
 </style>
 {% endblock %}
