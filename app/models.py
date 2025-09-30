@@ -1,4 +1,3 @@
-# app/models.py
 from decimal import Decimal
 from typing import Optional
 
@@ -10,10 +9,6 @@ from django.utils.text import slugify
 
 User = settings.AUTH_USER_MODEL
 
-
-# =========================
-#      БАЗОВЫЕ МОДЕЛИ
-# =========================
 
 class TimestampedModel(models.Model):
     created_at = models.DateTimeField("Создано", auto_now_add=True)
@@ -69,10 +64,6 @@ class InstructorProfile(TimestampedModel):
             return None
 
 
-# =========================
-#          КУРСЫ
-# =========================
-
 class Course(TimestampedModel):
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
@@ -100,20 +91,16 @@ class Course(TimestampedModel):
     short_description = models.CharField("Короткое описание", max_length=500, blank=True)
     description = models.TextField("Описание", blank=True)
 
-    # Медиа
     image = models.ImageField("Обложка", upload_to="courses/", blank=True, null=True)
     thumbnail = models.ImageField("Превью", upload_to="courses/thumbs/", blank=True, null=True)
 
-    # Метаданные
     level = models.CharField("Уровень", max_length=20, choices=LEVEL_CHOICES, default=BEGINNER)
     duration_hours = models.PositiveIntegerField("Длительность (часы)", null=True, blank=True)
     is_featured = models.BooleanField("В подборке", default=False)
 
-    # Цены
     price = models.DecimalField("Цена", max_digits=10, decimal_places=2, default=Decimal("0.00"))
     discount_price = models.DecimalField("Цена со скидкой", max_digits=10, decimal_places=2, null=True, blank=True)
 
-    # Записанные студенты (через Enrollment)
     students = models.ManyToManyField(
         User, through="Enrollment", related_name="enrolled_courses", blank=True, verbose_name="Студенты"
     )
@@ -230,10 +217,6 @@ class LessonProgress(TimestampedModel):
         return f"{self.user} — {self.lesson} ({self.percent}%)"
 
 
-# =========================
-#      ОТЗЫВЫ/ИЗБРАННОЕ
-# =========================
-
 class Review(TimestampedModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews", verbose_name="Курс")
     user = models.ForeignKey(
@@ -268,10 +251,6 @@ class Wishlist(TimestampedModel):
         return f"★ {self.user} — {self.course}"
 
 
-# =========================
-#          ОПЛАТЫ
-# =========================
-
 class Payment(TimestampedModel):
     PENDING = "pending"
     SUCCESS = "success"
@@ -304,10 +283,6 @@ class Payment(TimestampedModel):
         return f"{self.user} — {self.course} — {self.amount} ({self.status})"
 
 
-# =========================
-#     КОНТАКТЫ/СТАТЬИ
-# =========================
-
 class ContactMessage(TimestampedModel):
     name = models.CharField("Имя", max_length=120)
     email = models.EmailField("Email")
@@ -323,12 +298,11 @@ class ContactMessage(TimestampedModel):
         return f"{self.email}: {self.subject}"
 
 
-# Опционально: CKEditor, если установлен
 try:
-    from ckeditor_uploader.fields import RichTextUploadingField  # type: ignore
+    from ckeditor_uploader.fields import RichTextUploadingField
     _RichField = RichTextUploadingField
 except Exception:
-    _RichField = models.TextField  # fallback на обычный текст
+    _RichField = models.TextField
 
 
 class Article(TimestampedModel):
@@ -341,6 +315,11 @@ class Article(TimestampedModel):
     excerpt = models.TextField("Краткое описание", blank=True)
     body = _RichField("Текст", blank=True)
     cover = models.ImageField("Обложка", upload_to="articles/", blank=True, null=True)
+
+    seo_title = models.CharField("SEO Title", max_length=255, blank=True)
+    seo_description = models.CharField("SEO Description", max_length=500, blank=True)
+    seo_keywords = models.CharField("SEO Keywords", max_length=500, blank=True)
+    seo_schema = models.TextField("SEO Schema (JSON-LD)", blank=True)
 
     status = models.CharField("Статус", max_length=10, choices=STATUS_CHOICES, default=DRAFT)
     published_at = models.DateTimeField("Опубликовано", blank=True, null=True)
@@ -360,13 +339,8 @@ class Article(TimestampedModel):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        # имя url — article_detail (см. urls.py)
         return reverse("article_detail", args=[self.slug])
 
-
-# =========================
-#          МАТЕРИАЛЫ
-# =========================
 
 class Material(TimestampedModel):
     title = models.CharField("Название", max_length=200)
@@ -391,5 +365,4 @@ class Material(TimestampedModel):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        # список материалов, якорь на себя
         return reverse("materials_list") + f"#{self.slug}"

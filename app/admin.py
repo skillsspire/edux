@@ -21,10 +21,6 @@ IMAGE_PREVIEW_SIZE = {"width": 100, "height": 70}
 DEFAULT_EMPTY_VALUE = "—"
 
 
-# ---------------------------
-# Inlines
-# ---------------------------
-
 class ModuleInline(admin.TabularInline):
     model = Module
     extra = 0
@@ -40,10 +36,6 @@ class LessonInline(admin.TabularInline):
     show_change_link = True
 
 
-# ---------------------------
-# Category
-# ---------------------------
-
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "is_active", "courses_count")
@@ -57,10 +49,6 @@ class CategoryAdmin(admin.ModelAdmin):
     courses_count.short_description = "Курсов"
 
 
-# ---------------------------
-# Instructor
-# ---------------------------
-
 @admin.register(InstructorProfile)
 class InstructorProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "specialization", "is_approved", "created_at")
@@ -68,10 +56,6 @@ class InstructorProfileAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "user__email", "specialization")
     readonly_fields = ("created_at", "updated_at")
 
-
-# ---------------------------
-# Course
-# ---------------------------
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -115,7 +99,6 @@ class CourseAdmin(admin.ModelAdmin):
     students_count.short_description = "Студентов"
 
     def avg_rating(self, obj):
-        # лёгкий расчёт, чтобы не требовать поля в модели
         try:
             from django.db.models import Avg
             return round(obj.reviews.aggregate(a=Avg("rating"))["a"] or 0, 2)
@@ -123,10 +106,6 @@ class CourseAdmin(admin.ModelAdmin):
             return 0
     avg_rating.short_description = "Рейтинг"
 
-
-# ---------------------------
-# Module
-# ---------------------------
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
@@ -138,10 +117,6 @@ class ModuleAdmin(admin.ModelAdmin):
     ordering = ("course", "order")
     list_select_related = ("course",)
 
-
-# ---------------------------
-# Lesson
-# ---------------------------
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
@@ -158,10 +133,6 @@ class LessonAdmin(admin.ModelAdmin):
     course_display.short_description = "Курс"
 
 
-# ---------------------------
-# Lesson Progress
-# ---------------------------
-
 @admin.register(LessonProgress)
 class LessonProgressAdmin(admin.ModelAdmin):
     list_display = ("user", "lesson", "is_completed", "percent", "updated_at")
@@ -172,10 +143,6 @@ class LessonProgressAdmin(admin.ModelAdmin):
     ordering = ("-updated_at",)
     list_select_related = ("lesson", "lesson__module", "lesson__module__course", "user")
 
-
-# ---------------------------
-# Enrollment
-# ---------------------------
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
@@ -188,10 +155,6 @@ class EnrollmentAdmin(admin.ModelAdmin):
     list_select_related = ("user", "course")
 
 
-# ---------------------------
-# Review
-# ---------------------------
-
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ("user", "course", "rating", "is_active", "created_at")
@@ -202,10 +165,6 @@ class ReviewAdmin(admin.ModelAdmin):
     list_select_related = ("user", "course")
 
 
-# ---------------------------
-# Wishlist
-# ---------------------------
-
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):
     list_display = ("user", "course", "created_at")
@@ -215,10 +174,6 @@ class WishlistAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
     list_select_related = ("user", "course")
 
-
-# ---------------------------
-# Payment
-# ---------------------------
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
@@ -256,7 +211,6 @@ class PaymentAdmin(admin.ModelAdmin):
     def mark_success(self, request, queryset):
         updated = queryset.update(status="success")
         self.message_user(request, f"Обновлено {updated} платежей как 'success'.")
-        # авто-зачисление
         for p in queryset.select_related("user", "course"):
             try:
                 Enrollment.objects.get_or_create(user=p.user, course=p.course)
@@ -270,10 +224,6 @@ class PaymentAdmin(admin.ModelAdmin):
         self.message_user(request, f"Обновлено {updated} платежей как 'failed'.")
 
 
-# ---------------------------
-# ContactMessage
-# ---------------------------
-
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "subject", "created_at")
@@ -283,24 +233,21 @@ class ContactMessageAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
 
 
-# ---------------------------
-# Article (для раздела Статьи)
-# ---------------------------
-
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
     list_display = ("title", "status", "published_at", "created_at")
     list_filter = ("status", "published_at", "created_at")
-    search_fields = ("title", "excerpt", "body")
+    search_fields = ("title", "excerpt", "body", "seo_title", "seo_description", "seo_keywords")
     prepopulated_fields = {"slug": ("title",)}
     readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "published_at"
     ordering = ("-published_at", "-created_at")
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "excerpt", "cover", "body", "status", "published_at")}),
+        ("SEO", {"fields": ("seo_title", "seo_description", "seo_keywords", "seo_schema")}),
+        ("Служебное", {"fields": ("created_at", "updated_at")}),
+    )
 
-
-# ---------------------------
-# Material (для раздела Материалы)
-# ---------------------------
 
 @admin.register(Material)
 class MaterialAdmin(admin.ModelAdmin):
@@ -311,10 +258,6 @@ class MaterialAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
 
-
-# ---------------------------
-# Site headers
-# ---------------------------
 
 admin.site.site_header = "🏔️ SkillsSpire — Панель управления"
 admin.site.site_title = "SkillsSpire Admin"
