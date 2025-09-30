@@ -162,27 +162,25 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365
 
-SUPABASE_PROJECT_ID = "pyttzlcuxyfkhrwggrwi"
-SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "media")
-
+# === Supabase Storage ===
 if DEBUG:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 else:
-    MEDIA_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET_NAME}/"
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "media")
+
+    MEDIA_URL = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/"
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
     AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
-    AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET_NAME
-    AWS_S3_ENDPOINT_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/s3"
-    AWS_S3_REGION_NAME = "eu-central-1"
-    AWS_S3_ADDRESSING_STYLE = "path"
-    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET
+    AWS_S3_ENDPOINT_URL = f"{SUPABASE_URL}/storage/v1/s3"
     AWS_QUERYSTRING_AUTH = False
     AWS_DEFAULT_ACL = None
     AWS_S3_FILE_OVERWRITE = False
-    AWS_S3_CUSTOM_DOMAIN = None
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
