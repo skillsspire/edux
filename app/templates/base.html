@@ -21,10 +21,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  
+  <!-- AI Widget CSS -->
+  <link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}">
+  
   <style>
     #ai-bubble{ z-index:1300; }
     .mskt{ bottom:88px; }
     @media (max-width:480px){ .mskt{ bottom:100px; } }
+    
+    /* Анимация махания для маскота */
+    @keyframes mskt-wave {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-5deg) scale(1.05); }
+      50% { transform: rotate(5deg) scale(1.05); }
+      75% { transform: rotate(-3deg) scale(1.03); }
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
@@ -204,68 +216,79 @@
   </div>
 </footer>
 
-<link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}">
-<div id="ai-bubble" title="Открыть ассистента">ИИ</div>
-<div id="ai-panel" role="dialog" aria-label="AI Assistant">
+<!-- AI Widget HTML -->
+<div id="ai-bubble" class="ai-floating" title="ИИ помощник SkillsSpire"></div>
+<div id="ai-panel">
   <div id="ai-header">
-    <span>AI-помощник</span>
-    <button id="ai-close" aria-label="Закрыть">✕</button>
+    <span>🤖 ИИ помощник SkillsSpire</span>
+    <button id="ai-close">✕</button>
   </div>
-  <div id="ai-messages" aria-live="polite"></div>
+  <div id="ai-messages">
+    <div class="ai-msg ai-bot">
+      Привет! Я ваш помощник по курсам SkillsSpire. Чем могу помочь? 🎓
+    </div>
+  </div>
   <div id="ai-status"></div>
   <div id="ai-inputbar">
-    <textarea id="ai-text" rows="2" placeholder="Напишите вопрос…"></textarea>
-    <button id="ai-send">Отправить</button>
+    <textarea id="ai-text" placeholder="Задайте вопрос о курсах..." rows="1"></textarea>
+    <button id="ai-send">➤</button>
   </div>
 </div>
-<script>
-  window.AI_WIDGET_CONFIG = { kbUrl: "{% static 'ai-widget/kb.json' %}" };
-</script>
-<script type="module" src="{% static 'ai-widget/ai-widget.js' %}"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
 <script defer src="{% static 'js/main.js' %}"></script>
-{% block extra_js %}{% endblock %}
 
-// Добавьте в конец base.html перед закрывающим </body>
+<!-- AI Widget JS -->
+<script src="{% static 'ai-widget/ai-widget.js' %}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const mskt = document.getElementById('mskt');
-  const msktImage = mskt.querySelector('.mskt-image');
+  // Интеграция маскота с ИИ-помощником
+  const mskt = document.querySelector('.mskt');
+  const msktImage = document.querySelector('.mskt-image');
+  const aiBubble = document.getElementById('ai-bubble');
   
-  // Клик по маскоту
-  msktImage.addEventListener('click', function() {
-    // Открыть чат помощника или показать сообщение
-    const bubble = mskt.querySelector('.mskt-bubble');
-    bubble.textContent = 'Открываю помощника...';
+  if (msktImage && aiBubble) {
+    // Клик по маскоту открывает ИИ-помощник
+    msktImage.addEventListener('click', function() {
+      // Открываем ИИ-помощник
+      if (window.aiAssistant) {
+        window.aiAssistant.togglePanel();
+      } else {
+        // Fallback - просто показываем bubble
+        const bubble = document.querySelector('.mskt-bubble');
+        if (bubble) {
+          bubble.textContent = 'Открываю помощника...';
+          setTimeout(() => {
+            aiBubble.click(); // Кликаем на ИИ-помощник
+            bubble.textContent = 'Нужна помощь?';
+          }, 500);
+        }
+      }
+    });
     
-    // Здесь можно добавить логику открытия чата
-    setTimeout(() => {
-      bubble.textContent = 'нужна помощь?';
-    }, 2000);
-  });
-  
-  // Анимация "махания" при наведении
-  msktImage.addEventListener('mouseenter', function() {
-    this.style.animation = 'mskt-wave 0.5s ease-in-out';
-  });
-  
-  msktImage.addEventListener('animationend', function() {
-    this.style.animation = 'mskt-idle 3.6s ease-in-out infinite';
-  });
-});
-
-// Дополнительная анимация для "махания"
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes mskt-wave {
-    0%, 100% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(-5deg) scale(1.05); }
-    50% { transform: rotate(5deg) scale(1.05); }
-    75% { transform: rotate(-3deg) scale(1.03); }
+    // Анимация "махания" при наведении
+    msktImage.addEventListener('mouseenter', function() {
+      this.style.animation = 'mskt-wave 0.5s ease-in-out';
+    });
+    
+    msktImage.addEventListener('animationend', function() {
+      this.style.animation = 'mskt-idle 3.6s ease-in-out infinite';
+    });
   }
-`;
-document.head.appendChild(style);
+  
+  // Связь между маскотом и ИИ-помощником
+  if (aiBubble) {
+    aiBubble.addEventListener('click', function() {
+      // Можно добавить реакцию маскота при открытии помощника
+      if (msktImage) {
+        msktImage.style.animation = 'mskt-wave 0.5s ease-in-out';
+      }
+    });
+  }
+});
 </script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>
