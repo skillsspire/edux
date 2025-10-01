@@ -1,27 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Статьи — SkillsSpire{% endblock %}
+{% block title %}Все статьи — SkillsSpire{% endblock %}
+
 {% block content %}
-<section class="container py-5">
-  <h1 class="mb-4">Статьи</h1>
-  {% if articles %}
-    <div class="row g-4">
-      {% for a in articles %}
+<div class="container py-5">
+
+  <h1 class="mb-4">Все статьи</h1>
+
+  <div class="row g-4">
+    {% for article in articles %}
       <div class="col-md-6 col-lg-4">
-        <article class="card h-100">
-          {% if a.cover %}<img src="{{ a.cover.url }}" class="card-img-top" alt="{{ a.title }}">{% endif %}
+        <div class="card h-100">
           <div class="card-body">
-            <h2 class="h5"><a href="{{ a.get_absolute_url }}">{{ a.title }}</a></h2>
-            <p class="text-muted small mb-2">
-              {% if a.published_at %}{{ a.published_at|date:"d.m.Y" }}{% endif %}
+            <h5 class="card-title">
+              <a href="{% url 'article_detail' article.slug %}" class="text-decoration-none">
+                {{ article.title }}
+              </a>
+            </h5>
+            {% if article.published_at %}
+              <p class="text-muted small">{{ article.published_at|date:"d E Y" }}</p>
+            {% endif %}
+            <p class="card-text">
+              {{ article.body|truncatewords:25 }}
             </p>
-            <p class="mb-0">{{ a.excerpt|default_if_none:""|truncatechars:140 }}</p>
           </div>
-        </article>
+        </div>
       </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p>Пока нет опубликованных статей.</p>
-  {% endif %}
-</section>
+    {% empty %}
+      <p>Пока статей нет.</p>
+    {% endfor %}
+  </div>
+
+</div>
 {% endblock %}
