@@ -185,14 +185,12 @@ else:
     AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET_NAME
     AWS_S3_ENDPOINT_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/s3"
 
-    # 🔑 Ключевые флаги для Supabase:
+    # 🔑 ключевые настройки для Supabase:
     AWS_S3_REGION_NAME = "us-east-1"
+    AWS_S3_ADDRESSING_STYLE = "path"   # ⚡ обязательно
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
-
-    # 👇 ВАЖНО: использовать path-style URLs (иначе boto3 шлёт кривые host-style)
-    AWS_S3_ADDRESSING_STYLE = "path"
 
 # === Email ===
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
