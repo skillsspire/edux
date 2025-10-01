@@ -433,8 +433,8 @@ class Migration(migrations.Migration):
             field=models.SlugField(blank=True, max_length=220, null=True, unique=True, verbose_name='Слаг'),
         ),
         migrations.RunPython(
-            code=app.migrations.0008_add_excerpt_slug.backfill_material_slugs,
-            reverse_code=django.db.migrations.operations.special.RunPython.noop,
+            migrations.RunPython.noop,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.AlterField(
             model_name='material',
