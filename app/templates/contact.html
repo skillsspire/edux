@@ -199,7 +199,7 @@ textarea.form-control {
             <!-- Форма обратной связи -->
             <div class="contact-form">
                 <h2 class="text-center mb-4">Напишите нам прямо сейчас</h2>
-                <form method="post" action="{% url 'contact_form' %}">
+                <form method="post" action="{% url 'contact' %}">
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-6">
