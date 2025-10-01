@@ -4,9 +4,12 @@
 <div class="container py-5">
   <a href="{% url 'articles_list' %}" class="text-decoration-none">← Ко всем статьям</a>
   <h1 class="mt-3">{{ article.title|default:"Статья" }}</h1>
-  {% if article.published_at %}<p class="text-muted">{{ article.published_at }}</p>{% endif %}
+  {% if article.published_at %}
+    <p class="text-muted">{{ article.published_at }}</p>
+  {% endif %}
+
   <div class="mt-4">
-    {{ article.content|default:"Контент появится позже."|safe }}
+    {{ article.body|default:"Контент появится позже."|safe }}
   </div>
 
   {% if latest %}

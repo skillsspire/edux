@@ -1,22 +1,32 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Все курсы — SkillsSpire{% endblock %}
+{% block title %}Бесплатные курсы от профессоров — SkillsSpire{% endblock %}
 
 {% block content %}
 
 <section class="section" style="padding-top: 3rem; padding-bottom: 2rem;">
   <div class="container">
     <div class="section-header text-center">
-      <h1 class="mb-2">Все курсы</h1>
-      <p class="text-muted">Выберите курс, который поможет вам достичь карьерных целей</p>
+      <h1 class="mb-2">Бесплатные курсы от профессоров</h1>
+      <p class="text-muted">Учись бесплатно. Сертификаты доступны за символическую плату</p>
+    </div>
+
+    <!-- SEO-блок -->
+    <div class="row justify-content-center mb-4">
+      <div class="col-lg-8 text-center">
+        <p class="text-muted">
+          На платформе SkillsSpire доступны бесплатные онлайн-курсы по финансам, аналитике, менеджменту и экономике. 
+          После прохождения курса вы можете получить академический сертификат для резюме и поступления за рубеж.
+        </p>
+      </div>
     </div>
 
     <div class="d-flex justify-content-center mt-3">
       <form action="{% url 'courses_list' %}" method="get" class="hero-search w-100" style="max-width:600px;">
         {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
         {% for lvl in selected_levels %}<input type="hidden" name="level" value="{{ lvl }}">{% endfor %}
-        {% if price_filter %}<input type="hidden" name="price" value="{{ price_filter }}">{% endif %}
+        {% if certificate_filter %}<input type="hidden" name="certificate" value="{{ certificate_filter }}">{% endif %}
         {% if sort_by %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
 
         <div class="input-group">
@@ -34,36 +44,61 @@
       <aside class="col-lg-3">
         <div class="card mb-3">
           <div class="card-body">
-            <h5 class="card-title mb-3">Категории</h5>
+            <h5 class="card-title mb-3">Направления</h5>
             <div class="d-flex flex-column gap-1">
               {% if not selected_categories %}
                 <a
-                  href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if price_filter %}price={{ price_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
+                  href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if certificate_filter %}certificate={{ certificate_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
                   class="list-group-item d-block px-3 py-2 rounded active text-white"
                   style="background-color: var(--color-primary);"
                 >Все курсы</a>
               {% else %}
                 <a
-                  href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if price_filter %}price={{ price_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
+                  href="{% url 'courses_list' %}?{% if q %}q={{ q|urlencode }}&{% endif %}{% for l in selected_levels %}level={{ l|urlencode }}&{% endfor %}{% if certificate_filter %}certificate={{ certificate_filter }}&{% endif %}{% if sort_by %}sort={{ sort_by }}{% endif %}"
                   class="list-group-item d-block px-3 py-2 rounded"
                 >Все курсы</a>
               {% endif %}
 
+              <!-- Бизнес-категории -->
+              <a
+                href="{% url 'courses_list' %}?category=business-analytics{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                class="list-group-item d-block px-3 py-2 rounded {% if 'business-analytics' in selected_categories %}active text-white{% endif %}"
+                {% if 'business-analytics' in selected_categories %}style="background-color: var(--color-primary);"{% endif %}
+              >Бизнес-аналитика</a>
+
+              <a
+                href="{% url 'courses_list' %}?category=finance{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                class="list-group-item d-block px-3 py-2 rounded {% if 'finance' in selected_categories %}active text-white{% endif %}"
+                {% if 'finance' in selected_categories %}style="background-color: var(--color-primary);"{% endif %}
+              >Финансы</a>
+
+              <a
+                href="{% url 'courses_list' %}?category=management{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                class="list-group-item d-block px-3 py-2 rounded {% if 'management' in selected_categories %}active text-white{% endif %}"
+                {% if 'management' in selected_categories %}style="background-color: var(--color-primary);"{% endif %}
+              >Менеджмент и стратегия</a>
+
+              <a
+                href="{% url 'courses_list' %}?category=economics{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                class="list-group-item d-block px-3 py-2 rounded {% if 'economics' in selected_categories %}active text-white{% endif %}"
+                {% if 'economics' in selected_categories %}style="background-color: var(--color-primary);"{% endif %}
+              >Экономика</a>
+
               {% for cat in categories %}
-                {% if selected_categories and cat.slug in selected_categories %}
-                  <a
-                    href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
-                    class="list-group-item d-block px-3 py-2 rounded active text-white"
-                    style="background-color: var(--color-primary);"
-                  >{{ cat.name }}</a>
-                {% else %}
-                  <a
-                    href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
-                    class="list-group-item d-block px-3 py-2 rounded"
-                  >{{ cat.name }}</a>
+                {% if cat.slug not in 'business-analytics,finance,management,economics' %}
+                  {% if selected_categories and cat.slug in selected_categories %}
+                    <a
+                      href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                      class="list-group-item d-block px-3 py-2 rounded active text-white"
+                      style="background-color: var(--color-primary);"
+                    >{{ cat.name }}</a>
+                  {% else %}
+                    <a
+                      href="{% url 'courses_list' %}?category={{ cat.slug|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+                      class="list-group-item d-block px-3 py-2 rounded"
+                    >{{ cat.name }}</a>
+                  {% endif %}
                 {% endif %}
-              {% empty %}
-                <span class="text-muted">Нет категорий</span>
               {% endfor %}
             </div>
           </div>
@@ -74,9 +109,7 @@
             <h5 class="card-title mb-3">Фильтры</h5>
 
             <form action="{% url 'courses_list' %}" method="get" class="d-flex flex-column gap-3">
-              {% for cat in selected_categories %}
-                <input type="hidden" name="category" value="{{ cat }}">
-              {% endfor %}
+              {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
               {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
               {% if sort_by %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
 
@@ -99,11 +132,11 @@
               </div>
 
               <div>
-                <label class="form-label fw-semibold">Цена</label>
-                <select name="price" class="form-select">
-                  <option value="" {% if not price_filter %}selected{% endif %}>Любая</option>
-                  <option value="free" {% if price_filter == 'free' %}selected{% endif %}>Бесплатные</option>
-                  <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>Платные</option>
+                <label class="form-label fw-semibold">Сертификат</label>
+                <select name="certificate" class="form-select">
+                  <option value="" {% if not certificate_filter %}selected{% endif %}>Все курсы</option>
+                  <option value="available" {% if certificate_filter == 'available' %}selected{% endif %}>С сертификатом</option>
+                  <option value="not_available" {% if certificate_filter == 'not_available' %}selected{% endif %}>Без сертификата</option>
                 </select>
               </div>
 
@@ -121,15 +154,13 @@
             {% for cat in selected_categories %}<input type="hidden" name="category" value="{{ cat }}">{% endfor %}
             {% for l in selected_levels %}<input type="hidden" name="level" value="{{ l }}">{% endfor %}
             {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
-            {% if price_filter %}<input type="hidden" name="price" value="{{ price_filter }}">{% endif %}
+            {% if certificate_filter %}<input type="hidden" name="certificate" value="{{ certificate_filter }}">{% endif %}
 
             <label class="text-muted me-1" style="font-size:.9rem;">Сортировка</label>
             <select name="sort" class="form-select" style="width:auto;" onchange="this.form.submit()">
               <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Сначала новые</option>
               <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Популярные</option>
               <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>По рейтингу</option>
-              <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Цена: низкая → высокая</option>
-              <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Цена: высокая → низкая</option>
             </select>
           </form>
         </div>
@@ -141,7 +172,7 @@
 
               <div class="course-card-content">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="course-category">{{ course.category.name|default:"Без категории" }}</span>
+                  <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
                   <div class="course-rating">
                     <i class="bi bi-star-fill"></i> {{ course.average_rating|default:"4.8" }}
                   </div>
@@ -150,33 +181,28 @@
                 <h3 class="course-card-title">{{ course.title }}</h3>
                 <p class="course-card-text">{{ course.short_description|default:course.description|truncatewords:18 }}</p>
 
-                <div class="course-card-meta d-flex align-items-center gap-2">
-                  {% if course.price and course.price > 0 %}
-                    {% if course.discount_price %}
-                      <span class="text-muted text-decoration-line-through">{{ course.price }} ₸</span>
-                      <span class="course-price">{{ course.discount_price }} ₸</span>
-                    {% else %}
-                      <span class="course-price">{{ course.price }} ₸</span>
+                <div class="course-card-meta">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="text-success fw-bold">Бесплатно</span>
+                    {% if course.has_certificate %}
+                      <span class="text-muted">💳 Сертификат: {{ course.certificate_price|default:"12,000" }} ₸</span>
                     {% endif %}
-                  {% else %}
-                    <span class="course-price">Бесплатно</span>
-                  {% endif %}
+                  </div>
                 </div>
               </div>
 
               <div class="course-card-footer">
-                <a href="{% url 'course_detail' course.slug %}"
-                   class="btn btn-outline btn-full">Подробнее</a>
+                <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline btn-full">Учиться бесплатно</a>
+                {% if course.has_certificate %}
+                  <button class="btn btn-text btn-full mt-1 certificate-btn" data-course-id="{{ course.id }}">
+                    Получить сертификат
+                  </button>
+                {% endif %}
               </div>
 
-              {% if course.is_popular or course.discount_percent %}
+              {% if course.is_popular %}
                 <div class="badge">
-                  {% if course.is_popular %}
-                    <span class="badge bg-danger">Популярный</span>
-                  {% endif %}
-                  {% if course.discount_percent %}
-                    <span class="badge bg-success">-{{ course.discount_percent }}%</span>
-                  {% endif %}
+                  <span class="badge bg-danger">Популярный</span>
                 </div>
               {% endif %}
             </div>
@@ -195,7 +221,7 @@
               {% if page_obj.has_previous %}
                 <li class="page-item">
                   <a class="page-link"
-                     href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for c in selected_categories %}&category={{ c|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                     href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for c in selected_categories %}&category={{ c|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
                     Назад
                   </a>
                 </li>
@@ -204,7 +230,7 @@
               {% for num in page_obj.paginator.page_range %}
                 <li class="page-item {% if page_obj.number == num %}active{% endif %}">
                   <a class="page-link"
-                     href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for c in selected_categories %}&category={{ c|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                     href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for c in selected_categories %}&category={{ c|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
                     {{ num }}
                   </a>
                 </li>
@@ -213,7 +239,7 @@
               {% if page_obj.has_next %}
                 <li class="page-item">
                   <a class="page-link"
-                     href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for c in selected_categories %}&category={{ c|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if price_filter %}&price={{ price_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                     href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% for c in selected_categories %}&category={{ c|urlencode }}{% endfor %}{% for l in selected_levels %}&level={{ l|urlencode }}{% endfor %}{% if certificate_filter %}&certificate={{ certificate_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
                     Вперед
                   </a>
                 </li>
@@ -226,4 +252,23 @@
   </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Обработка кликов по кнопкам сертификатов
+  document.querySelectorAll('.certificate-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const courseId = this.getAttribute('data-course-id');
+      showCertificateModal(courseId);
+    });
+  });
+
+  function showCertificateModal(courseId) {
+    // Реализация модального окна для покупки сертификата
+    console.log('Открыть модалку для курса:', courseId);
+    // Здесь можно добавить вызов модального окна
+    // Например: $('#certificateModal').modal('show');
+  }
+</script>
 {% endblock %}
