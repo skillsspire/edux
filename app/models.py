@@ -313,7 +313,7 @@ class Article(TimestampedModel):
     title = models.CharField("Заголовок", max_length=255)
     slug = models.SlugField("Слаг", max_length=255, unique=True, blank=True)
     excerpt = models.TextField("Краткое описание", blank=True)
-    body = _RichField("Текст", blank=True)
+    body = _RichField("Текст", default="Текст появится позже", blank=True)
     cover = models.ImageField("Обложка", upload_to="articles/", blank=True, null=True)
 
     seo_title = models.CharField("SEO Title", max_length=255, blank=True)
