@@ -238,20 +238,18 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-new Swiper('.testimonials-swiper', {
-  slidesPerView: 1, // по умолчанию (для мобильных)
-  spaceBetween: 20,
-  loop: true,
+new Swiper('.categories-swiper', {
+  slidesPerView: 4,   // показываем сразу 4
+  spaceBetween: 20,   // отступы между карточками
   navigation: {
-    nextEl: '.testimonials-section .swiper-button-next',
-    prevEl: '.testimonials-section .swiper-button-prev'
-  },
-  autoplay: {
-    delay: 5000
+    nextEl: '.categories-section .swiper-button-next',
+    prevEl: '.categories-section .swiper-button-prev'
   },
   breakpoints: {
-    768: { slidesPerView: 2 },   // планшеты
-    1024: { slidesPerView: 3 }   // десктоп
+    320: { slidesPerView: 1 },
+    768: { slidesPerView: 2 },
+    1024: { slidesPerView: 3 },  // на планшете 3
+    1280: { slidesPerView: 4 }   // на больших экранах 4
   }
 });
 </script>
