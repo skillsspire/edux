@@ -317,6 +317,8 @@ button, input, select, textarea {
     display: flex;
     list-style: none;
     gap: var(--space-lg);
+    flex-wrap: nowrap;      /* запрет переноса элементов */
+    white-space: nowrap;    /* запрет переноса текста внутри ссылок */
 }
 
 .nav-list a {
@@ -1894,4 +1896,12 @@ hr {
   display: block;
   margin: 1.5rem auto;
   border-radius: 8px;
+}
+.swiper {
+  width: 100%;
+  padding-bottom: 40px;
+}
+.swiper-slide {
+  text-align: center;
+  width: auto; /* чтобы работал slidesPerView: 'auto' */
 }

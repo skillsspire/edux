@@ -9,7 +9,7 @@
 
 {% block content %}
 
-<!-- 1. Hero-блок -->
+<!-- 1. Hero -->
 <section class="course-hero">
   <div class="container text-center">
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
@@ -28,8 +28,8 @@
   </div>
 </section>
 
-<!-- 2. Блок «Почему Skillsspire» -->
-<section class="features-section">
+<!-- 2. Почему выбирают -->
+<section class="features-section section">
   <div class="container text-center">
     <h2>Почему выбирают нас?</h2>
     <div class="features-grid">
@@ -75,35 +75,30 @@
             </a>
           </div>
         {% empty %}
-          <!-- Дефолтные категории для бизнес-направлений -->
           <div class="swiper-slide">
             <a href="{% url 'courses_list' %}?category=business-analytics" class="category-card">
-              <i class="bi bi-graph-up" aria-hidden="true"></i>
-              <div>Бизнес-аналитика</div>
+              <i class="bi bi-graph-up"></i><div>Бизнес-аналитика</div>
             </a>
           </div>
           <div class="swiper-slide">
             <a href="{% url 'courses_list' %}?category=finance" class="category-card">
-              <i class="bi bi-cash-coin" aria-hidden="true"></i>
-              <div>Финансы</div>
+              <i class="bi bi-cash-coin"></i><div>Финансы</div>
             </a>
           </div>
           <div class="swiper-slide">
             <a href="{% url 'courses_list' %}?category=management" class="category-card">
-              <i class="bi bi-diagram-3" aria-hidden="true"></i>
-              <div>Менеджмент</div>
+              <i class="bi bi-diagram-3"></i><div>Менеджмент</div>
             </a>
           </div>
           <div class="swiper-slide">
             <a href="{% url 'courses_list' %}?category=economics" class="category-card">
-              <i class="bi bi-globe" aria-hidden="true"></i>
-              <div>Экономика</div>
+              <i class="bi bi-globe"></i><div>Экономика</div>
             </a>
           </div>
         {% endfor %}
       </div>
-      <div class="swiper-button-next" aria-label="Следующие категории"></div>
-      <div class="swiper-button-prev" aria-label="Предыдущие категории"></div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
     </div>
   </div>
 </section>
@@ -124,16 +119,14 @@
             <p class="course-card-text">{{ course.short_description|default:course.description|truncatechars:120 }}</p>
             <div class="course-card-meta">
               <div class="course-rating">
-                <i class="bi bi-star-fill" aria-hidden="true"></i>
+                <i class="bi bi-star-fill"></i>
                 {{ course.average_rating|default:"4.8" }}
                 <span class="course-reviews">({{ course.reviews_count|default:0 }} отзывов)</span>
               </div>
               <span class="course-price">
+                <span class="text-success">Бесплатно</span>
                 {% if course.has_certificate and course.certificate_price %}
-                  <span class="text-success">Бесплатно</span>
                   <small class="text-muted d-block">Сертификат: {{ course.certificate_price }} ₸</small>
-                {% else %}
-                  <span class="text-success">Бесплатно</span>
                 {% endif %}
               </span>
             </div>
@@ -154,137 +147,88 @@
   </div>
 </section>
 
-<!-- 5. «Как это работает» -->
-<section class="how-it-works-section">
+<!-- 5. Как это работает -->
+<section class="how-it-works-section section">
   <div class="container text-center">
     <h2>Как это работает</h2>
     <div class="steps-grid">
-      <div class="step">
-        <div class="step-number">1</div>
-        <h3>Запишись на курс бесплатно</h3>
-        <p>Полный доступ ко всем материалам без ограничений</p>
-      </div>
-      <div class="step">
-        <div class="step-number">2</div>
-        <h3>Пройди в удобном темпе</h3>
-        <p>Учись когда угодно, с любого устройства</p>
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <h3>Получи сертификат</h3>
-        <p>Подтверди знания для резюме или поступления</p>
-      </div>
+      <div class="step"><div class="step-number">1</div><h3>Запишись бесплатно</h3><p>Доступ без ограничений</p></div>
+      <div class="step"><div class="step-number">2</div><h3>Учись в удобном темпе</h3><p>С любого устройства</p></div>
+      <div class="step"><div class="step-number">3</div><h3>Получи сертификат</h3><p>Подтверди знания</p></div>
     </div>
   </div>
 </section>
 
-<!-- 6. Пример сертификата -->
-<section id="certificates" class="certificate-section">
-  <div class="container">
-    <div class="certificate-content">
-      <div class="certificate-image">
-        <img src="{% static 'img/certificate-sample.jpg' %}" alt="Пример сертификата SkillsSpire" loading="lazy">
-      </div>
-      <div class="certificate-info">
-        <h2>Академические сертификаты</h2>
-        <p>Наши студенты размещают сертификаты в LinkedIn и используют для поступления в зарубежные университеты.</p>
-        <ul class="certificate-features">
-          <li>✅ Официальный документ с QR-кодом</li>
-          <li>✅ Подтверждение академических знаний</li>
-          <li>✅ Признается работодателями и вузами</li>
-          <li>✅ Доступен на английском и русском языках</li>
-        </ul>
-      </div>
+<!-- 6. Сертификаты -->
+<section id="certificates" class="certificate-section section">
+  <div class="container certificate-content">
+    <div class="certificate-image">
+      <img src="{% static 'img/certificate-sample.jpg' %}" alt="Пример сертификата SkillsSpire">
+    </div>
+    <div class="certificate-info">
+      <h2>Академические сертификаты</h2>
+      <ul class="certificate-features">
+        <li>✅ Официальный документ с QR-кодом</li>
+        <li>✅ Признается работодателями</li>
+        <li>✅ Доступен на русском и английском</li>
+      </ul>
     </div>
   </div>
 </section>
 
 <!-- 7. Карьерный центр -->
-<section class="career-center-section">
-  <div class="container">
-    <div class="career-center-content">
-      <div class="career-center-info">
-        <h2>Карьерный центр</h2>
-        <p>Профессиональная поддержка для вашего карьерного роста</p>
-        <ul class="career-services">
-          <li>📄 Помощь с составлением CV</li>
-          <li>✉️ Написание мотивационных писем</li>
-          <li>🎓 Консультации по поступлению за рубеж</li>
-          <li>💼 Подготовка к собеседованиям</li>
-        </ul>
-        <a href="/contacts/" class="btn btn-primary">Записаться на консультацию</a>
-      </div>
+<section class="career-center-section section">
+  <div class="container career-center-content">
+    <div class="career-center-info">
+      <h2>Карьерный центр</h2>
+      <ul class="career-services">
+        <li>📄 CV и резюме</li>
+        <li>✉️ Мотивационные письма</li>
+        <li>🎓 Поступление за рубеж</li>
+        <li>💼 Подготовка к собеседованиям</li>
+      </ul>
+      <a href="/contacts/" class="btn btn-primary">Записаться на консультацию</a>
     </div>
   </div>
 </section>
 
-<!-- 8. Отзывы студентов -->
+<!-- 8. Отзывы -->
 <section class="testimonials-section">
   <div class="container">
     <div class="section-header text-center">
       <h2>Отзывы студентов</h2>
-      <p>Истории успеха с нашими сертификатами</p>
+      <p>Истории успеха</p>
     </div>
     <div class="swiper testimonials-swiper">
       <div class="swiper-wrapper">
         {% for review in reviews %}
           <div class="swiper-slide">
             <div class="testimonial-card">
-              <div style="margin-bottom:1rem;">
-                {% if review.user %}
-                  <h3 style="margin:0">{{ review.user.get_full_name|default:review.user.username }}</h3>
-                {% else %}
-                  <h3 style="margin:0">{{ review.name|default:"Гость" }}</h3>
-                {% endif %}
-                <p class="text-muted mb-0">{{ review.course.title|default:"Курс" }}</p>
-              </div>
-              {% with r=review.rating|default_if_none:0 %}
-              <div class="course-rating mb-2">
-                {% for _ in "12345" %}
-                  {% if forloop.counter <= r %}
-                    <i class="bi bi-star-fill"></i>
-                  {% else %}
-                    <i class="bi bi-star"></i>
-                  {% endif %}
-                {% endfor %}
-              </div>
-              {% endwith %}
-              <p>"{{ review.comment|default:""|truncatewords:25 }}"</p>
-              {% if review.certificate_help %}
-                <div class="certificate-help-badge">
-                  🎓 Сертификат помог при {{ review.certificate_help }}
-                </div>
-              {% endif %}
+              <h3>{{ review.user.get_full_name|default:review.name|default:"Гость" }}</h3>
+              <p class="text-muted">{{ review.course.title }}</p>
+              <p>"{{ review.comment|truncatewords:25 }}"</p>
             </div>
           </div>
         {% empty %}
-          <!-- Дефолтные отзывы с акцентом на сертификаты -->
           <div class="swiper-slide">
             <div class="testimonial-card">
               <h3>Алия Нургалиева</h3>
               <p class="text-muted">Курс "Финансовый анализ"</p>
-              <div class="course-rating mb-2">
-                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-              </div>
-              <p>"Сертификат SkillsSpire приняли при поступлении в магистратуру в Польше. Очень благодарна за качество обучения!"</p>
-              <div class="certificate-help-badge">
-                🎓 Сертификат помог при поступлении за рубеж
-              </div>
+              <p>"Сертификат SkillsSpire приняли при поступлении в магистратуру в Польше."</p>
             </div>
           </div>
         {% endfor %}
       </div>
-      <div class="swiper-button-next" aria-label="Следующие отзывы"></div>
-      <div class="swiper-button-prev" aria-label="Предыдущие отзывы"></div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
     </div>
   </div>
 </section>
 
-<!-- 9. CTA внизу -->
+<!-- 9. CTA -->
 <section class="cta-section">
   <div class="container text-center">
-    <h2 class="cta-title">Начни обучение бесплатно уже сегодня</h2>
-    <p>Выбери курс, учись в удобное время и получи академический сертификат для карьеры.</p>
+    <h2>Начни обучение бесплатно</h2>
     <a href="{% url 'courses_list' %}" class="cta-button">Смотреть все курсы</a>
   </div>
 </section>
@@ -294,61 +238,6 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-  // Инициализация свайперов
-  new Swiper('.categories-swiper', {
-    slidesPerView: 'auto',
-    spaceBetween: 20,
-    navigation: {
-      nextEl: '.categories-section .swiper-button-next',
-      prevEl: '.categories-section .swiper-button-prev'
-    }
-  });
-  
-  new Swiper('.testimonials-swiper', {
-    slidesPerView: 1,
-    spaceBetween: 20,
-    loop: true,
-    navigation: {
-      nextEl: '.testimonials-section .swiper-button-next',
-      prevEl: '.testimonials-section .swiper-button-prev'
-    },
-    breakpoints: {
-      768: { slidesPerView: 2 },
-      1024: { slidesPerView: 3 }
-    }
-  });
-
-  // Обработка кликов по кнопкам сертификатов
-  document.querySelectorAll('.certificate-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const courseId = this.getAttribute('data-course-id');
-      showCertificateModal(courseId);
-    });
-  });
-
-  function showCertificateModal(courseId) {
-    // Реализация модального окна для покупки сертификата
-    console.log('Открыть модалку для курса:', courseId);
-    // Здесь можно добавить вызов модального окна
-    // Например: $('#certificateModal').modal('show');
-  }
-
-  // FAQ функциональность (если будет добавлена)
-  document.querySelectorAll('.faq-question').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      const item = btn.parentElement;
-      const open = item.classList.contains('active');
-      document.querySelectorAll('.faq-item').forEach(function(i){
-        i.classList.remove('active');
-        const ans = i.querySelector('.faq-answer');
-        if (ans) ans.style.maxHeight = 0;
-      });
-      if (!open) {
-        item.classList.add('active');
-        const ans = item.querySelector('.faq-answer');
-        if (ans) ans.style.maxHeight = ans.scrollHeight + 'px';
-      }
-    });
-  });
+new Swiper('.categories-swiper',{slidesPerView:'auto',spaceBetween:20,navigation:{nextEl:'.categories-section .swiper-button-next',prevEl:'.categories-section .swiper-button-prev'}});
+new Swiper('.testimonials-swiper',{slidesPerView:1,spaceBetween:20,loop:true,navigation:{nextEl:'.testimonials-section .swiper-button-next',prevEl:'.testimonials-section .swiper-button-prev'},autoplay:{delay:5000}});
 </script>
-{% endblock %}
