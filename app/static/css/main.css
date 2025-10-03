@@ -1931,3 +1931,47 @@ hr {
   font-size: 1rem;
   line-height: 1.4;
 }
+header .navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* логотип слева, меню справа */
+}
+
+header .navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+header .navbar-nav {
+  display: flex;
+  gap: 2rem; /* расстояние между пунктами меню */
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.certificate-image img {
+  max-width: 500px;   /* или 600px — по вкусу */
+  width: 100%;        /* чтобы оставалась адаптивной */
+  height: auto;       /* чтобы не искажалась */
+  display: block;
+  margin: 0 auto;     /* центрирование */
+}
+
+.certificate-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2rem;
+  justify-content: center;
+  text-align: left;
+}
+
+.certificate-info {
+  max-width: 400px;
+}
