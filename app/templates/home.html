@@ -204,7 +204,13 @@
         {% for review in reviews %}
           <div class="swiper-slide">
             <div class="testimonial-card">
-              <h3>{{ review.user.get_full_name|default:review.name|default:"Гость" }}</h3>
+              <h3>
+                {% if review.user %}
+                  {{ review.user.get_full_name|default:review.user.username }}
+                {% else %}
+                  Гость
+                {% endif %}
+              </h3>
               <p class="text-muted">{{ review.course.title }}</p>
               <p>"{{ review.comment|truncatewords:25 }}"</p>
             </div>
