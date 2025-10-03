@@ -259,11 +259,6 @@ button, input, select, textarea {
     text-decoration: none;
 }
 
-.nav-brand span {
-    font-weight: 800;
-    letter-spacing: .2px;
-}
-
 .nav-brand img {
     width: 40px;
     height: 40px;
