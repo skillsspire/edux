@@ -146,7 +146,7 @@
 </section>
 
 <!-- 6. Сертификаты -->
-<section class="certificates-section container">
+<section id="certificates" class="certificates-section container">
   <div class="certificates-grid">
     <div class="certificate-image">
       <img src="{% static 'img/certificate-sample.jpg' %}" alt="Сертификат">
@@ -171,7 +171,6 @@
   </div>
 </section>
 
-
 <!-- 8. Отзывы -->
 <section class="testimonials section">
   <div class="container">
@@ -185,9 +184,17 @@
         {% for review in reviews %}
         <div class="swiper-slide">
           <div class="testimonial-card">
-            <h4>{{ review.author }}</h4>
-            <p class="text-muted"><strong>{{ review.course }}</strong></p>
+            <h4>{{ review.user.get_full_name|default:review.user.username }}</h4>
+            <p class="text-muted"><strong>{{ review.course.title }}</strong></p>
             <blockquote class="testimonial-text">{{ review.text }}</blockquote>
+          </div>
+        </div>
+        {% empty %}
+        <div class="swiper-slide">
+          <div class="testimonial-card">
+            <h4>Аноним</h4>
+            <p class="text-muted"><strong>Курс по аналитике</strong></p>
+            <blockquote class="testimonial-text">Отзывы пока не добавлены.</blockquote>
           </div>
         </div>
         {% endfor %}
@@ -199,7 +206,6 @@
     </div>
   </div>
 </section>
-
 
 <!-- 9. CTA -->
 <section class="cta-section">
@@ -242,10 +248,9 @@ new Swiper('.testimonials-swiper', {
     disableOnInteraction: false
   },
   breakpoints: {
-    768: { slidesPerView: 2 },   // планшет — 2 отзыва
-    1200: { slidesPerView: 3 }   // десктоп — 3 отзыва
+    768: { slidesPerView: 2 },
+    1200: { slidesPerView: 3 }
   }
 });
 </script>
 {% endblock %}
-
