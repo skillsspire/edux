@@ -187,18 +187,29 @@
 
 
 <!-- 8. Отзывы -->
-<section class="testimonials">
+<section class="testimonials section">
   <div class="container">
-    <h2>Отзывы студентов</h2>
-    <p>Истории успеха</p>
-    <div class="testimonials-grid">
-      {% for review in reviews %}
-      <div class="testimonial-card">
-        <h4>{{ review.author }}</h4>
-        <p><strong>{{ review.course }}</strong></p>
-        <blockquote>{{ review.text }}</blockquote>
+    <div class="section-header text-center">
+      <h2>Отзывы студентов</h2>
+      <p>Истории успеха</p>
+    </div>
+
+    <div class="swiper testimonials-swiper">
+      <div class="swiper-wrapper">
+        {% for review in reviews %}
+        <div class="swiper-slide">
+          <div class="testimonial-card">
+            <h4>{{ review.author }}</h4>
+            <p><strong>{{ review.course }}</strong></p>
+            <blockquote>"{{ review.text }}"</blockquote>
+          </div>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
+
+      <!-- стрелки -->
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
     </div>
   </div>
 </section>
@@ -217,8 +228,8 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
 new Swiper('.categories-swiper', {
-  slidesPerView: 4,   // показываем сразу 4
-  spaceBetween: 20,   // отступы между карточками
+  slidesPerView: 4,
+  spaceBetween: 20,
   navigation: {
     nextEl: '.categories-section .swiper-button-next',
     prevEl: '.categories-section .swiper-button-prev'
@@ -226,9 +237,28 @@ new Swiper('.categories-swiper', {
   breakpoints: {
     320: { slidesPerView: 1 },
     768: { slidesPerView: 2 },
-    1024: { slidesPerView: 3 },  // на планшете 3
-    1280: { slidesPerView: 4 }   // на больших экранах 4
+    1024: { slidesPerView: 3 },
+    1280: { slidesPerView: 4 }
+  }
+});
+
+new Swiper('.testimonials-swiper', {
+  slidesPerView: 1,
+  spaceBetween: 30,
+  loop: true,
+  navigation: {
+    nextEl: '.testimonials .swiper-button-next',
+    prevEl: '.testimonials .swiper-button-prev'
+  },
+  autoplay: {
+    delay: 5000,
+    disableOnInteraction: false
+  },
+  breakpoints: {
+    768: { slidesPerView: 2 },   // планшет — 2 отзыва
+    1200: { slidesPerView: 3 }   // десктоп — 3 отзыва
   }
 });
 </script>
 {% endblock %}
+
