@@ -1905,3 +1905,29 @@ hr {
   text-align: center;
   width: auto; /* чтобы работал slidesPerView: 'auto' */
 }
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem; /* расстояние между карточками */
+  margin-top: 2rem;
+}
+
+.feature {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.feature i {
+  font-size: 2rem;
+  color: var(--color-primary);
+  margin-bottom: 0.75rem;
+}
+.feature h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.feature p {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1.4;
+}
