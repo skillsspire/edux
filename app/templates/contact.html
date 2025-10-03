@@ -196,46 +196,6 @@ textarea.form-control {
                 </div>
             </div>
 
-            <!-- Форма обратной связи -->
-            <div class="contact-form">
-                <h2 class="text-center mb-4">Напишите нам прямо сейчас</h2>
-                <form method="post" action="{% url 'contact' %}">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="name" class="form-label">Ваше имя *</label>
-                                <input type="text" id="name" name="name" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="email" class="form-label">Ваш email *</label>
-                                <input type="email" id="email" name="email" class="form-control" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="subject" class="form-label">Тема сообщения</label>
-                        <select id="subject" name="subject" class="form-control">
-                            <option value="">Выберите тему</option>
-                            <option value="course_questions">Вопросы о курсах</option>
-                            <option value="certificates">Сертификаты</option>
-                            <option value="consultation">Консультация по поступлению</option>
-                            <option value="partnership">Сотрудничество</option>
-                            <option value="other">Другое</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="message" class="form-label">Сообщение *</label>
-                        <textarea id="message" name="message" class="form-control" rows="5" required placeholder="Расскажите, чем мы можем вам помочь..."></textarea>
-                    </div>
-                    <div class="text-center">
-                        <button type="submit" class="btn btn-primary btn-lg">Отправить сообщение</button>
-                    </div>
-                </form>
-            </div>
-
             <!-- Время ответа -->
             <div class="response-time">
                 <h4>⏰ Мы отвечаем быстро</h4>

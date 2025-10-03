@@ -110,7 +110,8 @@
       <h2>Популярные курсы</h2>
     </div>
     <div class="courses-grid">
-      {% for course in popular_courses %}
+    {% for course in popular_courses %}
+      <a href="{% url 'course_detail' course.slug %}" class="course-card-link">
         <div class="course-card">
           <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}">
           <div class="course-card-content">
@@ -119,32 +120,17 @@
             <p class="course-card-text">{{ course.short_description|default:course.description|truncatechars:120 }}</p>
             <div class="course-card-meta">
               <div class="course-rating">
-                <i class="bi bi-star-fill"></i>
-                {{ course.average_rating|default:"4.8" }}
+                <i class="bi bi-star-fill"></i> {{ course.average_rating|default:"4.8" }}
                 <span class="course-reviews">({{ course.reviews_count|default:0 }} отзывов)</span>
-              </div>
-              <span class="course-price">
-                <span class="text-success">Бесплатно</span>
-                {% if course.has_certificate and course.certificate_price %}
-                  <small class="text-muted d-block">Сертификат: {{ course.certificate_price }} ₸</small>
-                {% endif %}
-              </span>
+             </div>
             </div>
           </div>
-          <div class="course-card-footer">
-            <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline btn-full">Учиться бесплатно</a>
-            {% if course.has_certificate %}
-              <button class="btn btn-text btn-full mt-1 certificate-btn" data-course-id="{{ course.id }}">
-                💳 Сертификат {{ course.certificate_price|default:"12,000" }} ₸
-              </button>
-            {% endif %}
-          </div>
-        </div>
-      {% empty %}
-        <p>Курсы пока не добавлены.</p>
-      {% endfor %}
-    </div>
-  </div>
+      </div>
+    </a>
+  {% empty %}
+    <p>Курсы пока не добавлены.</p>
+  {% endfor %}
+</div>
 </section>
 
 <!-- 5. Как это работает -->
@@ -200,8 +186,8 @@
         <div class="swiper-slide">
           <div class="testimonial-card">
             <h4>{{ review.author }}</h4>
-            <p><strong>{{ review.course }}</strong></p>
-            <blockquote>"{{ review.text }}"</blockquote>
+            <p class="text-muted"><strong>{{ review.course }}</strong></p>
+            <blockquote class="testimonial-text">{{ review.text }}</blockquote>
           </div>
         </div>
         {% endfor %}
@@ -213,6 +199,7 @@
     </div>
   </div>
 </section>
+
 
 <!-- 9. CTA -->
 <section class="cta-section">
