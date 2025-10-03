@@ -187,40 +187,18 @@
 
 
 <!-- 8. Отзывы -->
-<section class="testimonials-section">
+<section class="testimonials">
   <div class="container">
-    <div class="section-header text-center">
-      <h2>Отзывы студентов</h2>
-      <p>Истории успеха</p>
-    </div>
-    <div class="swiper testimonials-swiper">
-      <div class="swiper-wrapper">
-        {% for review in reviews %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <h3>
-                {% if review.user %}
-                  {{ review.user.get_full_name|default:review.user.username }}
-                {% else %}
-                  Гость
-                {% endif %}
-              </h3>
-              <p class="text-muted">{{ review.course.title }}</p>
-              <p>"{{ review.comment|truncatewords:25 }}"</p>
-            </div>
-          </div>
-        {% empty %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <h3>Алия Нургалиева</h3>
-              <p class="text-muted">Курс "Финансовый анализ"</p>
-              <p>"Сертификат SkillsSpire приняли при поступлении в магистратуру в Польше."</p>
-            </div>
-          </div>
-        {% endfor %}
+    <h2>Отзывы студентов</h2>
+    <p>Истории успеха</p>
+    <div class="testimonials-grid">
+      {% for review in reviews %}
+      <div class="testimonial-card">
+        <h4>{{ review.author }}</h4>
+        <p><strong>{{ review.course }}</strong></p>
+        <blockquote>{{ review.text }}</blockquote>
       </div>
-      <div class="swiper-button-next"></div>
-      <div class="swiper-button-prev"></div>
+      {% endfor %}
     </div>
   </div>
 </section>
