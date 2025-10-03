@@ -184,9 +184,19 @@
         {% for review in reviews %}
         <div class="swiper-slide">
           <div class="testimonial-card">
-            <h4>{{ review.user.get_full_name|default:review.user.username }}</h4>
-            <p class="text-muted"><strong>{{ review.course.title }}</strong></p>
-            <blockquote class="testimonial-text">{{ review.text }}</blockquote>
+            <h4>
+              {% if review.user and review.user.is_authenticated %}
+                {{ review.user.get_full_name|default:review.user.username }}
+              {% else %}
+                Аноним
+              {% endif %}
+            </h4>
+            <p class="text-muted">
+              <strong>{{ review.course.title|default:"Курс" }}</strong>
+            </p>
+            <blockquote class="testimonial-text">
+              {{ review.text|default:"Отзыв отсутствует" }}
+            </blockquote>
           </div>
         </div>
         {% empty %}

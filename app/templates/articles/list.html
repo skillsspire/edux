@@ -1,32 +1,41 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Все статьи — SkillsSpire{% endblock %}
 
 {% block content %}
 <div class="container py-5">
 
-  <h1 class="mb-4">Все статьи</h1>
+  <!-- Заголовок -->
+  <h1 class="mb-4 text-center">Все статьи</h1>
 
+  <!-- Сетка статей -->
   <div class="row g-4">
     {% for article in articles %}
       <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
-          <div class="card-body">
-            <h5 class="card-title">
-              <a href="{% url 'article_detail' article.slug %}" class="text-decoration-none">
-                {{ article.title }}
-              </a>
-            </h5>
-            {% if article.published_at %}
-              <p class="text-muted small">{{ article.published_at|date:"d E Y" }}</p>
+        <a href="{% url 'article_detail' article.slug %}" class="article-card d-block h-100 text-decoration-none text-dark">
+          <div class="card h-100 shadow-sm border-0">
+            {% if article.image %}
+              <img src="{{ article.image.url }}" class="card-img-top" alt="{{ article.title }}" loading="lazy">
+            {% else %}
+              <img src="{% static 'img/article-placeholder.jpg' %}" class="card-img-top" alt="{{ article.title }}">
             {% endif %}
-            <p class="card-text">
-              {{ article.body|truncatewords:25 }}
-            </p>
+
+            <div class="card-body">
+              <h5 class="card-title mb-2">{{ article.title }}</h5>
+              {% if article.published_at %}
+                <p class="text-muted small mb-2">{{ article.published_at|date:"d E Y" }}</p>
+              {% endif %}
+              <p class="card-text text-muted">{{ article.body|truncatewords:25 }}</p>
+            </div>
+
+            <div class="card-footer bg-transparent border-0 text-end">
+              <span class="text-primary fw-bold">Читать →</span>
+            </div>
           </div>
-        </div>
+        </a>
       </div>
     {% empty %}
-      <p>Пока статей нет.</p>
+      <p class="text-center text-muted">Пока статей нет.</p>
     {% endfor %}
   </div>
 

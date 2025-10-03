@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- 🔹 Фильтры сверху (Skillbox-style) -->
+    <!-- 🔹 Фильтры -->
     <div class="filters-bar d-flex flex-wrap gap-2 justify-content-center mb-4">
       <!-- Уровень -->
       <div class="dropdown">
@@ -38,9 +38,9 @@
       <div class="dropdown">
         <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">Сертификат</button>
         <ul class="dropdown-menu">
-          <li><a class="dropdown-item filter-link" data-param="certificate" data-value="">Все</a></li>
-          <li><a class="dropdown-item filter-link" data-param="certificate" data-value="available">С сертификатом</a></li>
-          <li><a class="dropdown-item filter-link" data-param="certificate" data-value="not_available">Без сертификата</a></li>
+          <li><a class="dropdown-item filter-link" data-param="price" data-value="">Все</a></li>
+          <li><a class="dropdown-item filter-link" data-param="price" data-value="free">Бесплатные</a></li>
+          <li><a class="dropdown-item filter-link" data-param="price" data-value="paid">С сертификатом</a></li>
         </ul>
       </div>
 
@@ -50,43 +50,50 @@
           <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Сначала новые</option>
           <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Популярные</option>
           <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>По рейтингу</option>
+          <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Цена ↑</option>
+          <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Цена ↓</option>
         </select>
       </div>
     </div>
     
     <!-- Сетка курсов -->
-    <div class="courses-grid">
+    <div class="courses-grid row g-4">
       {% for course in courses %}
-        <a href="{% url 'course_detail' course.slug %}" class="course-card d-block text-decoration-none">
-          <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
+        <div class="col-md-6 col-lg-4">
+          <a href="{% url 'course_detail' course.slug %}" class="course-card d-block text-decoration-none h-100">
+            <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}" loading="lazy">
 
-          <div class="course-card-content">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
-              <div class="course-rating">
-                <i class="bi bi-star-fill"></i> {{ course.average_rating|default:"4.8" }}
+            <div class="course-card-content">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
+                <div class="course-rating">
+                  <i class="bi bi-star-fill"></i> {{ course.avg_rating|default:"4.8" }}
+                </div>
+              </div>
+
+              <h3 class="course-card-title">{{ course.title }}</h3>
+              <p class="course-card-text">{{ course.short_description|default:course.description|truncatewords:18 }}</p>
+
+              <div class="course-card-meta">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  {% if course.price == 0 %}
+                    <span class="text-success fw-bold">Бесплатно</span>
+                  {% else %}
+                    <span class="fw-bold">{{ course.price }} ₸</span>
+                  {% endif %}
+                  {% if course.discount_price %}
+                    <span class="text-muted text-decoration-line-through">{{ course.price }} ₸</span>
+                    <span class="text-success fw-bold">{{ course.discount_price }} ₸</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
 
-            <h3 class="course-card-title">{{ course.title }}</h3>
-            <p class="course-card-text">{{ course.short_description|default:course.description|truncatewords:18 }}</p>
-
-            <div class="course-card-meta">
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="text-success fw-bold">Бесплатно</span>
-                {% if course.has_certificate %}
-                  <span class="text-muted">💳 Сертификат: {{ course.certificate_price|default:"12,000" }} ₸</span>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          {% if course.is_popular %}
-            <div class="badge">
-              <span class="badge bg-danger">Популярный</span>
-            </div>
-          {% endif %}
-        </a>
+            {% if course.is_popular %}
+              <span class="badge bg-danger position-absolute top-0 end-0 m-2">Популярный</span>
+            {% endif %}
+          </a>
+        </div>
       {% empty %}
         <div class="text-center py-5">
           <i class="bi bi-search" style="font-size: 4rem; color: var(--color-text-tertiary);"></i>
@@ -127,7 +134,7 @@
 
 {% block extra_js %}
 <script>
-  // Сохраняем текущие фильтры в URL
+  // Обновление курсов по фильтрам
   function updateCourses(params) {
     const url = new URL(window.location.href);
     Object.keys(params).forEach(key => {
@@ -141,15 +148,14 @@
     fetch(url)
       .then(r => r.text())
       .then(html => {
-        const newGrid = new DOMParser()
-          .parseFromString(html, 'text/html')
-          .querySelector('.courses-grid').innerHTML;
+        const newDoc = new DOMParser().parseFromString(html, 'text/html');
+        const newGrid = newDoc.querySelector('.courses-grid').innerHTML;
         document.querySelector('.courses-grid').innerHTML = newGrid;
-        history.pushState({}, '', url); // обновляем URL
+        history.pushState({}, '', url);
       });
   }
 
-  // Обработчики для dropdown-фильтров
+  // Dropdown фильтры
   document.querySelectorAll('.filter-link').forEach(el => {
     el.addEventListener('click', e => {
       e.preventDefault();
@@ -157,7 +163,7 @@
     });
   });
 
-  // Обработчик для сортировки
+  // Select фильтр
   document.querySelectorAll('.filter-select').forEach(el => {
     el.addEventListener('change', () => {
       updateCourses({ [el.dataset.param]: el.value });
