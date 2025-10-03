@@ -160,37 +160,31 @@
 </section>
 
 <!-- 6. Сертификаты -->
-<section id="certificates" class="certificate-section section">
-  <div class="container certificate-content">
+<section class="certificates-section container">
+  <div class="certificates-grid">
     <div class="certificate-image">
-      <img src="{% static 'img/certificate-sample.jpg' %}" alt="Пример сертификата SkillsSpire">
+      <img src="{% static 'img/certificate-sample.png' %}" alt="Сертификат">
     </div>
     <div class="certificate-info">
       <h2>Академические сертификаты</h2>
-      <ul class="certificate-features">
+      <ul>
         <li>✅ Официальный документ с QR-кодом</li>
         <li>✅ Признается работодателями</li>
         <li>✅ Доступен на русском и английском</li>
       </ul>
-    </div>
-  </div>
-</section>
 
-<!-- 7. Карьерный центр -->
-<section class="career-center-section section">
-  <div class="container career-center-content">
-    <div class="career-center-info">
       <h2>Карьерный центр</h2>
-      <ul class="career-services">
+      <ul>
         <li>📄 CV и резюме</li>
         <li>✉️ Мотивационные письма</li>
         <li>🎓 Поступление за рубеж</li>
         <li>💼 Подготовка к собеседованиям</li>
       </ul>
-      <a href="/contacts/" class="btn btn-primary">Записаться на консультацию</a>
+      <a href="#" class="btn btn-primary">Записаться на консультацию</a>
     </div>
   </div>
 </section>
+
 
 <!-- 8. Отзывы -->
 <section class="testimonials-section">
@@ -244,17 +238,20 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-new Swiper('.categories-swiper', {
-  slidesPerView: 4,
+new Swiper('.testimonials-swiper', {
+  slidesPerView: 1, // по умолчанию (для мобильных)
   spaceBetween: 20,
+  loop: true,
   navigation: {
-    nextEl: '.categories-section .swiper-button-next',
-    prevEl: '.categories-section .swiper-button-prev'
+    nextEl: '.testimonials-section .swiper-button-next',
+    prevEl: '.testimonials-section .swiper-button-prev'
+  },
+  autoplay: {
+    delay: 5000
   },
   breakpoints: {
-    320: { slidesPerView: 1 },
-    768: { slidesPerView: 2 },
-    1024: { slidesPerView: 4 }
+    768: { slidesPerView: 2 },   // планшеты
+    1024: { slidesPerView: 3 }   // десктоп
   }
 });
 </script>

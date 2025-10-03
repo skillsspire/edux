@@ -37,6 +37,27 @@
       50% { transform: rotate(5deg) scale(1.05); }
       75% { transform: rotate(-3deg) scale(1.03); }
     }
+
+    /* 🔹 Фикс для логотипа */
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem; /* расстояние между логотипом и текстом */
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--color-text, #000);
+      text-decoration: none;
+    }
+
+    .nav-brand img {
+      display: block;
+      height: 40px;
+      width: auto;
+    }
+
+    .nav-brand span {
+      white-space: nowrap;
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
@@ -251,23 +272,21 @@ document.addEventListener('DOMContentLoaded', function() {
   if (msktImage && aiBubble) {
     // Клик по маскоту открывает ИИ-помощник
     msktImage.addEventListener('click', function() {
-      // Открываем ИИ-помощник
       if (window.aiAssistant) {
         window.aiAssistant.togglePanel();
       } else {
-        // Fallback - просто показываем bubble
         const bubble = document.querySelector('.mskt-bubble');
         if (bubble) {
           bubble.textContent = 'Открываю помощника...';
           setTimeout(() => {
-            aiBubble.click(); // Кликаем на ИИ-помощник
+            aiBubble.click();
             bubble.textContent = 'Нужна помощь?';
           }, 500);
         }
       }
     });
     
-    // Анимация "махания" при наведении
+    // Анимация "махания"
     msktImage.addEventListener('mouseenter', function() {
       this.style.animation = 'mskt-wave 0.5s ease-in-out';
     });
@@ -277,10 +296,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Связь между маскотом и ИИ-помощником
   if (aiBubble) {
     aiBubble.addEventListener('click', function() {
-      // Можно добавить реакцию маскота при открытии помощника
       if (msktImage) {
         msktImage.style.animation = 'mskt-wave 0.5s ease-in-out';
       }

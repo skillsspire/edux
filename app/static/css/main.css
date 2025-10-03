@@ -1975,3 +1975,105 @@ header .navbar-nav {
 .certificate-info {
   max-width: 400px;
 }
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;  /* расстояние между картинкой и текстом */
+  text-decoration: none;
+}
+
+.logo img {
+  height: 40px;   /* или твой размер */
+  width: auto;
+}
+
+.logo span {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-text);
+  white-space: nowrap; /* не переносить текст */
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* расстояние между логотипом и текстом */
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.nav-brand img {
+  display: block;
+  height: 40px;  /* фиксируем размер */
+  width: auto;
+}
+
+.nav-brand span {
+  white-space: nowrap; /* не даём перенести слово */
+}
+
+.certificates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.certificate-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.certificate-info h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.certificate-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.certificate-info li {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+.certificate-info li::before {
+  content: "✓"; /* или иконка */
+  color: var(--color-primary);
+  margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .certificates-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .certificate-info {
+    margin-top: 1.5rem;
+  }
+}
+.alert {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 1;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 1000;
+}
