@@ -5,162 +5,70 @@
 
 {% block extra_css %}
 <style>
+:root {
+  --color-primary: #01349D;
+  --color-primary-light: #3b5cc5;
+  --color-primary-dark: #002b7a;
+  --color-text-primary: #0B1020;
+  --color-text-secondary: #4A5568;
+  --color-bg-white: #FFFFFF;
+  --color-bg-section: #F8FAFC;
+  --color-border: #E5E7EB;
+}
+
 .fade-up {
   opacity: 0;
   transform: translateY(20px);
   transition: all 0.6s ease;
 }
-.fade-up.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+.fade-up.visible {opacity:1;transform:translateY(0);}
 
-/* === Преимущества === */
-.features-section {
-  background: #f9fafb;
-  padding: 4rem 0;
-}
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-}
-.feature-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  text-align: center;
-  transition: transform 0.3s ease;
-}
-.feature-card:hover { transform: translateY(-5px); }
-.feature-icon { font-size: 2rem; margin-bottom: .5rem; color: #007bff; }
+.features-section{background:var(--color-bg-section);padding:4rem 0;}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2rem;}
+.feature-card{background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);text-align:center;transition:transform .3s;}
+.feature-card:hover{transform:translateY(-5px);}
+.feature-icon{font-size:2rem;margin-bottom:.5rem;color:var(--color-primary);}
 
-/* === Статистика === */
-.stats-section {
-  background: linear-gradient(135deg, #007bff, #6610f2);
-  color: white;
-  padding: 4rem 0;
-  text-align: center;
-}
-.stats-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2rem;
-}
+.stats-section{background:linear-gradient(135deg,var(--color-primary),var(--color-primary-light));color:#fff;padding:4rem 0;text-align:center;}
+.stats-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:2rem;}
+.stat-number{font-size:2.5rem;font-weight:700;}
 
-/* === Комьюнити === */
-.community-section {
-  background: #fff8f0;
-  padding: 4rem 0;
-  text-align: center;
-}
-.community-section p { max-width: 700px; margin: 0 auto 1.5rem; }
+.community-section{background:#fff8f0;padding:4rem 0;text-align:center;}
+.community-section a{background:var(--color-primary);color:#fff;padding:0.8rem 1.6rem;border-radius:8px;text-decoration:none;}
+.recommend-section{background:#eef6ff;padding:4rem 0;text-align:center;}
+.recommend-section a{background:var(--color-primary);color:#fff;padding:0.8rem 1.6rem;border-radius:8px;text-decoration:none;}
+.corporate-section{background:#f1f3f5;padding:4rem 0;text-align:center;}
+.corporate-section a{background:var(--color-primary);color:#fff;padding:0.8rem 1.8rem;border-radius:8px;text-decoration:none;}
+.partners-section{background:#fff;padding:4rem 0;text-align:center;}
+.partners-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:2rem;list-style:none;padding:0;}
+.partner-card{background:#fff;padding:1rem 2rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);transition:.3s;}
+.partner-card:hover{transform:translateY(-4px);}
+.testimonials-section{background:#f9fafb;padding:4rem 0;}
+.testimonial-card{background:#fff;padding:2rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);}
+.contacts-section{background:#222;color:#ccc;padding:2rem 0;text-align:center;font-size:.9rem;}
+.contacts-section a{color:var(--color-primary-light);text-decoration:none;}
+.contacts-section hr{border:0;border-top:1px solid #444;margin:1rem auto;width:80%;}
 
-/* === Подбор курса === */
-.recommend-section {
-  background: #eef6ff;
-  padding: 4rem 0;
-  text-align: center;
-}
-.recommend-section h2 { margin-bottom: 1rem; }
-
-/* === B2B === */
-.corporate-section {
-  background: #f1f3f5;
-  padding: 4rem 0;
-  text-align: center;
-}
-.corporate-text {
-  max-width: 600px;
-  margin: 0 auto;
-}
-.corporate-btn {
-  display: inline-block;
-  background: #007bff;
-  color: white;
-  padding: 0.8rem 1.8rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-  text-decoration: none;
-  transition: 0.3s;
-}
-.corporate-btn:hover { background: #0056b3; }
-
-/* === Партнёры === */
-.partners-section {
-  background: #fff;
-  padding: 4rem 0;
-}
-.partners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 2rem;
-  align-items: center;
-}
-.partner-card {
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
-  height: 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.partner-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-}
-.partner-card img {
-  max-height: 50px;
-  object-fit: contain;
-  margin-bottom: 0.5rem;
-}
-.partner-tagline {
-  font-size: 0.9rem;
-  color: #777;
-}
-
-/* === Контакты === */
-.contacts-section {
-  background: #222;
-  color: #ccc;
-  font-size: 0.9rem;
-  padding: 2rem 0;
-  text-align: center;
-}
-.contacts-section a { color: #00bfff; text-decoration: none; }
-.contacts-section hr {
-  border: 0;
-  border-top: 1px solid #444;
-  margin: 1rem auto;
-  width: 80%;
-}
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
+.popup{background:#fff;border-radius:12px;max-width:500px;width:90%;padding:2rem;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.2);}
+.popup h3{color:var(--color-text-primary);margin-bottom:1rem;}
+.popup button{background:var(--color-primary);color:#fff;border:none;padding:0.7rem 1.5rem;border-radius:6px;cursor:pointer;}
+.popup button:hover{background:var(--color-primary-light);}
+.popup-close{background:none;border:none;font-size:1.2rem;position:absolute;top:10px;right:15px;cursor:pointer;}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 {% endblock %}
 
 {% block content %}
-
-<!-- === HERO === -->
 <section class="course-hero text-center fade-up">
   <div class="container">
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
     <h1 class="course-title">Начни обучение бесплатно</h1>
-    <p class="course-subtitle">
-      Учись у профессоров, получай сертификаты и улучшай свои карьерные возможности.
-    </p>
-
+    <p class="course-subtitle">Учись у профессоров, получай сертификаты и улучшай свои карьерные возможности.</p>
     <form action="{% url 'courses_list' %}" method="get" class="hero-search">
       <input type="text" name="q" placeholder="Поиск курсов..." aria-label="Поиск курсов">
       <button type="submit">Поиск</button>
     </form>
-
     <div class="mt-3 fade-up">
       <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начни обучение</a>
       <a href="#courses" class="hero-btn hero-btn-secondary">Смотреть все курсы</a>
@@ -168,10 +76,10 @@
   </div>
 </section>
 
-<!-- === Преимущества === -->
 <section class="features-section fade-up">
   <div class="container text-center">
     <h2>💡 Почему студенты выбирают SkillsSpire</h2>
+    <p class="text-muted mb-4">Ваш путь к знаниям без границ</p>
     <div class="features-grid">
       <div class="feature-card"><div class="feature-icon">👩‍🏫</div><h4>Обучение у экспертов</h4><p>Преподаватели — практики из бизнеса и академической среды.</p></div>
       <div class="feature-card"><div class="feature-icon">🧠</div><h4>Только нужные знания</h4><p>Программы составлены под реальные требования рынка.</p></div>
@@ -181,102 +89,87 @@
   </div>
 </section>
 
-<!-- === Статистика === -->
 <section class="stats-section fade-up">
   <div class="container">
     <h2>🏆 SkillsSpire в цифрах</h2>
     <div class="stats-grid mt-4">
-      <div class="stat"><div class="stat-number">10 000+</div><div class="stat-label">Студентов</div></div>
-      <div class="stat"><div class="stat-number">50+</div><div class="stat-label">Преподавателей</div></div>
-      <div class="stat"><div class="stat-number">150+</div><div class="stat-label">Курсов</div></div>
-      <div class="stat"><div class="stat-number">87%</div><div class="stat-label">Карьерный рост</div></div>
+      <div class="stat"><div class="stat-number">10 000+</div><div>Студентов</div></div>
+      <div class="stat"><div class="stat-number">50+</div><div>Преподавателей</div></div>
+      <div class="stat"><div class="stat-number">150+</div><div>Курсов</div></div>
     </div>
   </div>
 </section>
 
-<!-- === Курсы === -->
 <section id="courses" class="section courses-section fade-up">
   <div class="container text-center">
     <h2>Популярные курсы</h2>
     <div class="courses-grid mt-4">
       {% for course in popular_courses %}
-        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link fade-up">
-          <div class="course-card">
-            <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" alt="{{ course.title }}" class="course-card-img">
-            <div class="course-card-content">
-              <h3 class="course-card-title">{{ course.title }}</h3>
-              <p class="course-card-text">{{ course.short_description|truncatechars:120 }}</p>
-            </div>
+      <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link fade-up">
+        <div class="course-card">
+          <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" alt="{{ course.title }}">
+          <div class="course-card-content">
+            <h3>{{ course.title }}</h3>
+            <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
           </div>
-        </a>
+        </div>
+      </a>
       {% endfor %}
     </div>
   </div>
 </section>
 
-<!-- === Сообщество === -->
 <section class="community-section fade-up">
   <div class="container">
     <h2>👥 Сообщество и поддержка студентов</h2>
-    <p>Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и совместные проекты делают обучение интересным.</p>
-    <a href="{% url 'signup' %}" class="hero-btn hero-btn-primary mt-3">Присоединиться к комьюнити</a>
+    <p>Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.</p>
+    <a href="{% url 'signup' %}">Присоединиться к комьюнити</a>
   </div>
 </section>
 
-<!-- === Рекомендации === -->
 <section class="recommend-section fade-up">
   <div class="container">
     <h2>🧠 Не знаешь, с чего начать?</h2>
     <p>Ответь на 3 вопроса — и мы подберём курс под твою цель!</p>
-    <a href="#" class="hero-btn hero-btn-secondary mt-3">🎯 Пройти тест и получить рекомендации</a>
+    <a href="#" id="openTest">🎯 Пройти тест и получить рекомендации</a>
   </div>
 </section>
 
-<!-- === B2B === -->
 <section class="corporate-section fade-up">
   <div class="container">
     <h2>🏢 Обучение для компаний</h2>
-    <div class="corporate-text">
-      <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
-      <ul class="text-start">
-        <li>✅ Программы под задачи компании</li>
-        <li>✅ Онлайн-обучение сотрудников</li>
-        <li>✅ Отчёты и аналитика прогресса</li>
-        <li>✅ Сопровождение на всех этапах</li>
-      </ul>
-      <a href="#" class="corporate-btn">📞 Оставить заявку</a>
-    </div>
+    <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
+    <ul class="text-start" style="list-style:none;padding:0;">
+      <li>✅ Программы под задачи компании</li>
+      <li>✅ Онлайн-обучение сотрудников</li>
+      <li>✅ Отчёты и аналитика прогресса</li>
+      <li>✅ Сопровождение на всех этапах</li>
+    </ul>
+    <a href="/contact/">📞 Оставить заявку</a>
   </div>
 </section>
 
-<!-- === Партнёры === -->
 <section class="partners-section fade-up">
   <div class="container text-center">
     <h2>Наши партнёры</h2>
     <ul class="partners-grid">
-      <li>
-        <div class="partner-card">
-          <img src="{% static 'img/partners/suitt.png' %}" alt="Сургутский университет ИТ и технологий">
-          <p class="partner-tagline">Сургутский университет ИТ и технологий</p>
-        </div>
-      </li>
+      <li><div class="partner-card"><img src="{% static 'img/partners/suitt.png' %}" alt="Сургутский университет ИТ и технологий"><p>Сургутский университет ИТ и технологий</p></div></li>
     </ul>
   </div>
 </section>
 
-<!-- === Отзывы === -->
 <section class="testimonials-section fade-up">
   <div class="container text-center">
     <h2>Отзывы студентов</h2>
     <div class="swiper testimonials-swiper mt-4">
       <div class="swiper-wrapper">
         {% for review in reviews %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <h4>{% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Аноним{% endif %}</h4>
-              <blockquote>"{{ review.comment|default:"Отличный курс!" }}"</blockquote>
-            </div>
+        <div class="swiper-slide">
+          <div class="testimonial-card">
+            <h4>{% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Аноним{% endif %}</h4>
+            <blockquote>"{{ review.comment|default:"Отличный курс!" }}"</blockquote>
           </div>
+        </div>
         {% endfor %}
       </div>
       <div class="swiper-button-next"></div>
@@ -285,33 +178,38 @@
   </div>
 </section>
 
-<!-- === Контакты === -->
 <section class="contacts-section fade-up">
   <div class="container">
     <hr>
     <p>© 2025 SkillsSpire — ТОО «SkillsSpire Education»</p>
+    <p>050057, Казахстан, г. Алматы, ул. Абая, д. 50, офис 301</p>
+    <p>E-mail: info@skillsspire.kz | Тел: +7 (701) 123-45-67</p>
   </div>
 </section>
 
+<div class="popup-overlay" id="popupTest">
+  <div class="popup">
+    <button class="popup-close" id="closePopup">&times;</button>
+    <h3>Подбор курса</h3>
+    <p>В разработке. Скоро вы сможете пройти короткий тест и получить рекомендации!</p>
+    <button id="closeBtn">Закрыть</button>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("visible"); });
-  }, { threshold: 0.1 });
-  document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
-
-  if (document.querySelector(".testimonials-swiper")) {
-    new Swiper(".testimonials-swiper", {
-      slidesPerView: 1,
-      loop: true,
-      autoplay: { delay: 4000 },
-      navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
-    });
+document.addEventListener("DOMContentLoaded",()=>{
+  const observer=new IntersectionObserver(e=>{e.forEach(i=>{if(i.isIntersecting)i.target.classList.add("visible")})},{threshold:.1});
+  document.querySelectorAll(".fade-up").forEach(el=>observer.observe(el));
+  if(document.querySelector(".testimonials-swiper")){
+    new Swiper(".testimonials-swiper",{slidesPerView:1,spaceBetween:20,loop:true,autoplay:{delay:5000},navigation:{nextEl:".swiper-button-next",prevEl:".swiper-button-prev"},breakpoints:{768:{slidesPerView:2},1200:{slidesPerView:3}}});
   }
+  const popup=document.getElementById("popupTest");
+  document.getElementById("openTest").addEventListener("click",e=>{e.preventDefault();popup.style.display="flex";});
+  document.getElementById("closePopup").addEventListener("click",()=>popup.style.display="none");
+  document.getElementById("closeBtn").addEventListener("click",()=>popup.style.display="none");
 });
 </script>
 {% endblock %}
