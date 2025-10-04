@@ -63,7 +63,6 @@ THIRD_PARTY_APPS = [
     "ckeditor",
     "widget_tweaks",
     "storages",
-    "sslserver",  # ← вот это добавь
 ]
 
 LOCAL_APPS = [
