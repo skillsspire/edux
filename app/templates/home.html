@@ -1,404 +1,105 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}SkillsSpire — Академическое онлайн-образование{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 <style>
-  .course-card-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-    height: 100%;
-  }
-
-  .course-card {
-    height: 100%;
-    transition: transform 0.2s ease;
-    border: 1px solid #e9ecef;
-    border-radius: 12px;
-    overflow: hidden;
-    background: white;
-  }
-
-  .course-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-  }
-
-  .course-card-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-  }
-
-  .course-card-content {
-    padding: 1.25rem;
-  }
-
-  .course-category {
-    font-size: 0.875rem;
-    color: #6c757d;
-    background: #f8f9fa;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-  }
-
-  .course-card-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin: 0.5rem 0;
-    line-height: 1.4;
-  }
-
-  .course-card-text {
-    color: #6c757d;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    margin-bottom: 1rem;
-  }
-
-  .course-rating {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.875rem;
-  }
-
-  .course-reviews {
-    font-size: 0.8rem;
-  }
-
-  .courses-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-  }
-
-  @media (max-width: 768px) {
-    .courses-grid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-  }
+/* Плавное появление элементов */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- 1. Hero -->
-<section class="course-hero">
-  <div class="container text-center">
+<!-- === HERO === -->
+<section class="course-hero text-center fade-up">
+  <div class="container">
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
-    <h1 class="course-title">Бесплатные курсы от профессоров</h1>
+    <h1 class="course-title">Начни обучение бесплатно</h1>
     <p class="course-subtitle">
-      Финансы, аналитика, менеджмент и экономика. Учись бесплатно, а сертификаты для резюме и поступления за рубеж получай за символическую плату.
+      Учись у профессоров, получай сертификаты и улучшай свои карьерные возможности.
     </p>
-    <form action="{% url 'courses_list' %}" method="get" class="hero-search" aria-label="Поиск по курсам">
-      <input type="text" name="q" placeholder="Поиск курсов" aria-label="Поисковый запрос">
+
+    <form action="{% url 'courses_list' %}" method="get" class="hero-search">
+      <input type="text" name="q" placeholder="Поиск курсов..." aria-label="Поиск курсов">
       <button type="submit">Поиск</button>
     </form>
-    <div class="mt-3">
-      <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начать бесплатно</a>
-      <a href="#certificates" class="hero-btn hero-btn-secondary">Сертификаты</a>
+
+    <div class="mt-3 fade-up">
+      <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начни обучение</a>
+      <a href="#courses" class="hero-btn hero-btn-secondary">Смотреть все курсы</a>
     </div>
   </div>
 </section>
 
-<!-- 2. Почему выбирают -->
-<section class="features-section section">
+<!-- === КУРСЫ === -->
+<section id="courses" class="section courses-section fade-up">
   <div class="container text-center">
-    <h2>Почему выбирают нас?</h2>
-    <div class="features-grid">
-      <div class="feature">
-        <i class="bi bi-mortarboard"></i>
-        <h3>Профессора и эксперты</h3>
-        <p>Наши курсы ведут преподаватели университетов и практики бизнеса.</p>
-      </div>
-      <div class="feature">
-        <i class="bi bi-book"></i>
-        <h3>Бесплатный доступ</h3>
-        <p>Учись без ограничений. Оплачивай только сертификаты.</p>
-      </div>
-      <div class="feature">
-        <i class="bi bi-award"></i>
-        <h3>Сертификаты</h3>
-        <p>Подтверди знания сертификатом для резюме и LinkedIn.</p>
-      </div>
-      <div class="feature">
-        <i class="bi bi-briefcase"></i>
-        <h3>Карьерный центр</h3>
-        <p>Помогаем с CV, мотивационными письмами и поступлением за рубеж.</p>
-      </div>
-    </div>
-  </div>
-</section>
+    <h2>Популярные курсы</h2>
+    <p class="text-muted">Самые востребованные программы обучения</p>
 
-<!-- 3. Категории -->
-<section class="categories-section">
-  <div class="container">
-    <div class="section-header text-center">
-      <h2>Направления обучения</h2>
-    </div>
-    <div class="swiper categories-swiper">
-      <div class="swiper-wrapper">
-        {% for category in categories %}
-          <div class="swiper-slide">
-            <a href="{% url 'courses_list' %}?category={{ category.slug }}" class="category-card">
-              {% if category.icon %}
-                <i class="{{ category.icon }}" aria-hidden="true"></i>
-              {% endif %}
-              <div>{{ category.name }}</div>
-            </a>
-          </div>
-        {% empty %}
-          <div class="swiper-slide"><a href="#" class="category-card"><i class="bi bi-graph-up"></i><div>Бизнес</div></a></div>
-        {% endfor %}
-      </div>
-      <div class="swiper-button-next"></div>
-      <div class="swiper-button-prev"></div>
-    </div>
-  </div>
-</section>
-
-<!-- 4. Популярные курсы -->
-<section id="courses" class="section">
-  <div class="container">
-    <div class="section-header text-center">
-      <h2>Популярные курсы</h2>
-      <p class="text-muted">Самые востребованные курсы среди студентов</p>
-    </div>
-    <div class="courses-grid">
+    <div class="courses-grid mt-4">
       {% for course in popular_courses %}
-        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
+        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link fade-up">
           <div class="course-card">
-            <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
-                 class="course-card-img" alt="{{ course.title }}" loading="lazy">
+            <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" alt="{{ course.title }}" class="course-card-img">
             <div class="course-card-content">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="course-category">
-                  {{ course.course.category.name|default:"Бизнес" }}
-                </span>
-                {% if course.is_popular %}
-                  <span class="badge bg-danger">Популярный</span>
-                {% endif %}
-              </div>
+              <span class="course-category">{{ course.course.category.name|default:"Образование" }}</span>
               <h3 class="course-card-title">{{ course.title }}</h3>
-              <p class="course-card-text">
-                {{ course.short_description|default:course.course.description|truncatechars:120 }}
-              </p>
+              <p class="course-card-text">{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
               <div class="course-card-meta">
                 <div class="course-rating">
-                  <i class="bi bi-star-fill text-warning"></i> 
-                  <span>{{ course.average_rating|default:"4.8" }}</span>
-                  <span class="course-reviews text-muted">
-                    ({{ course.reviews_count|default:"0" }} отзывов)
-                  </span>
+                  <i class="bi bi-star-fill"></i>
+                  <span>{{ course.average_rating|default:"4.9" }}</span>
+                  <span class="course-reviews">({{ course.reviews_count|default:"0" }} отзывов)</span>
                 </div>
-                <div class="mt-2">
-                  <span class="text-success fw-bold">Бесплатно</span>
-                  {% if course.has_certificate %}
-                    <span class="text-muted small">+ сертификат</span>
-                  {% endif %}
-                </div>
+                <div class="course-price">Бесплатно</div>
               </div>
             </div>
           </div>
         </a>
       {% empty %}
-        <div class="col-12 text-center py-5">
-          <i class="bi bi-book" style="font-size: 3rem; color: #6c757d;"></i>
-          <h4 class="text-muted mt-3">Курсы скоро появятся</h4>
-          <p class="text-muted">Мы готовим для вас лучшие образовательные материалы</p>
-        </div>
+        <p>Пока нет курсов</p>
       {% endfor %}
     </div>
-  </div>
 
-  {% if popular_courses %}
-    <div class="text-center mt-8 mb-4">
-      <a href="{% url 'courses_list' %}" class="btn btn-primary btn-lg">
-        Смотреть все курсы
-      </a>
-    </div>
-  {% endif %}
-</section>
-
-<!-- 5. Как это работает -->
-<section class="how-it-works">
-  <h2>Как это работает</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="circle">1</div>
-      <h3>Запишись бесплатно</h3>
-      <p>Доступ без ограничений</p>
-    </div>
-    <div class="step">
-      <div class="circle">2</div>
-      <h3>Учись в удобном темпе</h3>
-      <p>С любого устройства</p>
-    </div>
-    <div class="step">
-      <div class="circle">3</div>
-      <h3>Получи сертификат</h3>
-      <p>Подтверди знания</p>
+    <div class="mt-4 fade-up">
+      <a href="{% url 'courses_list' %}" class="courses-btn">Смотреть все курсы</a>
     </div>
   </div>
 </section>
 
-<!-- 6. Сертификаты -->
-<section id="certificates" class="certificates-section section">
+<!-- === CTA === -->
+<section class="cta-section fade-up">
   <div class="container">
-    <div class="certificates-grid">
-      <div class="certificate-image">
-        <img src="{% static 'img/certificate-sample.jpg' %}" alt="Образец сертификата SkillsSpire" loading="lazy">
-      </div>
-      <div class="certificate-info">
-        <h2>Академические сертификаты</h2>
-        <ul class="list-unstyled">
-          <li>✅ Официальный документ с QR-кодом</li>
-          <li>✅ Признается работодателями</li>
-          <li>✅ Доступен на русском и английском</li>
-          <li>✅ Подходит для портфолио и LinkedIn</li>
-        </ul>
-        <h3 class="mt-4">Карьерный центр</h3>
-        <ul class="list-unstyled">
-          <li>📄 CV и резюме</li>
-          <li>✉️ Мотивационные письма</li>
-          <li>🎓 Поступление за рубеж</li>
-          <li>💼 Подготовка к собеседованиям</li>
-        </ul>
-        <a href="#" class="btn btn-primary mt-3">Записаться на консультацию</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 7. Отзывы -->
-<section class="testimonials section bg-light">
-  <div class="container">
-    <div class="section-header text-center">
-      <h2>Отзывы студентов</h2>
-      <p class="text-muted">Истории успеха наших выпускников</p>
-    </div>
-
-    <div class="swiper testimonials-swiper">
-      <div class="swiper-wrapper">
-        {% for review in reviews %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <div class="testimonial-header">
-                <h4 class="mb-1">
-                  {% if review.user %}
-                    {{ review.user.get_full_name|default:review.user.username }}
-                  {% elif review.name %}
-                    {{ review.name }}
-                  {% else %}
-                    Аноним
-                  {% endif %}
-                </h4>
-                <p class="text-muted small mb-2">
-                  <strong>{{ review.course.title|default:"Курс" }}</strong>
-                </p>
-              </div>
-
-              {% if review.rating %}
-                <div class="stars text-warning small mb-3">
-                  {% for i in "12345" %}
-                    <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% else %}-half{% endif %}"></i>
-                  {% endfor %}
-                </div>
-              {% endif %}
-
-              <blockquote class="testimonial-text">
-                "{{ review.comment|default:"Отличный курс, рекомендую!" }}"
-              </blockquote>
-
-              <div class="testimonial-meta">
-                <small class="text-muted">
-                  {% if review.created_at %}
-                    {{ review.created_at|date:"d E Y" }}
-                  {% elif review.inserted_at %}
-                    {{ review.inserted_at|date:"d E Y" }}
-                  {% else %}
-                    Недавно
-                  {% endif %}
-                </small>
-              </div>
-            </div>
-          </div>
-        {% empty %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <h4>Мария Иванова</h4>
-              <p class="text-muted small"><strong>Курс по финансовой аналитике</strong></p>
-              <div class="stars text-warning small mb-3">
-                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-              </div>
-              <blockquote class="testimonial-text">
-                "Отличный курс! Материал подается структурированно, много практических примеров."
-              </blockquote>
-              <div class="testimonial-meta">
-                <small class="text-muted">15 ноября 2024</small>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-
-      <div class="swiper-button-next"></div>
-      <div class="swiper-button-prev"></div>
-    </div>
-  </div>
-</section>
-
-<!-- 8. CTA -->
-<section class="cta-section bg-primary text-white">
-  <div class="container text-center">
-    <h2 class="mb-3">Начни обучение бесплатно</h2>
-    <p class="mb-4">Присоединяйтесь к тысячам студентов, которые уже начали свой путь к карьерному росту</p>
-    <a href="{% url 'courses_list' %}" class="btn btn-light btn-lg">Смотреть все курсы</a>
+    <h2>Начни обучение бесплатно</h2>
+    <p>Присоединяйся к тысячам студентов, которые уже учатся с нами!</p>
+    <a href="{% url 'courses_list' %}" class="cta-button fade-up">Смотреть все курсы</a>
   </div>
 </section>
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  if (document.querySelector('.categories-swiper')) {
-    new Swiper('.categories-swiper', {
-      slidesPerView: 4,
-      spaceBetween: 20,
-      navigation: {
-        nextEl: '.categories-section .swiper-button-next',
-        prevEl: '.categories-section .swiper-button-prev'
-      },
-      breakpoints: {
-        320: { slidesPerView: 1 },
-        576: { slidesPerView: 2 },
-        768: { slidesPerView: 3 },
-        992: { slidesPerView: 4 }
-      }
+// Появление элементов при скролле
+document.addEventListener("DOMContentLoaded", () => {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add("visible");
     });
-  }
+  }, { threshold: 0.1 });
 
-  if (document.querySelector('.testimonials-swiper')) {
-    new Swiper('.testimonials-swiper', {
-      slidesPerView: 1,
-      spaceBetween: 30,
-      loop: true,
-      navigation: {
-        nextEl: '.testimonials .swiper-button-next',
-        prevEl: '.testimonials .swiper-button-prev'
-      },
-      autoplay: { delay: 5000, disableOnInteraction: false },
-      breakpoints: { 768: { slidesPerView: 2 }, 1200: { slidesPerView: 3 } }
-    });
-  }
+  document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
 });
 </script>
 {% endblock %}
