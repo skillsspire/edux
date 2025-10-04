@@ -5,7 +5,6 @@
 
 {% block extra_css %}
 <style>
-/* Плавное появление элементов */
 .fade-up {
   opacity: 0;
   transform: translateY(20px);
@@ -16,6 +15,7 @@
   transform: translateY(0);
 }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 {% endblock %}
 
 {% block content %}
@@ -78,28 +78,99 @@
   </div>
 </section>
 
+<!-- === ОТЗЫВЫ === -->
+<section class="testimonials-section fade-up">
+  <div class="container text-center">
+    <h2>Отзывы студентов</h2>
+    <p class="text-muted">Истории успеха наших выпускников</p>
+
+    <div class="swiper testimonials-swiper mt-4">
+      <div class="swiper-wrapper">
+        {% for review in reviews %}
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <h4 class="mb-1">
+                {% if review.user %}
+                  {{ review.user.get_full_name|default:review.user.username }}
+                {% elif review.name %}
+                  {{ review.name }}
+                {% else %}
+                  Аноним
+                {% endif %}
+              </h4>
+              <p class="text-muted small mb-2"><strong>{{ review.course.title|default:"Курс" }}</strong></p>
+
+              <div class="stars text-warning small mb-3">
+                {% for i in "12345" %}
+                  <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% else %}-half{% endif %}"></i>
+                {% endfor %}
+              </div>
+
+              <blockquote class="testimonial-text">"{{ review.comment|default:"Отличный курс, рекомендую!" }}"</blockquote>
+              <small class="text-muted">{{ review.created_at|date:"d E Y" }}</small>
+            </div>
+          </div>
+        {% empty %}
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <h4>Мария Иванова</h4>
+              <p class="text-muted small"><strong>Курс по аналитике</strong></p>
+              <div class="stars text-warning small mb-3">
+                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+              </div>
+              <blockquote class="testimonial-text">"Отличный курс! Много практики и примеров."</blockquote>
+              <small class="text-muted">Июнь 2024</small>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
+    </div>
+  </div>
+</section>
+
 <!-- === CTA === -->
 <section class="cta-section fade-up">
-  <div class="container">
+  <div class="container text-center">
     <h2>Начни обучение бесплатно</h2>
     <p>Присоединяйся к тысячам студентов, которые уже учатся с нами!</p>
-    <a href="{% url 'courses_list' %}" class="cta-button fade-up">Смотреть все курсы</a>
+    <a href="{% url 'courses_list' %}" class="cta-button">Смотреть все курсы</a>
   </div>
 </section>
 
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-// Появление элементов при скролле
 document.addEventListener("DOMContentLoaded", () => {
+  // Анимация появления
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) entry.target.classList.add("visible");
     });
   }, { threshold: 0.1 });
-
   document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
+
+  // Swiper для отзывов
+  if (document.querySelector(".testimonials-swiper")) {
+    new Swiper(".testimonials-swiper", {
+      slidesPerView: 1,
+      spaceBetween: 20,
+      loop: true,
+      autoplay: { delay: 5000, disableOnInteraction: false },
+      navigation: {
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      },
+      breakpoints: {
+        768: { slidesPerView: 2 },
+        1200: { slidesPerView: 3 }
+      }
+    });
+  }
 });
 </script>
 {% endblock %}
