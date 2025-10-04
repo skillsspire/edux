@@ -1,62 +1,4 @@
 from django.core.exceptions import FieldDoesNotExist
-
-def _has_field(model, name: str) -> bool:
-    try:
-        model._meta.get_field(name)
-        return True
-    except FieldDoesNotExist:
-        return False
-
-def articles_list(request):
-    qs = Article.objects.all()
-    # безопасный фильтр по статусу
-    if _has_field(Article, "status"):
-        qs = qs.filter(status="published")
-    # безопасная сортировка
-    if _has_field(Article, "published_at"):
-        qs = qs.order_by("-published_at")
-    elif _has_field(Article, "created_at"):
-        qs = qs.order_by("-created_at")
-    else:
-        qs = qs.order_by("-id")
-    return render(request, "articles/list.html", {"articles": qs[:50]})
-
-def article_detail(request, slug):
-    # собираем фильтр безопасно
-    flt = {"slug": slug}
-    if _has_field(Article, "status"):
-        flt["status"] = "published"
-
-    article = get_object_or_404(Article, **flt)
-
-    latest = Article.objects.exclude(pk=article.pk)
-    if _has_field(Article, "status"):
-        latest = latest.filter(status="published")
-    if _has_field(Article, "published_at"):
-        latest = latest.order_by("-published_at")
-    elif _has_field(Article, "created_at"):
-        latest = latest.order_by("-created_at")
-    else:
-        latest = latest.order_by("-id")
-
-    return render(request, "articles/detail.html", {"article": article, "latest": latest[:4]})
-
-def materials_list(request):
-    qs = Material.objects.all()
-    if _has_field(Material, "is_public"):
-        qs = qs.filter(is_public=True)
-    if _has_field(Material, "created_at"):
-        qs = qs.order_by("-created_at")
-    else:
-        qs = qs.order_by("-id")
-    return render(request, "materials/list.html", {"materials": qs[:50]})
-
-import hmac
-import hashlib
-import json
-import os
-from typing import Optional
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -69,6 +11,14 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+
+import hmac
+import hashlib
+import json
+import os
+from typing import Optional
+
+from supabase import create_client, Client
 
 from .forms import ContactForm, CustomUserCreationForm, ReviewForm
 from .models import (
@@ -88,7 +38,16 @@ from .models import (
 
 # ---------- helpers ----------
 
+def _has_field(model, name: str) -> bool:
+    """Безопасная проверка наличия поля в модели"""
+    try:
+        model._meta.get_field(name)
+        return True
+    except FieldDoesNotExist:
+        return False
+
 def public_storage_url(path: Optional[str]) -> Optional[str]:
+    """Генерация публичного URL для Supabase Storage"""
     if not path:
         return None
     base = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -97,12 +56,38 @@ def public_storage_url(path: Optional[str]) -> Optional[str]:
         base = "https://pyttzlcuxyfkhrwggrwi.supabase.co"
     return f"{base}/storage/v1/object/public/{bucket}/{path.lstrip('/')}"
 
-
 def first_nonempty(*vals):
+    """Возвращает первое непустое значение"""
     for v in vals:
         if v:
             return v
     return None
+
+def _add_course_display_image_url(course):
+    """Добавляет course.display_image_url (Supabase или плейсхолдер)"""
+    thumb_name = getattr(getattr(course, "thumbnail", None), "name", None)
+    image_name = getattr(getattr(course, "image", None), "name", None)
+    url = public_storage_url(first_nonempty(thumb_name, image_name))
+    if not url:
+        url = f"{settings.STATIC_URL}img/courses/course-placeholder.jpg"
+    course.display_image_url = url
+    return course
+
+def _add_article_display_image_url(article):
+    """Добавляет article.display_image_url"""
+    if hasattr(article, "image") and article.image:
+        article.display_image_url = article.image.url
+    else:
+        article.display_image_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
+    return article
+
+def _add_material_display_image_url(material):
+    """Добавляет material.display_image_url"""
+    if hasattr(material, "image") and material.image:
+        material.display_image_url = material.image.url
+    else:
+        material.display_image_url = f"{settings.STATIC_URL}img/materials/material-placeholder.jpg"
+    return material
 
 
 # ---------- webhooks/payments ----------
@@ -131,7 +116,7 @@ def kaspi_webhook(request):
     except (Payment.DoesNotExist, json.JSONDecodeError, KeyError, TypeError):
         return JsonResponse({"error": "Payment not found or invalid data"}, status=404)
 
-    # валидация суммы (если пришла)
+    # валидация суммы
     try:
         if amount is not None and float(amount) < float(payment.amount or 0):
             return JsonResponse({"error": "Invalid amount"}, status=400)
@@ -173,6 +158,7 @@ def signup(request):
 
 
 def home(request):
+    # --- Курсы и категории ---
     featured_courses = Course.objects.filter(is_featured=True).select_related("category")[:6]
     popular_courses = (
         Course.objects.select_related("category")
@@ -180,18 +166,41 @@ def home(request):
         .annotate(num_students=Count("students", distinct=True))
         .order_by("-num_students")[:6]
     )
+    
+    # Добавляем display_image_url для всех курсов
+    for c in featured_courses:
+        _add_course_display_image_url(c)
+    for c in popular_courses:
+        _add_course_display_image_url(c)
+
     try:
         categories = Category.objects.filter(is_active=True)[:8]
     except Exception:
         categories = Category.objects.all()[:8]
 
-    reviews = (
-        Review.objects.filter(is_active=True)
-        .select_related("user", "course")
-        .order_by("-created_at")[:10]
-    )
+    # --- Отзывы (гибрид) ---
+    reviews = []
+    try:
+        reviews = (
+            Review.objects.filter(is_active=True)
+            .select_related("user", "course")
+            .order_by("-created_at")[:10]
+        )
+        if not reviews.exists():
+            raise ValueError("No local reviews")
+    except Exception:
+        try:
+            url = os.environ.get("SUPABASE_URL")
+            key = os.environ.get("SUPABASE_KEY")
+            if url and key:
+                supabase: Client = create_client(url, key)
+                data = supabase.table("reviews").select("*").order("created_at", desc=True).limit(10).execute()
+                reviews = data.data or []
+        except Exception as e:
+            print("⚠️ Ошибка загрузки отзывов:", e)
+            reviews = []
 
-    # Добавляем статьи и материалы на главную (безопасные версии)
+    # --- Статьи ---
     latest_articles = Article.objects.all()
     if _has_field(Article, "status"):
         latest_articles = latest_articles.filter(status="published")
@@ -200,20 +209,29 @@ def home(request):
     elif _has_field(Article, "created_at"):
         latest_articles = latest_articles.order_by("-created_at")
     latest_articles = latest_articles[:3]
+    
+    for a in latest_articles:
+        _add_article_display_image_url(a)
 
+    # --- Материалы ---
     latest_materials = Material.objects.all()
     if _has_field(Material, "is_public"):
         latest_materials = latest_materials.filter(is_public=True)
     if _has_field(Material, "created_at"):
         latest_materials = latest_materials.order_by("-created_at")
     latest_materials = latest_materials[:3]
+    
+    for m in latest_materials:
+        _add_material_display_image_url(m)
 
+    # --- FAQ ---
     faqs = [
         {"question": "Как проходит обучение?", "answer": "Онлайн в личном кабинете: видео, задания и обратная связь."},
         {"question": "Будет ли доступ к материалам после окончания?", "answer": "Да, бессрочный доступ ко всем урокам курса."},
         {"question": "Как оплатить курс?", "answer": "Через Kaspi QR. После оплаты запись активируется автоматически."},
         {"question": "Выдаётся ли сертификат?", "answer": "Да, после завершения всех модулей."},
     ]
+
     return render(request, "home.html", {
         "featured_courses": featured_courses,
         "popular_courses": popular_courses,
@@ -234,14 +252,10 @@ def courses_list(request):
         .annotate(avg_rating=Avg("reviews__rating"))
     )
 
-    selected_categories = request.GET.getlist("category")
-    selected_levels = request.GET.getlist("level")
     search_query = request.GET.get("q", "").strip()
-    price_filter = request.GET.get("price")
     sort_by = request.GET.get("sort", "newest")
-
-    if selected_categories:
-        courses_qs = courses_qs.filter(category__slug__in=selected_categories)
+    price_filter = request.GET.get("price")
+    category_filter = request.GET.get("category")
 
     if search_query:
         courses_qs = courses_qs.filter(
@@ -250,8 +264,8 @@ def courses_list(request):
             Q(category__name__icontains=search_query)
         )
 
-    if selected_levels:
-        courses_qs = courses_qs.filter(level__in=selected_levels)
+    if category_filter:
+        courses_qs = courses_qs.filter(category__slug=category_filter)
 
     if price_filter == "free":
         courses_qs = courses_qs.filter(price=0)
@@ -271,14 +285,18 @@ def courses_list(request):
     else:
         courses_qs = courses_qs.order_by("-created_at")
 
+    paginator = Paginator(courses_qs, 12)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # Добавляем display_image_url для всех курсов
+    for c in page_obj:
+        _add_course_display_image_url(c)
+
     try:
         categories = Category.objects.filter(is_active=True)
     except Exception:
         categories = Category.objects.all()
-
-    paginator = Paginator(courses_qs, 12)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
 
     return render(request, "courses/list.html", {
         "courses": page_obj,
@@ -286,11 +304,76 @@ def courses_list(request):
         "is_paginated": page_obj.has_other_pages(),
         "page_obj": page_obj,
         "q": search_query,
-        "selected_levels": selected_levels,
-        "selected_categories": selected_categories,
-        "price_filter": price_filter,
         "sort_by": sort_by,
     })
+
+
+def articles_list(request):
+    qs = Article.objects.all()
+    # безопасный фильтр по статусу
+    if _has_field(Article, "status"):
+        qs = qs.filter(status="published")
+    # безопасная сортировка
+    if _has_field(Article, "published_at"):
+        qs = qs.order_by("-published_at")
+    elif _has_field(Article, "created_at"):
+        qs = qs.order_by("-created_at")
+    else:
+        qs = qs.order_by("-id")
+    
+    # Добавляем display_image_url для всех статей
+    articles = qs[:50]
+    for a in articles:
+        _add_article_display_image_url(a)
+        
+    return render(request, "articles/list.html", {"articles": articles})
+
+
+def article_detail(request, slug):
+    # собираем фильтр безопасно
+    flt = {"slug": slug}
+    if _has_field(Article, "status"):
+        flt["status"] = "published"
+
+    article = get_object_or_404(Article, **flt)
+    _add_article_display_image_url(article)
+
+    latest = Article.objects.exclude(pk=article.pk)
+    if _has_field(Article, "status"):
+        latest = latest.filter(status="published")
+    if _has_field(Article, "published_at"):
+        latest = latest.order_by("-published_at")
+    elif _has_field(Article, "created_at"):
+        latest = latest.order_by("-created_at")
+    else:
+        latest = latest.order_by("-id")
+
+    # Добавляем display_image_url для похожих статей
+    latest_articles = latest[:4]
+    for a in latest_articles:
+        _add_article_display_image_url(a)
+
+    return render(request, "articles/detail.html", {
+        "article": article, 
+        "latest": latest_articles
+    })
+
+
+def materials_list(request):
+    qs = Material.objects.all()
+    if _has_field(Material, "is_public"):
+        qs = qs.filter(is_public=True)
+    if _has_field(Material, "created_at"):
+        qs = qs.order_by("-created_at")
+    else:
+        qs = qs.order_by("-id")
+    
+    # Добавляем display_image_url для всех материалов
+    materials = qs[:50]
+    for m in materials:
+        _add_material_display_image_url(m)
+        
+    return render(request, "materials/list.html", {"materials": materials})
 
 
 # ---------- course detail & lessons ----------
@@ -300,6 +383,9 @@ def course_detail(request, slug):
         Course.objects.select_related("category", "instructor").prefetch_related("students", "reviews"),
         slug=slug
     )
+    
+    # Добавляем display_image_url для курса
+    _add_course_display_image_url(course)
 
     # доступ
     has_access = True
@@ -316,31 +402,29 @@ def course_detail(request, slug):
     except (ProgrammingError, DatabaseError):
         lessons = Lesson.objects.none()
 
-    # похожие курсы + картинки
+    # похожие курсы
     related_courses = (
         Course.objects.filter(category=course.category)
         .exclude(id=course.id).select_related("category")[:4]
     )
+    
+    # Добавляем display_image_url для похожих курсов
     related_courses_with_images = []
     for related_course in related_courses:
-        thumb_name = getattr(related_course.thumbnail, 'name', None) if getattr(related_course, 'thumbnail', None) else None
-        image_name = getattr(related_course.image, 'name', None) if getattr(related_course, 'image', None) else None
-        image_url = public_storage_url(first_nonempty(thumb_name, image_name))
-        related_courses_with_images.append({"course": related_course, "image_url": image_url})
+        _add_course_display_image_url(related_course)
+        related_courses_with_images.append({
+            "course": related_course, 
+            "image_url": related_course.display_image_url
+        })
 
     # отзывы
     reviews = Review.objects.filter(course=course, is_active=True).select_related("user")[:10]
 
     # преподаватель
-    teacher_user = getattr(course, "instructor", None)  # User
-    teacher_profile = getattr(teacher_user, "instructor_profile", None)  # InstructorProfile
+    teacher_user = getattr(course, "instructor", None)
+    teacher_profile = getattr(teacher_user, "instructor_profile", None)
 
-    # изображение курса
-    thumb_name = getattr(getattr(course, "thumbnail", None), "name", None)
-    image_name = getattr(getattr(course, "image", None), "name", None)
-    course_image_url = public_storage_url(first_nonempty(thumb_name, image_name))
-
-    # избранное: первичное состояние для кнопки
+    # избранное
     is_in_wishlist = False
     if request.user.is_authenticated:
         is_in_wishlist = Wishlist.objects.filter(user=request.user, course=course).exists()
@@ -353,7 +437,6 @@ def course_detail(request, slug):
         "has_access": has_access,
         "teacher": teacher_user,
         "teacher_profile": teacher_profile,
-        "course_image_url": course_image_url,
         "is_in_wishlist": is_in_wishlist,
     })
 
@@ -361,6 +444,7 @@ def course_detail(request, slug):
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course.objects.prefetch_related("students"), slug=course_slug)
+    _add_course_display_image_url(course)
 
     try:
         lesson = get_object_or_404(
@@ -481,8 +565,14 @@ def payment_thanks(request, slug):
 @login_required
 def my_courses(request):
     enrollments = Enrollment.objects.filter(user=request.user).select_related("course")
+    
+    # Добавляем display_image_url для курсов
+    for enrollment in enrollments:
+        _add_course_display_image_url(enrollment.course)
+        
     in_progress = enrollments.filter(completed=False)
     completed = enrollments.filter(completed=True)
+    
     return render(request, "courses/my_courses.html", {
         "in_progress": in_progress,
         "completed": completed,
@@ -494,10 +584,15 @@ def dashboard(request):
     user = request.user
 
     my_courses = Course.objects.filter(students__id=user.id).select_related("category")
+    
+    # Добавляем display_image_url для курсов
+    for course in my_courses:
+        _add_course_display_image_url(course)
+        
     total_courses = my_courses.count()
     recent_courses = my_courses.order_by("-created_at")[:5]
 
-    # completed courses (fallback на разные related_names)
+    # completed courses
     try:
         completed_courses = Enrollment.objects.filter(user_id=user.id, completed=True).count()
     except Exception:
@@ -569,7 +664,6 @@ def toggle_wishlist(request, slug):
         in_wishlist = False
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        # фронт ждёт ключ `in_wishlist`
         return JsonResponse({"success": True, "message": message, "in_wishlist": in_wishlist})
 
     messages.success(request, message)

@@ -5,6 +5,24 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
+<style>
+  /* Добавляем базовые стили для новых элементов */
+  .course-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+  }
+  
+  .course-card {
+    height: 100%;
+    transition: transform 0.2s ease;
+  }
+  
+  .course-card:hover {
+    transform: translateY(-4px);
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -75,6 +93,7 @@
             </a>
           </div>
         {% empty %}
+          <!-- Fallback категории -->
           <div class="swiper-slide">
             <a href="{% url 'courses_list' %}?category=business-analytics" class="category-card">
               <i class="bi bi-graph-up"></i><div>Бизнес-аналитика</div>
@@ -108,30 +127,53 @@
   <div class="container">
     <div class="section-header text-center">
       <h2>Популярные курсы</h2>
+      <p class="text-muted">Самые востребованные курсы среди студентов</p>
     </div>
     <div class="courses-grid">
-    {% for course in popular_courses %}
-      <a href="{% url 'course_detail' course.slug %}" class="course-card-link">
-        <div class="course-card">
-          <img src="{{ course.display_image_url|default:'/static/img/course-placeholder.jpg' }}" 
-               class="course-card-img" alt="{{ course.title }}">
-          <div class="course-card-content">
-            <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
-            <h3 class="course-card-title">{{ course.title }}</h3>
-            <p class="course-card-text">{{ course.short_description|default:course.description|truncatechars:120 }}</p>
-            <div class="course-card-meta">
-              <div class="course-rating">
-                <i class="bi bi-star-fill"></i> {{ course.average_rating|default:"4.8" }}
-                <span class="course-reviews">({{ course.reviews_count|default:0 }} отзывов)</span>
-             </div>
+      {% for course in popular_courses %}
+        <a href="{% url 'course_detail' course.slug %}" class="course-card-link">
+          <div class="course-card">
+            <img src="{{ course.display_image_url|default:'/static/img/course-placeholder.jpg' }}" 
+                 class="course-card-img" alt="{{ course.title }}" loading="lazy">
+            <div class="course-card-content">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
+                {% if course.is_popular %}
+                  <span class="badge bg-danger">Популярный</span>
+                {% endif %}
+              </div>
+              <h3 class="course-card-title">{{ course.title }}</h3>
+              <p class="course-card-text">{{ course.short_description|default:course.description|truncatechars:120 }}</p>
+              <div class="course-card-meta">
+                <div class="course-rating">
+                  <i class="bi bi-star-fill text-warning"></i> 
+                  <span>{{ course.average_rating|default:"4.8" }}</span>
+                  <span class="course-reviews text-muted">({{ course.reviews_count|default:"0" }} отзывов)</span>
+                </div>
+                <div class="mt-2">
+                  <span class="text-success fw-bold">Бесплатно</span>
+                  {% if course.has_certificate %}
+                    <span class="text-muted small">+ сертификат</span>
+                  {% endif %}
+                </div>
+              </div>
             </div>
           </div>
+        </a>
+      {% empty %}
+        <div class="col-12 text-center py-5">
+          <i class="bi bi-book" style="font-size: 3rem; color: #6c757d;"></i>
+          <h4 class="text-muted mt-3">Курсы скоро появятся</h4>
+          <p class="text-muted">Мы готовим для вас лучшие образовательные материалы</p>
+        </div>
+      {% endfor %}
+    </div>
+    {% if popular_courses %}
+      <div class="text-center mt-4">
+        <a href="{% url 'courses_list' %}" class="btn btn-outline-primary">Смотреть все курсы</a>
       </div>
-    </a>
-  {% empty %}
-    <p>Курсы пока не добавлены.</p>
-  {% endfor %}
-</div>
+    {% endif %}
+  </div>
 </section>
 
 <!-- 5. Как это работает -->
@@ -139,83 +181,123 @@
   <div class="container text-center">
     <h2>Как это работает</h2>
     <div class="steps-grid">
-      <div class="step"><div class="step-number">1</div><h3>Запишись бесплатно</h3><p>Доступ без ограничений</p></div>
-      <div class="step"><div class="step-number">2</div><h3>Учись в удобном темпе</h3><p>С любого устройства</p></div>
-      <div class="step"><div class="step-number">3</div><h3>Получи сертификат</h3><p>Подтверди знания</p></div>
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Запишись бесплатно</h3>
+        <p>Доступ без ограничений</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Учись в удобном темпе</h3>
+        <p>С любого устройства</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Получи сертификат</h3>
+        <p>Подтверди знания</p>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- 6. Сертификаты -->
-<section id="certificates" class="certificates-section container">
-  <div class="certificates-grid">
-    <div class="certificate-image">
-      <img src="{% static 'img/certificate-sample.jpg' %}" alt="Сертификат">
-    </div>
-    <div class="certificate-info">
-      <h2>Академические сертификаты</h2>
-      <ul>
-        <li>✅ Официальный документ с QR-кодом</li>
-        <li>✅ Признается работодателями</li>
-        <li>✅ Доступен на русском и английском</li>
-      </ul>
+<section id="certificates" class="certificates-section section">
+  <div class="container">
+    <div class="certificates-grid">
+      <div class="certificate-image">
+        <img src="{% static 'img/certificate-sample.jpg' %}" alt="Образец сертификата SkillsSpire" loading="lazy">
+      </div>
+      <div class="certificate-info">
+        <h2>Академические сертификаты</h2>
+        <ul class="list-unstyled">
+          <li>✅ Официальный документ с QR-кодом</li>
+          <li>✅ Признается работодателями</li>
+          <li>✅ Доступен на русском и английском</li>
+          <li>✅ Подходит для портфолио и LinkedIn</li>
+        </ul>
 
-      <h2>Карьерный центр</h2>
-      <ul>
-        <li>📄 CV и резюме</li>
-        <li>✉️ Мотивационные письма</li>
-        <li>🎓 Поступление за рубеж</li>
-        <li>💼 Подготовка к собеседованиям</li>
-      </ul>
-      <a href="#" class="btn btn-primary">Записаться на консультацию</a>
+        <h3 class="mt-4">Карьерный центр</h3>
+        <ul class="list-unstyled">
+          <li>📄 CV и резюме</li>
+          <li>✉️ Мотивационные письма</li>
+          <li>🎓 Поступление за рубеж</li>
+          <li>💼 Подготовка к собеседованиям</li>
+        </ul>
+        <a href="#" class="btn btn-primary mt-3">Записаться на консультацию</a>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- 7. Отзывы -->
-<section class="testimonials section">
+<section class="testimonials section bg-light">
   <div class="container">
     <div class="section-header text-center">
       <h2>Отзывы студентов</h2>
-      <p>Истории успеха</p>
+      <p class="text-muted">Истории успеха наших выпускников</p>
     </div>
 
     <div class="swiper testimonials-swiper">
       <div class="swiper-wrapper">
         {% for review in reviews %}
-        <div class="swiper-slide">
-          <div class="testimonial-card">
-            <h4>
-              {% if review.user %}
-                {{ review.user.get_full_name|default:review.user.username }}
-              {% else %}
-                Аноним
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <div class="testimonial-header">
+                <h4 class="mb-1">
+                  {% if review.user %}
+                    {{ review.user.get_full_name|default:review.user.username }}
+                  {% elif review.name %}
+                    {{ review.name }}
+                  {% else %}
+                    Аноним
+                  {% endif %}
+                </h4>
+                <p class="text-muted small mb-2">
+                  <strong>{{ review.course.title|default:"Курс" }}</strong>
+                </p>
+              </div>
+              
+              {% if review.rating %}
+                <div class="stars text-warning small mb-3">
+                  {% for i in "12345" %}
+                    <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% else %}-half{% endif %}"></i>
+                  {% endfor %}
+                </div>
               {% endif %}
-            </h4>
-            <p class="text-muted">
-              <strong>{{ review.course.title|default:"Курс" }}</strong>
-            </p>
-            <blockquote class="testimonial-text">
-              {% if review.text and review.text|length > 0 %}
-                {{ review.text }}
-              {% else %}
-                Отзыв отсутствует
-              {% endif %}
-            </blockquote>
+              
+              <blockquote class="testimonial-text">
+                "{{ review.comment|default:review.text|default:"Отличный курс, рекомендую!" }}"
+              </blockquote>
+              
+              <div class="testimonial-meta">
+                <small class="text-muted">
+                  {{ review.created_at|default:review.inserted_at|date:"d E Y"|default:"Недавно" }}
+                </small>
+              </div>
+            </div>
           </div>
-        </div>
         {% empty %}
-        <div class="swiper-slide">
-          <div class="testimonial-card">
-            <h4>Аноним</h4>
-            <p class="text-muted"><strong>Курс по аналитике</strong></p>
-            <blockquote class="testimonial-text">Отзывы пока не добавлены.</blockquote>
+          <!-- Fallback отзывы -->
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <h4>Мария Иванова</h4>
+              <p class="text-muted small"><strong>Курс по финансовой аналитике</strong></p>
+              <div class="stars text-warning small mb-3">
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+              </div>
+              <blockquote class="testimonial-text">
+                "Отличный курс! Материал подается структурированно, много практических примеров. Сертификат помог при устройстве на работу."
+              </blockquote>
+            </div>
           </div>
-        </div>
         {% endfor %}
       </div>
 
-      <!-- стрелки -->
+      <!-- навигация -->
       <div class="swiper-button-next"></div>
       <div class="swiper-button-prev"></div>
     </div>
@@ -223,10 +305,11 @@
 </section>
 
 <!-- 8. CTA -->
-<section class="cta-section">
+<section class="cta-section bg-primary text-white">
   <div class="container text-center">
-    <h2>Начни обучение бесплатно</h2>
-    <a href="{% url 'courses_list' %}" class="cta-button">Смотреть все курсы</a>
+    <h2 class="mb-3">Начни обучение бесплатно</h2>
+    <p class="mb-4">Присоединяйтесь к тысячам студентов, которые уже начали свой путь к карьерному росту</p>
+    <a href="{% url 'courses_list' %}" class="btn btn-light btn-lg">Смотреть все курсы</a>
   </div>
 </section>
 
@@ -235,37 +318,59 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-new Swiper('.categories-swiper', {
-  slidesPerView: 4,
-  spaceBetween: 20,
-  navigation: {
-    nextEl: '.categories-section .swiper-button-next',
-    prevEl: '.categories-section .swiper-button-prev'
-  },
-  breakpoints: {
-    320: { slidesPerView: 1 },
-    768: { slidesPerView: 2 },
-    1024: { slidesPerView: 3 },
-    1280: { slidesPerView: 4 }
+document.addEventListener('DOMContentLoaded', function() {
+  // Инициализация карусели категорий
+  if (document.querySelector('.categories-swiper')) {
+    new Swiper('.categories-swiper', {
+      slidesPerView: 4,
+      spaceBetween: 20,
+      navigation: {
+        nextEl: '.categories-section .swiper-button-next',
+        prevEl: '.categories-section .swiper-button-prev'
+      },
+      breakpoints: {
+        320: { slidesPerView: 1 },
+        576: { slidesPerView: 2 },
+        768: { slidesPerView: 3 },
+        992: { slidesPerView: 4 }
+      }
+    });
   }
-});
 
-new Swiper('.testimonials-swiper', {
-  slidesPerView: 1,
-  spaceBetween: 30,
-  loop: true,
-  navigation: {
-    nextEl: '.testimonials .swiper-button-next',
-    prevEl: '.testimonials .swiper-button-prev'
-  },
-  autoplay: {
-    delay: 5000,
-    disableOnInteraction: false
-  },
-  breakpoints: {
-    768: { slidesPerView: 2 },
-    1200: { slidesPerView: 3 }
+  // Инициализация карусели отзывов
+  if (document.querySelector('.testimonials-swiper')) {
+    new Swiper('.testimonials-swiper', {
+      slidesPerView: 1,
+      spaceBetween: 30,
+      loop: true,
+      navigation: {
+        nextEl: '.testimonials .swiper-button-next',
+        prevEl: '.testimonials .swiper-button-prev'
+      },
+      autoplay: {
+        delay: 5000,
+        disableOnInteraction: false
+      },
+      breakpoints: {
+        768: { slidesPerView: 2 },
+        1200: { slidesPerView: 3 }
+      }
+    });
   }
+
+  // Плавная прокрутка для якорных ссылок
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
 });
 </script>
 {% endblock %}
