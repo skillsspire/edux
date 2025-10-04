@@ -12,7 +12,10 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(","
 CSRF_TRUSTED_ORIGINS = [
     "https://www.skillsspire.com",
     "https://skillsspire.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     if RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -44,6 +47,7 @@ SECURE_HSTS_PRELOAD = False
 SECURE_REFERRER_POLICY = "same-origin"
 
 # === Apps ===
+
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -53,15 +57,19 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
 ]
+
 THIRD_PARTY_APPS = [
     "phonenumber_field",
     "ckeditor",
     "widget_tweaks",
     "storages",
+    "sslserver",  # ← вот это добавь
 ]
+
 LOCAL_APPS = [
     "app.apps.CoreConfig",
 ]
+
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # === Middleware ===
@@ -163,7 +171,7 @@ LOCALE_PATHS = [BASE_DIR / "locale"]
 # === Static ===
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = []
+STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365

@@ -215,14 +215,15 @@
         </div>
       {% endfor %}
     </div>
-    {% if popular_courses %}
-      <div class="text-center mt-6">
-        <a href="{% url 'courses_list' %}" class="btn-primary">
-        Смотреть все курсы
-        </a>
-      </div>
-    {% endif %}
   </div>
+
+  {% if popular_courses %}
+    <div class="text-center mt-8 mb-4">
+      <a href="{% url 'courses_list' %}" class="btn btn-primary btn-lg">
+        Смотреть все курсы
+      </a>
+    </div>
+  {% endif %}
 </section>
 
 <!-- 5. Как это работает -->
@@ -311,14 +312,12 @@
                 </div>
               {% endif %}
 
-              <!-- ✅ ИСПРАВЛЕННЫЙ ТЕКСТ ОТЗЫВА -->
               <blockquote class="testimonial-text">
                 "{{ review.comment|default:"Отличный курс, рекомендую!" }}"
               </blockquote>
 
               <div class="testimonial-meta">
                 <small class="text-muted">
-                  <!-- ✅ ИСПРАВЛЕННАЯ ДАТА - безопасная проверка полей -->
                   {% if review.created_at %}
                     {{ review.created_at|date:"d E Y" }}
                   {% elif review.inserted_at %}
