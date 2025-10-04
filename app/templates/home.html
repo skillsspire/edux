@@ -15,14 +15,10 @@
   transform: translateY(0);
 }
 
-/* === 1. Преимущества === */
+/* === Преимущества === */
 .features-section {
   background: #f9fafb;
   padding: 4rem 0;
-}
-.features-section h2 {
-  font-weight: 700;
-  margin-bottom: 2rem;
 }
 .features-grid {
   display: grid;
@@ -40,7 +36,7 @@
 .feature-card:hover { transform: translateY(-5px); }
 .feature-icon { font-size: 2rem; margin-bottom: .5rem; color: #007bff; }
 
-/* === 2. Цифры === */
+/* === Статистика === */
 .stats-section {
   background: linear-gradient(135deg, #007bff, #6610f2);
   color: white;
@@ -53,11 +49,8 @@
   justify-content: center;
   gap: 2rem;
 }
-.stat { min-width: 160px; }
-.stat-number { font-size: 2.5rem; font-weight: 700; }
-.stat-label { opacity: 0.9; }
 
-/* === 3. Комьюнити === */
+/* === Комьюнити === */
 .community-section {
   background: #fff8f0;
   padding: 4rem 0;
@@ -65,37 +58,24 @@
 }
 .community-section p { max-width: 700px; margin: 0 auto 1.5rem; }
 
-/* === 4. Тест === */
+/* === Подбор курса === */
 .recommend-section {
   background: #eef6ff;
   padding: 4rem 0;
   text-align: center;
 }
 .recommend-section h2 { margin-bottom: 1rem; }
-.recommend-btn {
-  background: #007bff;
-  color: white;
-  padding: 0.9rem 2rem;
-  border-radius: 50px;
-  display: inline-block;
-  text-decoration: none;
-  transition: 0.3s;
-}
-.recommend-btn:hover { background: #0056b3; }
 
-/* === 5. B2B === */
+/* === B2B === */
 .corporate-section {
   background: #f1f3f5;
   padding: 4rem 0;
+  text-align: center;
 }
-.corporate-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
+.corporate-text {
+  max-width: 600px;
+  margin: 0 auto;
 }
-.corporate-text { max-width: 500px; }
 .corporate-btn {
   display: inline-block;
   background: #007bff;
@@ -104,30 +84,13 @@
   border-radius: 8px;
   margin-top: 1rem;
   text-decoration: none;
+  transition: 0.3s;
 }
+.corporate-btn:hover { background: #0056b3; }
 
-/* === 6. Контакты === */
-.contacts-section {
-  background: #222;
-  color: #ccc;
-  font-size: 0.9rem;
-  padding: 2rem 0;
-  text-align: center;
-}
-.contacts-section a {
-  color: #00bfff;
-  text-decoration: none;
-}
-.contacts-section hr {
-  border: 0;
-  border-top: 1px solid #444;
-  margin: 1rem auto;
-  width: 80%;
-}
-
-/* === 7. Партнёры === */
+/* === Партнёры === */
 .partners-section {
-  background: var(--color-bg-section);
+  background: #fff;
   padding: 4rem 0;
 }
 .partners-grid {
@@ -137,12 +100,12 @@
   align-items: center;
 }
 .partner-card {
-  background: var(--color-bg-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md) var(--space-lg);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
   height: 120px;
   display: flex;
   flex-direction: column;
@@ -151,7 +114,7 @@
 }
 .partner-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
 }
 .partner-card img {
   max-height: 50px;
@@ -160,7 +123,23 @@
 }
 .partner-tagline {
   font-size: 0.9rem;
-  color: var(--color-text-tertiary);
+  color: #777;
+}
+
+/* === Контакты === */
+.contacts-section {
+  background: #222;
+  color: #ccc;
+  font-size: 0.9rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+.contacts-section a { color: #00bfff; text-decoration: none; }
+.contacts-section hr {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 1rem auto;
+  width: 80%;
 }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
@@ -189,23 +168,20 @@
   </div>
 </section>
 
-<!-- === 1. Почему выбирают SkillsSpire === -->
+<!-- === Преимущества === -->
 <section class="features-section fade-up">
   <div class="container text-center">
     <h2>💡 Почему студенты выбирают SkillsSpire</h2>
-    <p class="text-muted mb-4">Ваш путь к знаниям без границ</p>
     <div class="features-grid">
       <div class="feature-card"><div class="feature-icon">👩‍🏫</div><h4>Обучение у экспертов</h4><p>Преподаватели — практики из бизнеса и академической среды.</p></div>
       <div class="feature-card"><div class="feature-icon">🧠</div><h4>Только нужные знания</h4><p>Программы составлены под реальные требования рынка.</p></div>
       <div class="feature-card"><div class="feature-icon">🧩</div><h4>Micro-learning</h4><p>Короткие видеоуроки и задания, учись в удобном темпе.</p></div>
-      <div class="feature-card"><div class="feature-icon">💼</div><h4>Актуальные программы</h4><p>Курсы обновляются под запросы компаний и тенденции рынка.</p></div>
-      <div class="feature-card"><div class="feature-icon">🧾</div><h4>Сертификат за символическую сумму</h4><p>Бесплатное обучение, сертификат при желании.</p></div>
-      <div class="feature-card"><div class="feature-icon">🕓</div><h4>Доступ 24/7</h4><p>Материалы доступны навсегда — учись когда удобно.</p></div>
+      <div class="feature-card"><div class="feature-icon">💼</div><h4>Актуальные программы</h4><p>Курсы обновляются под запросы компаний.</p></div>
     </div>
   </div>
 </section>
 
-<!-- === 2. SkillsSpire в цифрах === -->
+<!-- === Статистика === -->
 <section class="stats-section fade-up">
   <div class="container">
     <h2>🏆 SkillsSpire в цифрах</h2>
@@ -214,49 +190,31 @@
       <div class="stat"><div class="stat-number">50+</div><div class="stat-label">Преподавателей</div></div>
       <div class="stat"><div class="stat-number">150+</div><div class="stat-label">Курсов</div></div>
       <div class="stat"><div class="stat-number">87%</div><div class="stat-label">Карьерный рост</div></div>
-      <div class="stat"><div class="stat-number">100%</div><div class="stat-label">Онлайн-доступ</div></div>
     </div>
   </div>
 </section>
 
-<!-- === КУРСЫ === -->
+<!-- === Курсы === -->
 <section id="courses" class="section courses-section fade-up">
   <div class="container text-center">
     <h2>Популярные курсы</h2>
-    <p class="text-muted">Самые востребованные программы обучения</p>
-
     <div class="courses-grid mt-4">
       {% for course in popular_courses %}
         <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link fade-up">
           <div class="course-card">
             <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" alt="{{ course.title }}" class="course-card-img">
             <div class="course-card-content">
-              <span class="course-category">{{ course.course.category.name|default:"Образование" }}</span>
               <h3 class="course-card-title">{{ course.title }}</h3>
-              <p class="course-card-text">{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
-              <div class="course-card-meta">
-                <div class="course-rating">
-                  <i class="bi bi-star-fill"></i>
-                  <span>{{ course.average_rating|default:"4.9" }}</span>
-                  <span class="course-reviews">({{ course.reviews_count|default:"0" }} отзывов)</span>
-                </div>
-                <div class="course-price">Бесплатно</div>
-              </div>
+              <p class="course-card-text">{{ course.short_description|truncatechars:120 }}</p>
             </div>
           </div>
         </a>
-      {% empty %}
-        <p>Пока нет курсов</p>
       {% endfor %}
-    </div>
-
-    <div class="mt-4 fade-up">
-      <a href="{% url 'courses_list' %}" class="courses-btn">Смотреть все курсы</a>
     </div>
   </div>
 </section>
 
-<!-- === 3. Сообщество === -->
+<!-- === Сообщество === -->
 <section class="community-section fade-up">
   <div class="container">
     <h2>👥 Сообщество и поддержка студентов</h2>
@@ -265,92 +223,39 @@
   </div>
 </section>
 
-<!-- === 4. Рекомендации === -->
+<!-- === Рекомендации === -->
 <section class="recommend-section fade-up">
   <div class="container">
     <h2>🧠 Не знаешь, с чего начать?</h2>
     <p>Ответь на 3 вопроса — и мы подберём курс под твою цель!</p>
-    <a href="#" class="recommend-btn mt-3">🎯 Пройти тест и получить рекомендации</a>
+    <a href="#" class="hero-btn hero-btn-secondary mt-3">🎯 Пройти тест и получить рекомендации</a>
   </div>
 </section>
 
-<!-- === 5. B2B === -->
+<!-- === B2B === -->
 <section class="corporate-section fade-up">
-  <div class="container text-center">
+  <div class="container">
     <h2>🏢 Обучение для компаний</h2>
-    <div class="corporate-grid mt-3">
-      <div class="corporate-text">
-        <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
-        <ul class="text-start">
-          <li>✅ Программы под задачи компании</li>
-          <li>✅ Онлайн-обучение сотрудников</li>
-          <li>✅ Отчёты и аналитика прогресса</li>
-          <li>✅ Сопровождение на всех этапах</li>
-        </ul>
-        <a href="#" class="corporate-btn">📞 Оставить заявку</a>
-      </div>
-      <img src="{% static 'img/partners/suitt.png' %}" alt="Партнёр" style="max-width:200px;">
+    <div class="corporate-text">
+      <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
+      <ul class="text-start">
+        <li>✅ Программы под задачи компании</li>
+        <li>✅ Онлайн-обучение сотрудников</li>
+        <li>✅ Отчёты и аналитика прогресса</li>
+        <li>✅ Сопровождение на всех этапах</li>
+      </ul>
+      <a href="#" class="corporate-btn">📞 Оставить заявку</a>
     </div>
   </div>
 </section>
 
-<!-- === ОТЗЫВЫ === -->
-<section class="testimonials-section fade-up">
-  <div class="container text-center">
-    <h2>Отзывы студентов</h2>
-    <p class="text-muted">Истории успеха наших выпускников</p>
-
-    <div class="swiper testimonials-swiper mt-4">
-      <div class="swiper-wrapper">
-        {% for review in reviews %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <h4 class="mb-1">
-                {% if review.user %}
-                  {{ review.user.get_full_name|default:review.user.username }}
-                {% else %}
-                  Аноним
-                {% endif %}
-              </h4>
-
-              <p class="text-muted small mb-2"><strong>{{ review.course.title|default:"Курс" }}</strong></p>
-              <div class="stars text-warning small mb-3">
-                {% for i in "12345" %}
-                  <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
-                {% endfor %}
-              </div>
-              <blockquote class="testimonial-text">"{{ review.comment|default:"Отличный курс, рекомендую!" }}"</blockquote>
-              <small class="text-muted">{{ review.created_at|date:"d E Y" }}</small>
-            </div>
-          </div>
-        {% empty %}
-          <div class="swiper-slide">
-            <div class="testimonial-card">
-              <h4>Мария Иванова</h4>
-              <p class="text-muted small"><strong>Курс по аналитике</strong></p>
-              <div class="stars text-warning small mb-3">
-                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-              </div>
-              <blockquote class="testimonial-text">"Отличный курс! Много практики и примеров."</blockquote>
-              <small class="text-muted">Июнь 2024</small>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-
-      <div class="swiper-button-next"></div>
-      <div class="swiper-button-prev"></div>
-    </div>
-  </div>
-</section>
-
-<!-- === ПАРТНЁРЫ === -->
+<!-- === Партнёры === -->
 <section class="partners-section fade-up">
   <div class="container text-center">
-    <h2 class="section-title mb-4">Наши партнёры</h2>
-    <ul class="partners-grid partners__grid">
+    <h2>Наши партнёры</h2>
+    <ul class="partners-grid">
       <li>
-        <div class="partner-card card-hover">
+        <div class="partner-card">
           <img src="{% static 'img/partners/suitt.png' %}" alt="Сургутский университет ИТ и технологий">
           <p class="partner-tagline">Сургутский университет ИТ и технологий</p>
         </div>
@@ -359,15 +264,32 @@
   </div>
 </section>
 
-<!-- === 6. Контакты === -->
+<!-- === Отзывы === -->
+<section class="testimonials-section fade-up">
+  <div class="container text-center">
+    <h2>Отзывы студентов</h2>
+    <div class="swiper testimonials-swiper mt-4">
+      <div class="swiper-wrapper">
+        {% for review in reviews %}
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <h4>{% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Аноним{% endif %}</h4>
+              <blockquote>"{{ review.comment|default:"Отличный курс!" }}"</blockquote>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
+    </div>
+  </div>
+</section>
+
+<!-- === Контакты === -->
 <section class="contacts-section fade-up">
   <div class="container">
     <hr>
     <p>© 2025 SkillsSpire — ТОО «SkillsSpire Education»</p>
-    <p>050057, Казахстан, г. Алматы, ул. Абая, д. 50, офис 301</p>
-    <p>БИН: 240160019999 | Рег. №240160019999 от 16.01.2024</p>
-    <p><a href="#">Политика конфиденциальности</a> | <a href="#">Пользовательское соглашение</a></p>
-    <p>E-mail: info@skillsspire.kz | Тел: +7 (701) 123-45-67</p>
   </div>
 </section>
 
@@ -385,17 +307,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.querySelector(".testimonials-swiper")) {
     new Swiper(".testimonials-swiper", {
       slidesPerView: 1,
-      spaceBetween: 20,
       loop: true,
-      autoplay: { delay: 5000, disableOnInteraction: false },
-      navigation: {
-        nextEl: ".swiper-button-next",
-        prevEl: ".swiper-button-prev",
-      },
-      breakpoints: {
-        768: { slidesPerView: 2 },
-        1200: { slidesPerView: 3 }
-      }
+      autoplay: { delay: 4000 },
+      navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
     });
   }
 });
