@@ -6,7 +6,6 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 <style>
-  /* Добавляем базовые стили для новых элементов */
   .course-card-link {
     text-decoration: none;
     color: inherit;
@@ -17,10 +16,72 @@
   .course-card {
     height: 100%;
     transition: transform 0.2s ease;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
   }
   
   .course-card:hover {
     transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  }
+
+  .course-card-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+
+  .course-card-content {
+    padding: 1.25rem;
+  }
+
+  .course-category {
+    font-size: 0.875rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+  }
+
+  .course-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+    line-height: 1.4;
+  }
+
+  .course-card-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+
+  .course-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  .course-reviews {
+    font-size: 0.8rem;
+  }
+
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .courses-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
   }
 </style>
 {% endblock %}
@@ -131,24 +192,30 @@
     </div>
     <div class="courses-grid">
       {% for course in popular_courses %}
-        <a href="{% url 'course_detail' course.slug %}" class="course-card-link">
+        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
           <div class="course-card">
-            <img src="{{ course.display_image_url|default:'/static/img/course-placeholder.jpg' }}" 
+            <img src="{{ course.image_url }}" 
                  class="course-card-img" alt="{{ course.title }}" loading="lazy">
             <div class="course-card-content">
               <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
+                <span class="course-category">
+                  {{ course.course.category.name|default:"Бизнес" }}
+                </span>
                 {% if course.is_popular %}
                   <span class="badge bg-danger">Популярный</span>
                 {% endif %}
               </div>
               <h3 class="course-card-title">{{ course.title }}</h3>
-              <p class="course-card-text">{{ course.short_description|default:course.description|truncatechars:120 }}</p>
+              <p class="course-card-text">
+                {{ course.short_description|default:course.course.description|truncatechars:120 }}
+              </p>
               <div class="course-card-meta">
                 <div class="course-rating">
                   <i class="bi bi-star-fill text-warning"></i> 
                   <span>{{ course.average_rating|default:"4.8" }}</span>
-                  <span class="course-reviews text-muted">({{ course.reviews_count|default:"0" }} отзывов)</span>
+                  <span class="course-reviews text-muted">
+                    ({{ course.reviews_count|default:"0" }} отзывов)
+                  </span>
                 </div>
                 <div class="mt-2">
                   <span class="text-success fw-bold">Бесплатно</span>
