@@ -12,7 +12,7 @@
     display: block;
     height: 100%;
   }
-  
+
   .course-card {
     height: 100%;
     transition: transform 0.2s ease;
@@ -21,7 +21,7 @@
     overflow: hidden;
     background: white;
   }
-  
+
   .course-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
@@ -154,27 +154,7 @@
             </a>
           </div>
         {% empty %}
-          <!-- Fallback категории -->
-          <div class="swiper-slide">
-            <a href="{% url 'courses_list' %}?category=business-analytics" class="category-card">
-              <i class="bi bi-graph-up"></i><div>Бизнес-аналитика</div>
-            </a>
-          </div>
-          <div class="swiper-slide">
-            <a href="{% url 'courses_list' %}?category=finance" class="category-card">
-              <i class="bi bi-cash-coin"></i><div>Финансы</div>
-            </a>
-          </div>
-          <div class="swiper-slide">
-            <a href="{% url 'courses_list' %}?category=management" class="category-card">
-              <i class="bi bi-diagram-3"></i><div>Менеджмент</div>
-            </a>
-          </div>
-          <div class="swiper-slide">
-            <a href="{% url 'courses_list' %}?category=economics" class="category-card">
-              <i class="bi bi-globe"></i><div>Экономика</div>
-            </a>
-          </div>
+          <div class="swiper-slide"><a href="#" class="category-card"><i class="bi bi-graph-up"></i><div>Бизнес</div></a></div>
         {% endfor %}
       </div>
       <div class="swiper-button-next"></div>
@@ -194,7 +174,7 @@
       {% for course in popular_courses %}
         <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
           <div class="course-card">
-            <img src="{{ course.image_url }}" 
+            <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
                  class="course-card-img" alt="{{ course.title }}" loading="lazy">
             <div class="course-card-content">
               <div class="d-flex justify-content-between align-items-start mb-2">
@@ -248,21 +228,9 @@
   <div class="container text-center">
     <h2>Как это работает</h2>
     <div class="steps-grid">
-      <div class="step">
-        <div class="step-number">1</div>
-        <h3>Запишись бесплатно</h3>
-        <p>Доступ без ограничений</p>
-      </div>
-      <div class="step">
-        <div class="step-number">2</div>
-        <h3>Учись в удобном темпе</h3>
-        <p>С любого устройства</p>
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <h3>Получи сертификат</h3>
-        <p>Подтверди знания</p>
-      </div>
+      <div class="step"><div class="step-number">1</div><h3>Запишись бесплатно</h3><p>Доступ без ограничений</p></div>
+      <div class="step"><div class="step-number">2</div><h3>Учись в удобном темпе</h3><p>С любого устройства</p></div>
+      <div class="step"><div class="step-number">3</div><h3>Получи сертификат</h3><p>Подтверди знания</p></div>
     </div>
   </div>
 </section>
@@ -282,7 +250,6 @@
           <li>✅ Доступен на русском и английском</li>
           <li>✅ Подходит для портфолио и LinkedIn</li>
         </ul>
-
         <h3 class="mt-4">Карьерный центр</h3>
         <ul class="list-unstyled">
           <li>📄 CV и резюме</li>
@@ -323,7 +290,7 @@
                   <strong>{{ review.course.title|default:"Курс" }}</strong>
                 </p>
               </div>
-              
+
               {% if review.rating %}
                 <div class="stars text-warning small mb-3">
                   {% for i in "12345" %}
@@ -331,11 +298,13 @@
                   {% endfor %}
                 </div>
               {% endif %}
-              
-              <blockquote class="testimonial-text">
-                "{{ review.comment|default:review.text|default:"Отличный курс, рекомендую!" }}"
-              </blockquote>
-              
+
+              {% with review.comment|default:review.text as review_text %}
+                <blockquote class="testimonial-text">
+                  "{{ review_text|default:"Отличный курс, рекомендую!" }}"
+                </blockquote>
+              {% endwith %}
+
               <div class="testimonial-meta">
                 <small class="text-muted">
                   {{ review.created_at|default:review.inserted_at|date:"d E Y"|default:"Недавно" }}
@@ -344,27 +313,21 @@
             </div>
           </div>
         {% empty %}
-          <!-- Fallback отзывы -->
           <div class="swiper-slide">
             <div class="testimonial-card">
               <h4>Мария Иванова</h4>
               <p class="text-muted small"><strong>Курс по финансовой аналитике</strong></p>
               <div class="stars text-warning small mb-3">
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
               </div>
               <blockquote class="testimonial-text">
-                "Отличный курс! Материал подается структурированно, много практических примеров. Сертификат помог при устройстве на работу."
+                "Отличный курс! Материал подается структурированно, много практических примеров."
               </blockquote>
             </div>
           </div>
         {% endfor %}
       </div>
 
-      <!-- навигация -->
       <div class="swiper-button-next"></div>
       <div class="swiper-button-prev"></div>
     </div>
@@ -386,7 +349,6 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Инициализация карусели категорий
   if (document.querySelector('.categories-swiper')) {
     new Swiper('.categories-swiper', {
       slidesPerView: 4,
@@ -404,7 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Инициализация карусели отзывов
   if (document.querySelector('.testimonials-swiper')) {
     new Swiper('.testimonials-swiper', {
       slidesPerView: 1,
@@ -414,30 +375,10 @@ document.addEventListener('DOMContentLoaded', function() {
         nextEl: '.testimonials .swiper-button-next',
         prevEl: '.testimonials .swiper-button-prev'
       },
-      autoplay: {
-        delay: 5000,
-        disableOnInteraction: false
-      },
-      breakpoints: {
-        768: { slidesPerView: 2 },
-        1200: { slidesPerView: 3 }
-      }
+      autoplay: { delay: 5000, disableOnInteraction: false },
+      breakpoints: { 768: { slidesPerView: 2 }, 1200: { slidesPerView: 3 } }
     });
   }
-
-  // Плавная прокрутка для якорных ссылок
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-      e.preventDefault();
-      const target = document.querySelector(this.getAttribute('href'));
-      if (target) {
-        target.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-    });
-  });
 });
 </script>
 {% endblock %}

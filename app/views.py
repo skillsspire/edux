@@ -194,7 +194,7 @@ def home(request):
         .annotate(num_students=Count("students", distinct=True))
         .order_by("-num_students")[:6]
     )
-    
+
     # Преобразуем в словари с изображениями
     featured_courses = [_get_course_image_data(course) for course in featured_courses_qs]
     popular_courses = [_get_course_image_data(course) for course in popular_courses_qs]
@@ -204,26 +204,36 @@ def home(request):
     except Exception:
         categories = Category.objects.all()[:8]
 
-    # --- Отзывы (гибрид) ---
+    # --- Отзывы (гибрид Django ORM + Supabase) ---
     reviews = []
     try:
-        reviews = (
+        local_reviews = (
             Review.objects.filter(is_active=True)
             .select_related("user", "course")
             .order_by("-created_at")[:10]
         )
-        if not reviews.exists():
-            raise ValueError("No local reviews")
+        if local_reviews.exists():
+            reviews = local_reviews
+        else:
+            raise ValueError("Local reviews empty")
     except Exception:
-        try:
-            url = os.environ.get("SUPABASE_URL")
-            key = os.environ.get("SUPABASE_KEY")
-            if url and key:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if url and key:
+            try:
                 supabase: Client = create_client(url, key)
-                data = supabase.table("reviews").select("*").order("created_at", desc=True).limit(10).execute()
-                reviews = data.data or []
-        except Exception as e:
-            print("⚠️ Ошибка загрузки отзывов:", e)
+                response = (
+                    supabase.table("reviews")
+                    .select("*")
+                    .order("created_at", desc=True)
+                    .limit(10)
+                    .execute()
+                )
+                reviews = response.data or []
+            except Exception as e:
+                print("⚠️ Ошибка загрузки отзывов из Supabase:", e)
+                reviews = []
+        else:
             reviews = []
 
     # --- Статьи ---
@@ -235,8 +245,7 @@ def home(request):
     elif _has_field(Article, "created_at"):
         latest_articles_qs = latest_articles_qs.order_by("-created_at")
     latest_articles_qs = latest_articles_qs[:3]
-    
-    latest_articles = [_get_article_image_data(article) for article in latest_articles_qs]
+    latest_articles = [_get_article_image_data(a) for a in latest_articles_qs]
 
     # --- Материалы ---
     latest_materials_qs = Material.objects.all()
@@ -245,8 +254,7 @@ def home(request):
     if _has_field(Material, "created_at"):
         latest_materials_qs = latest_materials_qs.order_by("-created_at")
     latest_materials_qs = latest_materials_qs[:3]
-    
-    latest_materials = [_get_material_image_data(material) for material in latest_materials_qs]
+    latest_materials = [_get_material_image_data(m) for m in latest_materials_qs]
 
     # --- FAQ ---
     faqs = [
@@ -256,7 +264,7 @@ def home(request):
         {"question": "Выдаётся ли сертификат?", "answer": "Да, после завершения всех модулей."},
     ]
 
-    return render(request, "home.html", {
+    context = {
         "featured_courses": featured_courses,
         "popular_courses": popular_courses,
         "categories": categories,
@@ -264,7 +272,9 @@ def home(request):
         "latest_articles": latest_articles,
         "latest_materials": latest_materials,
         "faqs": faqs,
-    })
+    }
+
+    return render(request, "home.html", context)
 
 
 # ---------- catalog ----------
