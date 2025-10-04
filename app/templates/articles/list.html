@@ -13,19 +13,25 @@
     {% for article in articles %}
       <div class="col-md-6 col-lg-4">
         <a href="{% url 'article_detail' article.slug %}" class="article-card d-block h-100 text-decoration-none text-dark">
-          <div class="card h-100 shadow-sm border-0">
+          <div class="card h-100 shadow-sm border-0 hover-shadow">
+
+            <!-- ✅ Безопасная подгрузка изображения -->
             {% if article.image %}
-              <img src="{{ article.image.url }}" class="card-img-top" alt="{{ article.title }}" loading="lazy">
+              <img src="{{ article.image.url }}" class="card-img-top" alt="{{ article.title|default:'Статья' }}" loading="lazy">
             {% else %}
-              <img src="{% static 'img/article-placeholder.jpg' %}" class="card-img-top" alt="{{ article.title }}">
+              <img src="{% static 'img/articles/default.jpg' %}" class="card-img-top" alt="{{ article.title|default:'Статья' }}">
             {% endif %}
 
             <div class="card-body">
-              <h5 class="card-title mb-2">{{ article.title }}</h5>
+              <h5 class="card-title mb-2">{{ article.title|default:"Без названия" }}</h5>
+
               {% if article.published_at %}
                 <p class="text-muted small mb-2">{{ article.published_at|date:"d E Y" }}</p>
               {% endif %}
-              <p class="card-text text-muted">{{ article.body|truncatewords:25 }}</p>
+
+              <p class="card-text text-muted">
+                {{ article.body|striptags|truncatewords:25|default:"Описание появится позже." }}
+              </p>
             </div>
 
             <div class="card-footer bg-transparent border-0 text-end">

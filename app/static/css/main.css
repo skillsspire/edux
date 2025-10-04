@@ -2149,3 +2149,11 @@ header .navbar-nav {
   font-size: 1rem;
   margin-bottom: 8px;
 }
+
+.card-img-top {
+  height: 180px;
+  object-fit: cover;
+}
+.filters select {
+  min-width: 180px;
+}
