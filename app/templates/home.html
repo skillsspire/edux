@@ -299,14 +299,21 @@
                 </div>
               {% endif %}
 
-              <!-- ✅ ИСПРАВЛЕННАЯ ЧАСТЬ - убрано обращение к review.text -->
+              <!-- ✅ ИСПРАВЛЕННЫЙ ТЕКСТ ОТЗЫВА -->
               <blockquote class="testimonial-text">
                 "{{ review.comment|default:"Отличный курс, рекомендую!" }}"
               </blockquote>
 
               <div class="testimonial-meta">
                 <small class="text-muted">
-                  {{ review.created_at|default:review.inserted_at|date:"d E Y"|default:"Недавно" }}
+                  <!-- ✅ ИСПРАВЛЕННАЯ ДАТА - безопасная проверка полей -->
+                  {% if review.created_at %}
+                    {{ review.created_at|date:"d E Y" }}
+                  {% elif review.inserted_at %}
+                    {{ review.inserted_at|date:"d E Y" }}
+                  {% else %}
+                    Недавно
+                  {% endif %}
                 </small>
               </div>
             </div>
@@ -322,6 +329,9 @@
               <blockquote class="testimonial-text">
                 "Отличный курс! Материал подается структурированно, много практических примеров."
               </blockquote>
+              <div class="testimonial-meta">
+                <small class="text-muted">15 ноября 2024</small>
+              </div>
             </div>
           </div>
         {% endfor %}
