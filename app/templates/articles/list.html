@@ -19,7 +19,7 @@
             {% if article.image %}
               <img src="{{ article.image.url }}" class="card-img-top" alt="{{ article.title|default:'Статья' }}" loading="lazy">
             {% else %}
-              <img src="{% static 'img/articles/default.jpg' %}" class="card-img-top" alt="{{ article.title|default:'Статья' }}">
+              <img src="{% static 'img/articles/default.png' %}" class="card-img-top" alt="{{ article.title|default:'Статья' }}">
             {% endif %}
 
             <div class="card-body">
