@@ -299,11 +299,10 @@
                 </div>
               {% endif %}
 
-              {% with review.comment|default:review.text as review_text %}
-                <blockquote class="testimonial-text">
-                  "{{ review_text|default:"Отличный курс, рекомендую!" }}"
-                </blockquote>
-              {% endwith %}
+              <!-- ✅ ИСПРАВЛЕННАЯ ЧАСТЬ - убрано обращение к review.text -->
+              <blockquote class="testimonial-text">
+                "{{ review.comment|default:"Отличный курс, рекомендую!" }}"
+              </blockquote>
 
               <div class="testimonial-meta">
                 <small class="text-muted">
