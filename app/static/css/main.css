@@ -2213,3 +2213,26 @@ header .navbar-nav {
   font-weight: 700;
   font-size: 1.2rem;
 }
+
+/* === Герой-блок (Начни обучение бесплатно) === */
+.hero-section .btn-primary {
+  background-color: #ffffff !important;
+  color: #0033cc !important;
+  font-weight: 600;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.hero-section .btn-primary:hover {
+  background-color: #f2f2f2 !important;
+  color: #001f80 !important;
+  transform: translateY(-2px);
+}
+
+/* === Кнопка между карточками курсов === */
+.courses-section .btn-primary {
+  margin-top: 2rem; /* опускаем кнопку вниз */
+  display: inline-block;
+}
