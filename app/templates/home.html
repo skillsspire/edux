@@ -274,7 +274,14 @@
         {% for review in reviews %}
           <div class="swiper-slide">
             <div class="testimonial-card">
-              <h4 class="mb-1">{{ review.user.get_full_name|default:review.name|default:"Аноним" }}</h4>
+              <h4 class="mb-1">
+                {% if review.user %}
+                  {{ review.user.get_full_name|default:review.user.username }}
+                {% else %}
+                  Аноним
+                {% endif %}
+              </h4>
+
               <p class="text-muted small mb-2"><strong>{{ review.course.title|default:"Курс" }}</strong></p>
               <div class="stars text-warning small mb-3">
                 {% for i in "12345" %}
