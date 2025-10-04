@@ -113,7 +113,8 @@
     {% for course in popular_courses %}
       <a href="{% url 'course_detail' course.slug %}" class="course-card-link">
         <div class="course-card">
-          <img src="{{ course.display_image_url }}" class="course-card-img" alt="{{ course.title }}">
+          <img src="{{ course.display_image_url|default:'/static/img/course-placeholder.jpg' }}" 
+               class="course-card-img" alt="{{ course.title }}">
           <div class="course-card-content">
             <span class="course-category">{{ course.category.name|default:"Бизнес" }}</span>
             <h3 class="course-card-title">{{ course.title }}</h3>
@@ -171,7 +172,7 @@
   </div>
 </section>
 
-<!-- 8. Отзывы -->
+<!-- 7. Отзывы -->
 <section class="testimonials section">
   <div class="container">
     <div class="section-header text-center">
@@ -185,7 +186,7 @@
         <div class="swiper-slide">
           <div class="testimonial-card">
             <h4>
-              {% if review.user and review.user.is_authenticated %}
+              {% if review.user %}
                 {{ review.user.get_full_name|default:review.user.username }}
               {% else %}
                 Аноним
@@ -195,7 +196,11 @@
               <strong>{{ review.course.title|default:"Курс" }}</strong>
             </p>
             <blockquote class="testimonial-text">
-              {{ review.text|default:"Отзыв отсутствует" }}
+              {% if review.text and review.text|length > 0 %}
+                {{ review.text }}
+              {% else %}
+                Отзыв отсутствует
+              {% endif %}
             </blockquote>
           </div>
         </div>
@@ -217,7 +222,7 @@
   </div>
 </section>
 
-<!-- 9. CTA -->
+<!-- 8. CTA -->
 <section class="cta-section">
   <div class="container text-center">
     <h2>Начни обучение бесплатно</h2>
