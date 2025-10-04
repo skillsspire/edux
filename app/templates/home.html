@@ -53,13 +53,8 @@
   justify-content: center;
   gap: 2rem;
 }
-.stat {
-  min-width: 160px;
-}
-.stat-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-}
+.stat { min-width: 160px; }
+.stat-number { font-size: 2.5rem; font-weight: 700; }
 .stat-label { opacity: 0.9; }
 
 /* === 3. Комьюнити === */
@@ -100,9 +95,7 @@
   justify-content: center;
   gap: 2rem;
 }
-.corporate-text {
-  max-width: 500px;
-}
+.corporate-text { max-width: 500px; }
 .corporate-btn {
   display: inline-block;
   background: #007bff;
@@ -130,6 +123,44 @@
   border-top: 1px solid #444;
   margin: 1rem auto;
   width: 80%;
+}
+
+/* === 7. Партнёры === */
+.partners-section {
+  background: var(--color-bg-section);
+  padding: 4rem 0;
+}
+.partners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 2rem;
+  align-items: center;
+}
+.partner-card {
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.partner-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.partner-card img {
+  max-height: 50px;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
+}
+.partner-tagline {
+  font-size: 0.9rem;
+  color: var(--color-text-tertiary);
 }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
@@ -313,6 +344,21 @@
   </div>
 </section>
 
+<!-- === ПАРТНЁРЫ === -->
+<section class="partners-section fade-up">
+  <div class="container text-center">
+    <h2 class="section-title mb-4">Наши партнёры</h2>
+    <ul class="partners-grid partners__grid">
+      <li>
+        <div class="partner-card card-hover">
+          <img src="{% static 'img/partners/suitt.png' %}" alt="Сургутский университет ИТ и технологий">
+          <p class="partner-tagline">Сургутский университет ИТ и технологий</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+
 <!-- === 6. Контакты === -->
 <section class="contacts-section fade-up">
   <div class="container">
@@ -331,13 +377,11 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Плавное появление
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("visible"); });
   }, { threshold: 0.1 });
   document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
 
-  // Swiper отзывы
   if (document.querySelector(".testimonials-swiper")) {
     new Swiper(".testimonials-swiper", {
       slidesPerView: 1,
