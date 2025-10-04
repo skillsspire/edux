@@ -216,21 +216,33 @@
       {% endfor %}
     </div>
     {% if popular_courses %}
-      <div class="text-center mt-4">
-        <a href="{% url 'courses_list' %}" class="btn btn-outline-primary">Смотреть все курсы</a>
+      <div class="text-center mt-6">
+        <a href="{% url 'courses_list' %}" class="btn-primary">
+        Смотреть все курсы
+        </a>
       </div>
     {% endif %}
   </div>
 </section>
 
 <!-- 5. Как это работает -->
-<section class="how-it-works-section section">
-  <div class="container text-center">
-    <h2>Как это работает</h2>
-    <div class="steps-grid">
-      <div class="step"><div class="step-number">1</div><h3>Запишись бесплатно</h3><p>Доступ без ограничений</p></div>
-      <div class="step"><div class="step-number">2</div><h3>Учись в удобном темпе</h3><p>С любого устройства</p></div>
-      <div class="step"><div class="step-number">3</div><h3>Получи сертификат</h3><p>Подтверди знания</p></div>
+<section class="how-it-works">
+  <h2>Как это работает</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="circle">1</div>
+      <h3>Запишись бесплатно</h3>
+      <p>Доступ без ограничений</p>
+    </div>
+    <div class="step">
+      <div class="circle">2</div>
+      <h3>Учись в удобном темпе</h3>
+      <p>С любого устройства</p>
+    </div>
+    <div class="step">
+      <div class="circle">3</div>
+      <h3>Получи сертификат</h3>
+      <p>Подтверди знания</p>
     </div>
   </div>
 </section>
