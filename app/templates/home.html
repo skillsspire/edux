@@ -14,6 +14,123 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* === 1. Преимущества === */
+.features-section {
+  background: #f9fafb;
+  padding: 4rem 0;
+}
+.features-section h2 {
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+.feature-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+.feature-card:hover { transform: translateY(-5px); }
+.feature-icon { font-size: 2rem; margin-bottom: .5rem; color: #007bff; }
+
+/* === 2. Цифры === */
+.stats-section {
+  background: linear-gradient(135deg, #007bff, #6610f2);
+  color: white;
+  padding: 4rem 0;
+  text-align: center;
+}
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+}
+.stat {
+  min-width: 160px;
+}
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+.stat-label { opacity: 0.9; }
+
+/* === 3. Комьюнити === */
+.community-section {
+  background: #fff8f0;
+  padding: 4rem 0;
+  text-align: center;
+}
+.community-section p { max-width: 700px; margin: 0 auto 1.5rem; }
+
+/* === 4. Тест === */
+.recommend-section {
+  background: #eef6ff;
+  padding: 4rem 0;
+  text-align: center;
+}
+.recommend-section h2 { margin-bottom: 1rem; }
+.recommend-btn {
+  background: #007bff;
+  color: white;
+  padding: 0.9rem 2rem;
+  border-radius: 50px;
+  display: inline-block;
+  text-decoration: none;
+  transition: 0.3s;
+}
+.recommend-btn:hover { background: #0056b3; }
+
+/* === 5. B2B === */
+.corporate-section {
+  background: #f1f3f5;
+  padding: 4rem 0;
+}
+.corporate-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+.corporate-text {
+  max-width: 500px;
+}
+.corporate-btn {
+  display: inline-block;
+  background: #007bff;
+  color: white;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  text-decoration: none;
+}
+
+/* === 6. Контакты === */
+.contacts-section {
+  background: #222;
+  color: #ccc;
+  font-size: 0.9rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+.contacts-section a {
+  color: #00bfff;
+  text-decoration: none;
+}
+.contacts-section hr {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 1rem auto;
+  width: 80%;
+}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 {% endblock %}
@@ -37,6 +154,36 @@
     <div class="mt-3 fade-up">
       <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">Начни обучение</a>
       <a href="#courses" class="hero-btn hero-btn-secondary">Смотреть все курсы</a>
+    </div>
+  </div>
+</section>
+
+<!-- === 1. Почему выбирают SkillsSpire === -->
+<section class="features-section fade-up">
+  <div class="container text-center">
+    <h2>💡 Почему студенты выбирают SkillsSpire</h2>
+    <p class="text-muted mb-4">Ваш путь к знаниям без границ</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">👩‍🏫</div><h4>Обучение у экспертов</h4><p>Преподаватели — практики из бизнеса и академической среды.</p></div>
+      <div class="feature-card"><div class="feature-icon">🧠</div><h4>Только нужные знания</h4><p>Программы составлены под реальные требования рынка.</p></div>
+      <div class="feature-card"><div class="feature-icon">🧩</div><h4>Micro-learning</h4><p>Короткие видеоуроки и задания, учись в удобном темпе.</p></div>
+      <div class="feature-card"><div class="feature-icon">💼</div><h4>Актуальные программы</h4><p>Курсы обновляются под запросы компаний и тенденции рынка.</p></div>
+      <div class="feature-card"><div class="feature-icon">🧾</div><h4>Сертификат за символическую сумму</h4><p>Бесплатное обучение, сертификат при желании.</p></div>
+      <div class="feature-card"><div class="feature-icon">🕓</div><h4>Доступ 24/7</h4><p>Материалы доступны навсегда — учись когда удобно.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- === 2. SkillsSpire в цифрах === -->
+<section class="stats-section fade-up">
+  <div class="container">
+    <h2>🏆 SkillsSpire в цифрах</h2>
+    <div class="stats-grid mt-4">
+      <div class="stat"><div class="stat-number">10 000+</div><div class="stat-label">Студентов</div></div>
+      <div class="stat"><div class="stat-number">50+</div><div class="stat-label">Преподавателей</div></div>
+      <div class="stat"><div class="stat-number">150+</div><div class="stat-label">Курсов</div></div>
+      <div class="stat"><div class="stat-number">87%</div><div class="stat-label">Карьерный рост</div></div>
+      <div class="stat"><div class="stat-number">100%</div><div class="stat-label">Онлайн-доступ</div></div>
     </div>
   </div>
 </section>
@@ -78,6 +225,44 @@
   </div>
 </section>
 
+<!-- === 3. Сообщество === -->
+<section class="community-section fade-up">
+  <div class="container">
+    <h2>👥 Сообщество и поддержка студентов</h2>
+    <p>Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и совместные проекты делают обучение интересным.</p>
+    <a href="{% url 'signup' %}" class="hero-btn hero-btn-primary mt-3">Присоединиться к комьюнити</a>
+  </div>
+</section>
+
+<!-- === 4. Рекомендации === -->
+<section class="recommend-section fade-up">
+  <div class="container">
+    <h2>🧠 Не знаешь, с чего начать?</h2>
+    <p>Ответь на 3 вопроса — и мы подберём курс под твою цель!</p>
+    <a href="#" class="recommend-btn mt-3">🎯 Пройти тест и получить рекомендации</a>
+  </div>
+</section>
+
+<!-- === 5. B2B === -->
+<section class="corporate-section fade-up">
+  <div class="container text-center">
+    <h2>🏢 Обучение для компаний</h2>
+    <div class="corporate-grid mt-3">
+      <div class="corporate-text">
+        <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
+        <ul class="text-start">
+          <li>✅ Программы под задачи компании</li>
+          <li>✅ Онлайн-обучение сотрудников</li>
+          <li>✅ Отчёты и аналитика прогресса</li>
+          <li>✅ Сопровождение на всех этапах</li>
+        </ul>
+        <a href="#" class="corporate-btn">📞 Оставить заявку</a>
+      </div>
+      <img src="{% static 'img/partners/suitt.png' %}" alt="Партнёр" style="max-width:200px;">
+    </div>
+  </div>
+</section>
+
 <!-- === ОТЗЫВЫ === -->
 <section class="testimonials-section fade-up">
   <div class="container text-center">
@@ -89,23 +274,13 @@
         {% for review in reviews %}
           <div class="swiper-slide">
             <div class="testimonial-card">
-              <h4 class="mb-1">
-                {% if review.user %}
-                  {{ review.user.get_full_name|default:review.user.username }}
-                {% elif review.name %}
-                  {{ review.name }}
-                {% else %}
-                  Аноним
-                {% endif %}
-              </h4>
+              <h4 class="mb-1">{{ review.user.get_full_name|default:review.name|default:"Аноним" }}</h4>
               <p class="text-muted small mb-2"><strong>{{ review.course.title|default:"Курс" }}</strong></p>
-
               <div class="stars text-warning small mb-3">
                 {% for i in "12345" %}
-                  <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% else %}-half{% endif %}"></i>
+                  <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
                 {% endfor %}
               </div>
-
               <blockquote class="testimonial-text">"{{ review.comment|default:"Отличный курс, рекомендую!" }}"</blockquote>
               <small class="text-muted">{{ review.created_at|date:"d E Y" }}</small>
             </div>
@@ -131,12 +306,15 @@
   </div>
 </section>
 
-<!-- === CTA === -->
-<section class="cta-section fade-up">
-  <div class="container text-center">
-    <h2>Начни обучение бесплатно</h2>
-    <p>Присоединяйся к тысячам студентов, которые уже учатся с нами!</p>
-    <a href="{% url 'courses_list' %}" class="cta-button">Смотреть все курсы</a>
+<!-- === 6. Контакты === -->
+<section class="contacts-section fade-up">
+  <div class="container">
+    <hr>
+    <p>© 2025 SkillsSpire — ТОО «SkillsSpire Education»</p>
+    <p>050057, Казахстан, г. Алматы, ул. Абая, д. 50, офис 301</p>
+    <p>БИН: 240160019999 | Рег. №240160019999 от 16.01.2024</p>
+    <p><a href="#">Политика конфиденциальности</a> | <a href="#">Пользовательское соглашение</a></p>
+    <p>E-mail: info@skillsspire.kz | Тел: +7 (701) 123-45-67</p>
   </div>
 </section>
 
@@ -146,15 +324,13 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Анимация появления
+  // Плавное появление
   const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) entry.target.classList.add("visible");
-    });
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("visible"); });
   }, { threshold: 0.1 });
   document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
 
-  // Swiper для отзывов
+  // Swiper отзывы
   if (document.querySelector(".testimonials-swiper")) {
     new Swiper(".testimonials-swiper", {
       slidesPerView: 1,
