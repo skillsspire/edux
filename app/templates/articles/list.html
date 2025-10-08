@@ -8,12 +8,12 @@
 
   <!-- Заголовок -->
   <div class="text-center mb-5">
-    <h1 class="mb-3">📰 Полезные статьи</h1>
+    <h1 class="mb-3">Полезные статьи</h1>
     <p class="text-muted lead">Актуальные материалы по финансам, аналитике, менеджменту и карьерному росту</p>
   </div>
 
   <!-- Сетка статей -->
-  <div class="row g-4">
+  <div class="articles-grid">
     {% for article in articles %}
       <div class="col-md-6 col-lg-4">
         <a href="{% url 'article_detail' article.slug %}" class="text-decoration-none text-dark article-card-link">
