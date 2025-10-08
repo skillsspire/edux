@@ -43,7 +43,7 @@
               </p>
               
               <p class="card-text text-muted flex-grow-1">
-                {{ article.excerpt|default:article.body|striptags|truncatewords:20|default:"Описание появится позже." }}
+                {{ article.article.excerpt|default:article.excerpt|default:"Описание появится позже." }}
               </p>
 
               {% if article.author %}
