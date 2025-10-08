@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Все статьи — SkillsSpire{% endblock %}
 
 {% block content %}
@@ -7,7 +8,7 @@
 
   <!-- Заголовок -->
   <div class="text-center mb-5">
-    <h1 class="mb-3">Полезные статьи</h1>
+    <h1 class="mb-3">📰 Полезные статьи</h1>
     <p class="text-muted lead">Актуальные материалы по финансам, аналитике, менеджменту и карьерному росту</p>
   </div>
 
@@ -15,50 +16,41 @@
   <div class="row g-4">
     {% for article in articles %}
       <div class="col-md-6 col-lg-4">
-        <a href="{% url 'article_detail' article.article.slug %}" class="article-card d-block h-100 text-decoration-none text-dark">
-          <div class="card h-100 shadow-sm border-0 hover-shadow transition-all">
-
-            <!-- ✅ Безопасная подгрузка изображения через новый формат -->
-            <div class="ratio ratio-16x9">
-              <img src="{{ article.image_url }}" 
-                   class="card-img-top" 
-                   alt="{{ article.title|default:'Статья' }}" 
-                   style="object-fit: cover;"
-                   loading="lazy">
-            </div>
+        <a href="{% url 'article_detail' article.slug %}" class="text-decoration-none text-dark article-card-link">
+          <div class="card h-100 shadow-sm border-0 article-card">
+            
+            <!-- Обложка -->
+            {% if article.image_url %}
+              <div class="ratio ratio-16x9">
+                <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="object-fit: cover;" loading="lazy">
+              </div>
+            {% else %}
+              <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center text-muted">
+                Без изображения
+              </div>
+            {% endif %}
 
             <div class="card-body d-flex flex-column">
-              <!-- Категория -->
-              {% if article.article.category %}
-                <span class="badge bg-primary mb-2 align-self-start">{{ article.article.category.name }}</span>
+              {% if article.category %}
+                <span class="badge bg-primary mb-2 align-self-start">{{ article.category.name }}</span>
               {% endif %}
-
+              
               <h5 class="card-title mb-2">{{ article.title|default:"Без названия" }}</h5>
-
-              <!-- Дата публикации -->
-              {% if article.article.published_at %}
-                <p class="text-muted small mb-2">
-                  <i class="bi bi-calendar3 me-1"></i>
-                  {{ article.article.published_at|date:"d E Y" }}
-                </p>
-              {% elif article.article.created_at %}
-                <p class="text-muted small mb-2">
-                  <i class="bi bi-clock me-1"></i>
-                  {{ article.article.created_at|date:"d E Y" }}
-                </p>
-              {% endif %}
-
-              <!-- Краткое описание -->
+              
+              <p class="text-muted small mb-2">
+                <i class="bi bi-calendar3 me-1"></i>
+                {{ article.published_at|default:article.created_at|date:"d E Y" }}
+              </p>
+              
               <p class="card-text text-muted flex-grow-1">
-                {{ article.article.excerpt|default:article.article.body|striptags|truncatewords:20|default:"Описание появится позже." }}
+                {{ article.excerpt|default:article.body|striptags|truncatewords:20|default:"Описание появится позже." }}
               </p>
 
-              <!-- Автор -->
-              {% if article.article.author %}
+              {% if article.author %}
                 <div class="mt-auto pt-2">
                   <small class="text-muted">
                     <i class="bi bi-person me-1"></i>
-                    {{ article.article.author.get_full_name|default:article.article.author.username }}
+                    {{ article.author.get_full_name|default:article.author.username }}
                   </small>
                 </div>
               {% endif %}
@@ -80,7 +72,7 @@
     {% endfor %}
   </div>
 
-  <!-- Пагинация (если нужно) -->
+  <!-- Пагинация -->
   {% if is_paginated %}
     <nav class="mt-5" aria-label="Навигация по страницам">
       <ul class="pagination justify-content-center">
@@ -89,7 +81,6 @@
             <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
           </li>
         {% endif %}
-
         {% for num in page_obj.paginator.page_range %}
           {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
             <li class="page-item {% if page_obj.number == num %}active{% endif %}">
@@ -97,7 +88,6 @@
             </li>
           {% endif %}
         {% endfor %}
-
         {% if page_obj.has_next %}
           <li class="page-item">
             <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
@@ -112,41 +102,42 @@
 
 {% block extra_css %}
 <style>
-  .article-card .card {
-    transition: all 0.3s ease;
-    border: 1px solid #e9ecef;
-  }
-  
-  .article-card:hover .card {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    border-color: #007bff;
-  }
-  
-  .article-card:hover .text-primary {
-    color: #0056b3 !important;
-  }
-  
-  .ratio-16x9 {
-    position: relative;
-  }
-  
-  .ratio-16x9::before {
-    content: '';
-    display: block;
-    padding-top: 56.25%; /* 16:9 Aspect Ratio */
-  }
-  
-  .ratio-16x9 > img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
-  
-  .transition-all {
-    transition: all 0.3s ease;
-  }
+.article-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.article-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.article-card-link:hover h5 {
+  color: var(--color-primary, #01349D);
+}
+.card-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  display: box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3; /* ✅ стандартное свойство */
+  -webkit-box-orient: vertical;
+  box-orient: vertical;
+}
+
+.ratio-16x9 {
+  position: relative;
+}
+.ratio-16x9::before {
+  content: '';
+  display: block;
+  padding-top: 56.25%;
+}
+.ratio-16x9 > img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
 </style>
 {% endblock %}

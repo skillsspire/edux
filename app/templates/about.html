@@ -3,171 +3,217 @@
 
 {% block title %}SkillsSpire — академическое онлайн-образование нового поколения{% endblock %}
 {% block og_title %}SkillsSpire — академические онлайн-курсы от профессоров{% endblock %}
-{% block og_description %}Фундаментальные курсы по финансам, аналитике, менеджменту и экономике от профессоров с PhD. Учитесь бесплатно, получайте сертификаты для карьеры и поступления за рубеж.{% endblock %}
+{% block og_description %}Фундаментальные курсы по экономике, аналитике, менеджменту и финансам от преподавателей с PhD. Учитесь бесплатно и получайте академические сертификаты, признанные вузами.{% endblock %}
 
 {% block extra_css %}
 <style>
+:root {
+  --color-primary: #01349D;
+  --color-primary-light: #3b5cc5;
+  --color-bg-white: #fff;
+  --color-bg-section: #f9fafc;
+  --color-border: #e5e7eb;
+  --radius-lg: 12px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.1);
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 2rem;
+  --space-xl: 4rem;
+}
+
 .page-header {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
-    color: #fff;
-    padding: var(--space-xl) 0;
-    text-align: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #fff;
+  padding: var(--space-xl) 0;
+  text-align: center;
 }
 .page-header h1 {
-    font-size: clamp(28px, 4vw, 42px);
-    font-weight: 800;
-    margin-bottom: var(--space-md);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  margin-bottom: var(--space-md);
 }
 .page-header .lead {
-    opacity: .9;
-    font-size: var(--font-lg);
-    max-width: 720px;
-    margin: 0 auto var(--space-lg);
+  opacity: .9;
+  font-size: 1.2rem;
+  max-width: 720px;
+  margin: 0 auto var(--space-lg);
 }
-.mission-grid, .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--space-lg);
+
+.section {
+  padding: var(--space-xl) 0;
 }
 .card {
-    background: var(--color-bg-white);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
-    text-align: center;
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+  text-align: center;
 }
 .card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
 }
-.team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: var(--space-lg);
+
+.mission-grid, .feature-grid, .team-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
+
 .team-card img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin: 0 auto var(--space-md);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto var(--space-md);
 }
 .certificate-showcase {
-    background: var(--color-bg-section);
-    border-radius: var(--radius-lg);
-    padding: var(--space-xl);
-    text-align: center;
+  background: var(--color-bg-section);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  text-align: center;
+}
+.btn-outline {
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  background: transparent;
+}
+.btn-outline:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+.cta-section {
+  text-align: center;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-md);
+  margin-top: var(--space-xl);
+}
+.cta-section h2 {
+  font-size: 2rem;
+  margin-bottom: var(--space-md);
+}
+img.js-fallback {
+  transition: opacity .3s ease;
+}
+img.js-fallback:not([src]) {
+  opacity: 0;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Hero -->
+<!-- HERO -->
 <section class="page-header">
   <div class="container">
     <h1>SkillsSpire — академическое онлайн-образование нового поколения</h1>
     <p class="lead">Фундаментальные знания от профессоров, доступные бесплатно. Сертификаты — для вашей карьеры и поступления за рубеж.</p>
-    <a href="{% url 'courses_list' %}" class="btn btn-primary btn-lg">Смотреть курсы</a>
+    <a href="{% url 'courses_list' %}" class="btn btn-light btn-lg">Смотреть курсы</a>
   </div>
 </section>
 
 <div class="container section">
   <!-- Миссия -->
-  <section class="mb-4">
-    <h2 class="text-center mb-3">Наша миссия</h2>
+  <section>
+    <h2 class="text-center mb-4">Наша миссия</h2>
     <div class="mission-grid">
       <div class="card">
         <div class="text-xl">🎓</div>
         <h3>Академические знания</h3>
-        <p>Глубокое понимание вместо поверхностных навыков</p>
+        <p>Глубокие и структурированные курсы, созданные преподавателями с PhD.</p>
       </div>
       <div class="card">
         <div class="text-xl">⚡</div>
         <h3>Доступность каждому</h3>
-        <p>Бесплатное обучение с возможностью получить сертификат</p>
+        <p>Учитесь бесплатно. Оплачиваются только сертификаты по желанию.</p>
       </div>
       <div class="card">
         <div class="text-xl">💼</div>
-        <h3>Карьерные достижения</h3>
-        <p>Сертификаты, которые ценят работодатели и вузы</p>
+        <h3>Реальный карьерный эффект</h3>
+        <p>Сертификаты SkillsSpire признаются университетами и работодателями.</p>
       </div>
     </div>
   </section>
 
-  <!-- Отличия -->
-  <section class="mb-4">
-    <h2 class="text-center mb-3">Почему выбирают SkillsSpire</h2>
+  <!-- Преимущества -->
+  <section>
+    <h2 class="text-center mb-4">Почему выбирают SkillsSpire</h2>
     <div class="feature-grid">
-      <div class="card">👨‍🏫<h3>Профессора с PhD</h3><p>Преподаватели вузов и практики бизнеса</p></div>
-      <div class="card">🎯<h3>Бесплатные курсы</h3><p>Полный доступ без ограничений. Оплачиваются только сертификаты</p></div>
-      <div class="card">📚<h3>Теория + практика</h3><p>Реальные кейсы и бизнес-задачи</p></div>
-      <div class="card">🏆<h3>Сертификаты</h3><p>Документы для резюме, LinkedIn и поступления в вузы</p></div>
+      <div class="card">👩‍🏫<h3>Преподаватели с учёными степенями</h3><p>Доктора и кандидаты наук с опытом преподавания в ведущих вузах.</p></div>
+      <div class="card">📚<h3>Фундамент + практика</h3><p>Теоретическая база и реальные кейсы из бизнеса и экономики.</p></div>
+      <div class="card">🏆<h3>Академические сертификаты</h3><p>Документы, подтверждающие квалификацию и признанные вузами.</p></div>
+      <div class="card">🌍<h3>Международное признание</h3><p>Подходит для поступления за рубеж и добавления в LinkedIn.</p></div>
     </div>
-    <div class="text-center mt-3">
-      <a href="{% url 'courses_list' %}" class="btn btn-primary">Начать учиться бесплатно</a>
-      <a href="#certificates" class="btn btn-outline">О сертификатах</a>
+    <div class="text-center mt-4">
+      <a href="{% url 'courses_list' %}" class="btn btn-primary">Начать обучение</a>
+      <a href="#team" class="btn btn-outline">Наши преподаватели</a>
     </div>
   </section>
 
   <!-- Путь -->
-  <section class="mb-4">
-    <h2 class="text-center mb-3">Наш путь</h2>
-    <p>Первые студенты пришли к нам по сарафану. Сегодня — уже <strong>более 100 сертификатов</strong> и партнёрства с университетами.</p>
-    <div class="card mt-2">
-      <p class="text-lg">"Сертификат SkillsSpire помог при поступлении в магистратуру в Польше. Уровень подготовки приятно удивил приёмную комиссию."</p>
-      <p class="text-sm">— Алия Нургалиева, студентка</p>
+  <section>
+    <h2 class="text-center mb-4">Наш путь</h2>
+    <p>SkillsSpire начинался как образовательная инициатива преподавателей и выпускников ведущих университетов. Сегодня это сообщество студентов, исследователей и экспертов, которые делают академическое образование доступным каждому.</p>
+    <div class="card mt-3">
+      <p class="text-lg">«Сертификат SkillsSpire помог мне поступить в магистратуру в Варшаве. Программа обучения была глубокой и актуальной.»</p>
+      <p class="text-sm">— Алия Нургалиева, выпускница</p>
     </div>
   </section>
 
   <!-- Команда -->
-  <section class="mb-4">
-    <h2 class="text-center mb-3">Наши преподаватели</h2>
+  <section id="team">
+    <h2 class="text-center mb-4">Наши преподаватели</h2>
     <div class="team-grid">
       <div class="card team-card">
-        <img src="{% static 'img/team/professor1.jpeg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Профессор">
-        <h4>Доктор Айдар Сулейменов</h4>
-        <p class="text-sm">PhD в экономике, профессор с 15-летним опытом</p>
+        <img src="{% static 'img/team/gordeeva_elena.jpg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Гордеева Елена">
+        <h4>Гордеева Елена</h4>
+        <p class="text-sm">PhD, ассоциированный профессор. Эксперт в области международных финансов и менеджмента.</p>
       </div>
       <div class="card team-card">
-        <img src="{% static 'img/team/professor2.jpeg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Профессор">
-        <h4>Профессор Мария Иванова</h4>
-        <p class="text-sm">PhD в финансах, эксперт по инвестициям</p>
+        <img src="{% static 'img/team/chukurna_elena.jpg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Чукурна Елена">
+        <h4>Чукурна Елена</h4>
+        <p class="text-sm">Доктор экономических наук, профессор. Специализация — экономика развития и бизнес-стратегии.</p>
+      </div>
+      <div class="card team-card">
+        <img src="{% static 'img/team/professor3.jpg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Профессор экономики">
+        <h4>Айдар Сулейменов</h4>
+        <p class="text-sm">PhD в экономике, профессор. Руководитель программ по аналитике данных.</p>
+      </div>
+      <div class="card team-card">
+        <img src="{% static 'img/team/professor4.jpg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Профессор финансов">
+        <h4>Мария Иванова</h4>
+        <p class="text-sm">Кандидат экономических наук. Автор курсов по инвестициям и управлению рисками.</p>
+      </div>
+      <div class="card team-card">
+        <img src="{% static 'img/team/professor5.jpg' %}" data-fallback="{% static 'img/team/placeholder.png' %}" class="js-fallback" alt="Преподаватель SkillsSpire">
+        <h4>Команда SkillsSpire</h4>
+        <p class="text-sm">Более 20 преподавателей с PhD и преподавательским опытом в университетах Европы и Азии.</p>
       </div>
     </div>
   </section>
 
   <!-- Сертификаты -->
-  <section id="certificates" class="mb-4">
-    <h2 class="text-center mb-3">Академические сертификаты</h2>
+  <section id="certificates">
+    <h2 class="text-center mb-4">Академические сертификаты</h2>
     <div class="certificate-showcase">
-      <img src="{% static 'img/certificate-sample.jpg' %}" alt="Пример сертификата" loading="lazy">
+      <img src="{% static 'img/certificate-sample.jpg' %}" alt="Пример сертификата" class="img-fluid mb-3" loading="lazy">
       <div class="feature-grid mt-3">
-        <div class="card">📄<h4>Для резюме</h4><p>Подтверждение квалификации</p></div>
-        <div class="card">💼<h4>Для LinkedIn</h4><p>Покажи достижения работодателям</p></div>
-        <div class="card">🎓<h4>Для поступления</h4><p>Признаётся зарубежными вузами</p></div>
+        <div class="card">📄<h4>Для резюме</h4><p>Подтверждение вашей квалификации и академического уровня.</p></div>
+        <div class="card">💼<h4>Для LinkedIn</h4><p>Добавьте достижения в профессиональный профиль.</p></div>
+        <div class="card">🎓<h4>Для поступления</h4><p>Признаются зарубежными университетами при приёме.</p></div>
       </div>
-    </div>
-  </section>
-
-  <!-- Образование будущего -->
-  <section class="mb-4">
-    <h2 class="text-center mb-3">Образование будущего</h2>
-    <div class="feature-grid">
-      <div class="card">🤖<h3>AI-наставники</h3><p>Персонализированное обучение</p></div>
-      <div class="card">🎮<h3>Геймификация</h3><p>Мотивационные механики</p></div>
-      <div class="card">🔗<h3>Блокчейн-сертификация</h3><p>Цифровые защищённые дипломы</p></div>
     </div>
   </section>
 
   <!-- Финальный CTA -->
   <section class="cta-section">
     <h2>Присоединяйтесь к SkillsSpire</h2>
-    <p class="lead">Начните бесплатно и инвестируйте в знания, которые останутся с вами навсегда</p>
-    <div class="mt-3">
-      <a href="{% url 'courses_list' %}" class="btn btn-primary btn-lg">Начать бесплатно</a>
-    </div>
+    <p class="lead">Начните бесплатно и инвестируйте в знания, которые останутся с вами навсегда.</p>
+    <a href="{% url 'courses_list' %}" class="btn btn-light btn-lg mt-3">Начать обучение</a>
   </section>
 </div>
 {% endblock %}
