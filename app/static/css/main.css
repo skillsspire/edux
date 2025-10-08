@@ -2269,3 +2269,56 @@ header .navbar-nav {
   background-color: #001f80;
   transform: translateY(-2px);
 }
+
+/* === Исправленный Hero-блок (главная страница) === */
+.hero-section {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #fff;
+  text-align: center;
+  padding: 6rem 0 5rem;
+}
+
+.hero-section h1,
+.hero-section h2,
+.hero-section p {
+  color: #fff;
+}
+
+.hero-section .hero-search input {
+  background: #fff;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  padding: 0.9rem 1rem;
+  width: 280px;
+  color: var(--color-text-primary);
+}
+
+.hero-section .hero-search button {
+  background: #fff;
+  color: var(--color-primary);
+  border: none;
+  border-radius: 0 8px 8px 0;
+  padding: 0.9rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.hero-section .hero-search button:hover {
+  background: #f2f2f2;
+}
+
+.hero-section .hero-btn {
+  display: inline-block;
+  margin: 1rem 0.5rem;
+  padding: 0.9rem 1.8rem;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+.hero-section .hero-btn:hover {
+  background: #f2f2f2;
+  transform: translateY(-2px);
+}
