@@ -9,44 +9,297 @@
   --color-primary: #01349D;
   --color-primary-light: #3b5cc5;
   --color-primary-dark: #002b7a;
+  --color-accent: #ff4d8c;
+  --color-accent-light: #ff6fa3;
   --color-text-primary: #0B1020;
   --color-text-secondary: #4A5568;
   --color-bg-white: #FFFFFF;
   --color-bg-section: #F8FAFC;
   --color-border: #E5E7EB;
 }
-.fade-up {opacity:0;transform:translateY(20px);transition:all 0.6s ease;}
-.fade-up.visible {opacity:1;transform:translateY(0);}
-.features-section{background:var(--color-bg-section);padding:4rem 0;}
-.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2rem;}
-.feature-card{background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);text-align:center;transition:transform .3s;}
-.feature-card:hover{transform:translateY(-5px);}
-.feature-icon{font-size:2rem;margin-bottom:.5rem;color:var(--color-primary);}
-.stats-section{background:linear-gradient(135deg,var(--color-primary),var(--color-primary-light));color:#fff;padding:4rem 0;text-align:center;}
-.stats-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:2rem;}
-.stat-number{font-size:2.5rem;font-weight:700;}
-.community-section{background:#fff8f0;padding:4rem 0;text-align:center;}
-.community-section a{background:var(--color-primary);color:#fff;padding:0.8rem 1.6rem;border-radius:8px;text-decoration:none;}
-.recommend-section{background:#eef6ff;padding:4rem 0;text-align:center;}
-.recommend-section a{background:var(--color-primary);color:#fff;padding:0.8rem 1.6rem;border-radius:8px;text-decoration:none;}
-.corporate-section{background:#f1f3f5;padding:4rem 0;text-align:center;}
-.corporate-section a{background:var(--color-primary);color:#fff;padding:0.8rem 1.8rem;border-radius:8px;text-decoration:none;}
-.partners-section{background:#fff;padding:4rem 0;text-align:center;}
-.partners-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:2rem;list-style:none;padding:0;}
-.partner-card{background:#fff;padding:1rem 2rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);transition:.3s;}
-.partner-card:hover{transform:translateY(-4px);}
-.testimonials-section{background:#f9fafb;padding:4rem 0;}
-.testimonial-card{background:#fff;padding:2rem;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);}
-.contacts-section{background:#222;color:#ccc;padding:2rem 0;text-align:center;font-size:.9rem;}
-.contacts-section a{color:var(--color-primary-light);text-decoration:none;}
-.contacts-section hr{border:0;border-top:1px solid #444;margin:1rem auto;width:80%;}
-.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
-.popup{background:#fff;border-radius:12px;max-width:500px;width:90%;padding:2rem;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.2);}
-.popup h3{color:var(--color-text-primary);margin-bottom:1rem;}
-.popup button{background:var(--color-primary);color:#fff;border:none;padding:0.7rem 1.5rem;border-radius:6px;cursor:pointer;}
-.popup button:hover{background:var(--color-primary-light);}
-.popup-close{background:none;border:none;font-size:1.2rem;position:absolute;top:10px;right:15px;cursor:pointer;}
+
+/* Анимации появления */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Общие стили для секций */
+section {
+  padding: 4rem 0;
+}
+
+/* --- HERO --- */
+.course-hero {
+  background: #fff;
+  padding: 5rem 0 4rem;
+}
+.course-hero .course-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--color-primary-dark);
+}
+.course-hero .course-subtitle {
+  max-width: 600px;
+  margin: 0 auto 1.5rem;
+  color: var(--color-text-secondary);
+}
+.hero-search {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.hero-search input {
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  min-width: 280px;
+}
+.hero-search button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.6rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.hero-search button:hover {
+  background: var(--color-primary-light);
+}
+.hero-btn {
+  display: inline-block;
+  margin: 0.8rem 0.5rem;
+  padding: 0.9rem 1.8rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.3s;
+}
+.hero-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.hero-btn-primary:hover {
+  background: var(--color-primary-light);
+}
+.hero-btn-secondary {
+  background: #f1f3f5;
+  color: var(--color-text-primary);
+}
+.hero-btn-secondary:hover {
+  background: #e2e6ea;
+}
+
+/* --- Преимущества --- */
+.features-section {
+  background: var(--color-bg-section);
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+.feature-card {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: transform .3s;
+}
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: .5rem;
+  color: var(--color-primary);
+}
+
+/* --- В цифрах --- */
+.stats-section {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #fff;
+  text-align: center;
+}
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+/* --- Общие стили кнопок --- */
+.btn {
+  display: inline-block;
+  margin-top: 1.5rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Варианты кнопок */
+.btn-community {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-community:hover {
+  background: var(--color-primary-light);
+}
+
+.btn-recommend {
+  background: var(--color-accent);
+  color: #fff;
+}
+.btn-recommend:hover {
+  background: var(--color-accent-light);
+}
+
+.btn-corporate {
+  background: #007bff;
+  color: #fff;
+}
+.btn-corporate:hover {
+  background: #0056b3;
+}
+
+/* --- Секции --- */
+.community-section {
+  background: #fff8f0;
+  text-align: center;
+}
+.recommend-section {
+  background: #eef6ff;
+  text-align: center;
+}
+.corporate-section {
+  background: #f1f3f5;
+  text-align: center;
+}
+.corporate-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+/* --- Партнёры --- */
+.partners-section {
+  background: #fff;
+  text-align: center;
+}
+.partners-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  list-style: none;
+  padding: 0;
+}
+.partner-card {
+  background: #fff;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: .3s;
+}
+.partner-card:hover {
+  transform: translateY(-4px);
+}
+
+/* --- Отзывы --- */
+.testimonials-section {
+  background: #f9fafb;
+}
+.testimonial-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Контакты --- */
+.contacts-section {
+  background: #222;
+  color: #ccc;
+  text-align: center;
+  font-size: .9rem;
+}
+.contacts-section a {
+  color: var(--color-primary-light);
+  text-decoration: none;
+}
+.contacts-section hr {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 1rem auto;
+  width: 80%;
+}
+
+/* --- Popup --- */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.popup {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+.popup h3 {
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+.popup button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.popup button:hover {
+  background: var(--color-primary-light);
+}
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  cursor: pointer;
+}
 </style>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 {% endblock %}
 
@@ -72,7 +325,6 @@
 <section class="features-section fade-up">
   <div class="container text-center">
     <h2>💡 Почему студенты выбирают SkillsSpire</h2>
-    <p class="text-muted mb-4">Ваш путь к знаниям без границ</p>
     <div class="features-grid">
       <div class="feature-card"><div class="feature-icon">👩‍🏫</div><h4>Обучение у экспертов</h4><p>Преподаватели — практики из бизнеса и академической среды.</p></div>
       <div class="feature-card"><div class="feature-icon">🧠</div><h4>Только нужные знания</h4><p>Программы составлены под реальные требования рынка.</p></div>
@@ -81,11 +333,11 @@
   </div>
 </section>
 
-<!-- === Статистика === -->
+<!-- === В цифрах === -->
 <section class="stats-section fade-up">
   <div class="container">
     <h2>🏆 SkillsSpire в цифрах</h2>
-    <div class="stats-grid mt-4">
+    <div class="stats-grid">
       <div class="stat"><div class="stat-number">10 000+</div><div>Студентов</div></div>
       <div class="stat"><div class="stat-number">50+</div><div>Преподавателей</div></div>
       <div class="stat"><div class="stat-number">150+</div><div>Курсов</div></div>
@@ -93,7 +345,7 @@
   </div>
 </section>
 
-<!-- === Курсы === -->
+<!-- === Популярные курсы === -->
 <section id="courses" class="section courses-section fade-up">
   <div class="container text-center">
     <h2>Популярные курсы</h2>
@@ -120,7 +372,7 @@
   <div class="container">
     <h2>👥 Сообщество и поддержка студентов</h2>
     <p>Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.</p>
-    <a href="{% url 'signup' %}">Присоединиться к комьюнити</a>
+    <a href="{% url 'signup' %}" class="btn btn-community">Присоединиться к комьюнити</a>
   </div>
 </section>
 
@@ -129,7 +381,7 @@
   <div class="container">
     <h2>🧠 Не знаешь, с чего начать?</h2>
     <p>Ответь на 3 вопроса — и мы подберём курс под твою цель!</p>
-    <a href="#" id="openTest">🎯 Пройти тест и получить рекомендации</a>
+    <a href="#" id="openTest" class="btn btn-recommend">🎯 Пройти тест и получить рекомендации</a>
   </div>
 </section>
 
@@ -138,13 +390,13 @@
   <div class="container">
     <h2>🏢 Обучение для компаний</h2>
     <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
-    <ul style="list-style:none;padding:0;">
+    <ul>
       <li>✅ Программы под задачи компании</li>
       <li>✅ Онлайн-обучение сотрудников</li>
       <li>✅ Отчёты и аналитика прогресса</li>
       <li>✅ Сопровождение на всех этапах</li>
     </ul>
-    <a href="/contact/">📞 Оставить заявку</a>
+    <a href="/contact/" class="btn btn-corporate">📞 Оставить заявку</a>
   </div>
 </section>
 
