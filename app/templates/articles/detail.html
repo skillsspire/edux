@@ -16,7 +16,7 @@
     {% if article.image %}
       <img src="{{ article.image.url }}" alt="{{ article.title }}" class="img-fluid rounded w-100">
     {% else %}
-      <img src="{% static 'img/articles/default.jpg' %}" alt="{{ article.title|default:'Статья' }}" class="img-fluid rounded w-100">
+      <img src="{% static 'img/articles/default_article.png' %}" alt="{{ article.title|default:'Статья' }}" class="img-fluid rounded w-100">
     {% endif %}
   </div>
 
@@ -46,7 +46,7 @@
               {% if a.image %}
                 <img src="{{ a.image.url }}" class="card-img-top" alt="{{ a.title }}">
               {% else %}
-                <img src="{% static 'img/articles/default.jpg' %}" class="card-img-top" alt="{{ a.title|default:'Статья' }}">
+                <img src="{% static 'img/articles/default_article.png' %}" class="card-img-top" alt="{{ a.title|default:'Статья' }}">
               {% endif %}
               <div class="card-body">
                 <h6 class="card-title mb-0 text-dark">{{ a.title }}</h6>
