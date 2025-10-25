@@ -134,7 +134,11 @@
   <div class="container">
     <h2 class="fw-bold mb-4">Инструктор</h2>
     <div class="d-flex align-items-center">
-      <img src="{{ teacher_profile.display_avatar_url|default:static('img/default.jpg') }}" alt="Инструктор" class="rounded-circle me-3" width="80" height="80">
+      {% if teacher_profile.display_avatar_url %}
+        <img src="{{ teacher_profile.display_avatar_url }}" alt="Инструктор" class="rounded-circle me-3" width="80" height="80">
+      {% else %}
+        <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle me-3" width="80" height="80">
+      {% endif %}
       <div>
         <h5 class="mb-1">{{ teacher.get_full_name|default:"SkillsSpire" }}</h5>
         <p class="text-muted mb-1">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
