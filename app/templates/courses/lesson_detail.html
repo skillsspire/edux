@@ -4,120 +4,133 @@
 
 {% block content %}
 
-<!-- Hero-секция курса -->
+<!-- 🔹 Hero -->
 <section class="course-hero">
   <div class="container text-center">
     <span class="course-badge">{{ course.category.name }}</span>
     <h1 class="course-title">{{ course.title }}</h1>
     <p class="course-subtitle">{{ course.short_description }}</p>
 
+    <ul style="list-style:none; padding:0; margin:1rem 0; line-height:1.7;">
+      <li>🎓 Сертификат</li>
+      <li>📱 Онлайн-доступ 24/7</li>
+    </ul>
+
     <div class="mt-3">
-      <a href="#program" class="hero-btn hero-btn-primary">Программа курса</a>
       {% if has_access %}
-        <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="hero-btn hero-btn-secondary">Продолжить обучение</a>
+        <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="hero-btn hero-btn-primary">Продолжить обучение</a>
       {% else %}
-        <a href="{% url 'enroll_course' course.slug %}" class="hero-btn hero-btn-secondary">Записаться</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'course_payment' course.slug %}" class="hero-btn hero-btn-primary">Записаться на курс</a>
+        {% else %}
+          <a href="{% url 'register' %}?next={% url 'course_payment' course.slug %}" class="hero-btn hero-btn-primary">Записаться на курс</a>
+        {% endif %}
       {% endif %}
+      <a href="#program" class="hero-btn hero-btn-secondary">Программа курса</a>
+    </div>
+
+    <hr style="margin:2rem auto; opacity:0.2; max-width:480px;">
+
+    <div style="margin-top:1rem;">
+      <h2 style="font-size:1.6rem; font-weight:700;">{{ course.price }} ₸</h2>
+      <div class="mt-2" style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+        <a href="{% if user.is_authenticated %}{% url 'course_payment' course.slug %}{% else %}{% url 'register' %}?next={% url 'course_payment' course.slug %}{% endif %}" class="btn btn-primary">🛒 Записаться</a>
+        <button class="btn btn-outline">♡ Добавить в избранное</button>
+      </div>
+    </div>
+
+    <div class="mt-4" style="color:#fff; opacity:.9;">
+      <p>В курс входит:</p>
+      <ul style="list-style:none; padding:0; margin:0; line-height:1.8;">
+        <li>📘 {{ lessons|length }} уроков</li>
+        <li>💾 Материалы для скачивания</li>
+        <li>♾️ Бессрочный доступ</li>
+        <li>📱 Мобильная версия</li>
+        <li>🎓 Сертификат</li>
+      </ul>
     </div>
   </div>
 </section>
 
-<!-- Основной контент -->
+<!-- 🔹 О курсе -->
 <section class="section">
   <div class="container">
-    <div class="course-details-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-      <!-- Описание курса -->
-      <div>
+    <div class="certificates-grid">
+      <div class="certificate-info">
         <h2>О курсе</h2>
-        <p>{{ course.description|default:"Описание скоро появится." }}</p>
+        {% if course.description %}
+          <p>{{ course.description }}</p>
+        {% else %}
+          <p>Описание курса скоро появится.</p>
+        {% endif %}
+      </div>
+      <div class="certificate-image">
+        <img src="{{ course.image.url|default:static('img/default.jpg') }}" alt="{{ course.title }}">
+      </div>
+    </div>
+  </div>
+</section>
 
-        <div class="mt-4">
-          <h3 id="program">Программа курса</h3>
-          {% if lessons %}
-            <ul>
-              {% for lesson in lessons %}
-                <li>
-                  {% if has_access %}
-                    <a href="{% url 'lesson_detail' course.slug lesson.slug %}">{{ lesson.title }}</a>
-                  {% else %}
-                    <span>{{ lesson.title }}</span> 🔒
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>Программа появится скоро.</p>
-          {% endif %}
-        </div>
-
-        <div class="mt-4">
-          <h3>Отзывы студентов</h3>
-          {% if reviews %}
-            <div class="testimonials-grid">
-              {% for review in reviews %}
-              <div class="testimonial-card">
-                <p>“{{ review.text|truncatewords:40 }}”</p>
-                <p class="text-sm text-secondary">— {{ review.user.get_full_name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}</p>
-              </div>
-              {% endfor %}
+<!-- 🔹 Программа -->
+<section id="program" class="section" style="background: var(--color-bg-section);">
+  <div class="container">
+    <h2 class="text-center mb-3">Программа курса</h2>
+    {% if lessons %}
+      <div class="courses-grid">
+        {% for lesson in lessons %}
+          <div class="course-card card-hover">
+            <div class="course-card-content">
+              <h3 class="course-card-title">{{ lesson.title }}</h3>
+              <p class="course-card-text">{{ lesson.description|truncatewords:20 }}</p>
+              {% if has_access %}
+                <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-primary btn-full mt-2">Смотреть урок</a>
+              {% else %}
+                <button class="btn btn-outline btn-full mt-2" disabled>🔒 Недоступно</button>
+              {% endif %}
             </div>
-          {% else %}
-            <p>Пока нет отзывов о курсе.</p>
-          {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-center mt-3">Программа появится скоро.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- 🔹 Инструктор -->
+<section class="section">
+  <div class="container text-center">
+    <h2>Инструктор</h2>
+    {% if teacher_profile %}
+      <div style="display:inline-flex;align-items:center;gap:1rem;margin-top:1.5rem;">
+        <img src="{{ teacher_profile.display_avatar_url|default:static('img/default.jpg') }}" alt="{{ teacher_profile.user.get_full_name }}" width="90" height="90" style="border-radius:50%;">
+        <div style="text-align:left;">
+          <h3>{{ teacher_profile.user.get_full_name }}</h3>
+          <p class="text-secondary">{{ teacher_profile.title|default:"Эксперт" }}</p>
         </div>
       </div>
+    {% else %}
+      <p>Информация о преподавателе появится позже.</p>
+    {% endif %}
+  </div>
+</section>
 
-      <!-- Правая колонка -->
-      <aside>
-        <div class="course-card">
-          <img src="{{ course.image.url|default:static('img/default.jpg') }}" alt="{{ course.title }}" class="course-card-img">
-          <div class="course-card-content">
-            <h3 class="course-card-title">Стоимость</h3>
-            {% if course.discount_price %}
-              <p><s>{{ course.price }} ₸</s> <strong>{{ course.discount_price }} ₸</strong></p>
-            {% else %}
-              <p><strong>{{ course.price }} ₸</strong></p>
-            {% endif %}
-
-            <div class="mt-2">
-              {% if has_access %}
-                <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-full">Продолжить обучение</a>
-              {% else %}
-                <a href="{% url 'enroll_course' course.slug %}" class="btn btn-primary btn-full">Записаться</a>
-              {% endif %}
-            </div>
-
-            <hr>
-
-            <ul>
-              <li>📘 {{ lessons|length }} уроков</li>
-              <li>🕒 {{ course.duration_hours }} часов</li>
-              <li>♾️ Доступ 24/7</li>
-              <li>🎓 Сертификат</li>
-            </ul>
-          </div>
+<!-- 🔹 Отзывы -->
+<section class="testimonials-section">
+  <div class="container">
+    <h2 class="text-center mb-3">Отзывы студентов</h2>
+    {% if reviews %}
+      <div class="testimonials-grid">
+        {% for review in reviews %}
+        <div class="testimonial-card">
+          <p>“{{ review.text|truncatewords:40 }}”</p>
+          <p class="text-sm text-secondary">— {{ review.user.get_full_name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}</p>
         </div>
-
-        <div class="mt-4">
-          <h3>Инструктор</h3>
-          {% if teacher_profile %}
-            <div style="display: flex; align-items: center; gap: 1rem;">
-              {% if teacher_profile.display_avatar_url %}
-                <img src="{{ teacher_profile.display_avatar_url }}" alt="Инструктор" width="70" height="70" style="border-radius: 50%;">
-              {% else %}
-                <img src="{% static 'img/default.jpg' %}" alt="Инструктор" width="70" height="70" style="border-radius: 50%;">
-              {% endif %}
-              <div>
-                <strong>{{ teacher_profile.user.get_full_name }}</strong><br>
-                <span>{{ teacher_profile.title|default:"Эксперт" }}</span>
-              </div>
-            </div>
-          {% else %}
-            <p>Информация о преподавателе появится позже.</p>
-          {% endif %}
-        </div>
-      </aside>
-    </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-center">Отзывов пока нет.</p>
+    {% endif %}
   </div>
 </section>
 
