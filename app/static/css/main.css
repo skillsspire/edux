@@ -2473,3 +2473,23 @@ header .navbar-nav {
     cursor: pointer;
     transition: background 0.2s ease;
 }
+.course-card .badge {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.course-card ul {
+  margin-top: 0.5rem;
+  padding-left: 0;
+  line-height: 1.5;
+}
+
+.course-card ul li {
+  list-style: none;
+  margin-bottom: 0.25rem;
+}
+
+.course-card:hover h5 {
+  color: var(--color-primary);
+}
