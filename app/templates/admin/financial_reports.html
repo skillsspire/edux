@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="financial-reports">
+    <h1>💵 Финансовые отчёты</h1>
+    
+    <div class="revenue-chart">
+        <h2>Выручка по месяцам</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Месяц</th>
+                    <th>Сумма</th>
+                    <th>Кол-во платежей</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for month in monthly_revenue %}
+                <tr>
+                    <td><strong>{{ month.month }}</strong></td>
+                    <td>{{ month.total|intcomma }} ₸</td>
+                    <td>{{ month.count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #6b7280;">
+                        Нет данных за выбранный период
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.revenue-chart {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="learning-analytics">
+    <h1>📈 Аналитика обучения</h1>
+    
+    <div class="courses-progress">
+        <h2>Прогресс по курсам</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Курс</th>
+                    <th>Записей</th>
+                    <th>Завершено</th>
+                    <th>% Завершения</th>
+                    <th>Средний рейтинг</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in course_progress %}
+                <tr>
+                    <td><strong>{{ course.title }}</strong></td>
+                    <td>{{ course.total_enrollments }}</td>
+                    <td>{{ course.completed_enrollments }}</td>
+                    <td>
+                        {% widthratio course.completed_enrollments course.total_enrollments 100 %}%
+                    </td>
+                    <td>
+                        {% if course.avg_rating %}
+                            ⭐ {{ course.avg_rating|floatformat:1 }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.courses-progress {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
