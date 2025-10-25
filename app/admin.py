@@ -5,7 +5,8 @@ from django.template.response import TemplateResponse
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
 
 from .models import (
     Category, InstructorProfile, Course, Module, Lesson, LessonProgress,
@@ -571,6 +572,7 @@ class CustomAdminSite(admin.AdminSite):
 
 admin_site = CustomAdminSite(name='skills_spire_admin')
 
+# Регистрируем все модели в кастомной админке
 admin_site.register(Category, CategoryAdmin)
 admin_site.register(InstructorProfile, InstructorProfileAdmin)
 admin_site.register(Course, CourseAdmin)
@@ -584,5 +586,9 @@ admin_site.register(Payment, PaymentAdmin)
 admin_site.register(ContactMessage, ContactMessageAdmin)
 admin_site.register(Article, ArticleAdmin)
 admin_site.register(Material, MaterialAdmin)
+
+# ✅ РЕГИСТРИРУЕМ User и Group для работы autocomplete_fields
+admin_site.register(User, UserAdmin)
+admin_site.register(Group, GroupAdmin)
 
 admin.site = admin_site
