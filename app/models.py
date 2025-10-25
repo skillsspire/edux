@@ -261,10 +261,20 @@ class Payment(TimestampedModel):
         (FAILED, "Ошибка"),
     ]
 
+    CARD = "card"
+    KASPI = "kaspi"
+    BANK_TRANSFER = "bank_transfer"
+    TYPE_CHOICES = [
+        (CARD, "Карта"),
+        (KASPI, "Kaspi"),
+        (BANK_TRANSFER, "Банковский перевод"),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments", verbose_name="Пользователь")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments", verbose_name="Курс")
     amount = models.DecimalField("Сумма", max_digits=10, decimal_places=2, default=Decimal("0.00"))
     status = models.CharField("Статус", max_length=16, choices=STATUS_CHOICES, default=PENDING)
+    type = models.CharField("Тип оплаты", max_length=20, choices=TYPE_CHOICES, default=KASPI)
     kaspi_invoice_id = models.CharField(
         "Kaspi invoice ID", max_length=255, null=True, blank=True, unique=True
     )
@@ -288,6 +298,7 @@ class ContactMessage(TimestampedModel):
     email = models.EmailField("Email")
     subject = models.CharField("Тема", max_length=200)
     message = models.TextField("Сообщение")
+    is_processed = models.BooleanField("Обработано", default=False)
 
     class Meta:
         ordering = ["-created_at"]
@@ -315,6 +326,7 @@ class Article(TimestampedModel):
     excerpt = models.TextField("Краткое описание", blank=True)
     body = _RichField("Текст", default="Текст появится позже", blank=True)
     cover = models.ImageField("Обложка", upload_to="articles/", blank=True, null=True)
+    view_count = models.PositiveIntegerField("Просмотры", default=0)
 
     seo_title = models.CharField("SEO Title", max_length=255, blank=True)
     seo_description = models.CharField("SEO Description", max_length=500, blank=True)
@@ -349,6 +361,7 @@ class Material(TimestampedModel):
     file = models.FileField("Файл", upload_to="materials/files/", blank=True, null=True)
     image = models.ImageField("Превью", upload_to="materials/images/", blank=True, null=True)
     is_public = models.BooleanField("Показывать на сайте", default=True)
+    download_count = models.PositiveIntegerField("Скачивания", default=0)
 
     class Meta:
         ordering = ["-created_at"]
@@ -366,3 +379,335 @@ class Material(TimestampedModel):
 
     def get_absolute_url(self):
         return reverse("materials_list") + f"#{self.slug}"
+
+
+# LMS модуль
+class Quiz(TimestampedModel):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="quizzes")
+    title = models.CharField("Название теста", max_length=255)
+    passing_score = models.PositiveIntegerField("Проходной балл", default=70)
+    time_limit = models.PositiveIntegerField("Лимит времени (мин)", null=True, blank=True)
+    attempts_allowed = models.PositiveIntegerField("Попыток разрешено", default=1)
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        verbose_name = "Тест"
+        verbose_name_plural = "Тесты"
+        ordering = ["lesson", "title"]
+
+    def __str__(self):
+        return f"{self.lesson.title} - {self.title}"
+
+
+class Question(TimestampedModel):
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    text = models.TextField("Вопрос")
+    question_type = models.CharField("Тип вопроса", max_length=20, choices=[
+        ('single', "Один вариант"), 
+        ('multiple', "Несколько вариантов"),
+        ('text', "Текстовый ответ")
+    ], default='single')
+    order = models.PositiveIntegerField("Порядок", default=1)
+    points = models.PositiveIntegerField("Баллы", default=1)
+
+    class Meta:
+        verbose_name = "Вопрос"
+        verbose_name_plural = "Вопросы"
+        ordering = ["quiz", "order"]
+
+    def __str__(self):
+        return f"{self.quiz.title} - {self.text[:50]}..."
+
+
+class Answer(TimestampedModel):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")
+    text = models.CharField("Ответ", max_length=500)
+    is_correct = models.BooleanField("Правильный ответ", default=False)
+    order = models.PositiveIntegerField("Порядок", default=1)
+
+    class Meta:
+        verbose_name = "Ответ"
+        verbose_name_plural = "Ответы"
+        ordering = ["question", "order"]
+
+    def __str__(self):
+        return f"{self.question.text[:30]} - {self.text[:30]}"
+
+
+class Assignment(TimestampedModel):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="assignments")
+    title = models.CharField("Название задания", max_length=255)
+    description = models.TextField("Описание")
+    due_date = models.DateTimeField("Срок сдачи")
+    max_points = models.PositiveIntegerField("Максимум баллов", default=100)
+    is_active = models.BooleanField("Активно", default=True)
+
+    class Meta:
+        verbose_name = "Домашнее задание"
+        verbose_name_plural = "Домашние задания"
+        ordering = ["course", "-due_date"]
+
+    def __str__(self):
+        return f"{self.course.title} - {self.title}"
+
+
+class Submission(TimestampedModel):
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="submissions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="submissions")
+    file = models.FileField("Файл работы", upload_to="submissions/", blank=True, null=True)
+    text = models.TextField("Текст работы", blank=True)
+    submitted_at = models.DateTimeField("Время отправки", auto_now_add=True)
+    grade = models.PositiveIntegerField("Оценка", null=True, blank=True)
+    feedback = models.TextField("Обратная связь", blank=True)
+
+    class Meta:
+        verbose_name = "Сданная работа"
+        verbose_name_plural = "Сданные работы"
+        constraints = [
+            models.UniqueConstraint(fields=["assignment", "user"], name="uniq_submission_assignment_user"),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.assignment.title}"
+
+
+class Certificate(TimestampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="certificates")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="certificates")
+    certificate_id = models.CharField("ID сертификата", max_length=100, unique=True)
+    issued_at = models.DateTimeField("Выдан", auto_now_add=True)
+    pdf_file = models.FileField("PDF файл", upload_to="certificates/", blank=True, null=True)
+    is_revoked = models.BooleanField("Аннулирован", default=False)
+
+    class Meta:
+        verbose_name = "Сертификат"
+        verbose_name_plural = "Сертификаты"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "course"], name="uniq_certificate_user_course"),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}"
+
+
+# CRM модуль
+class Lead(TimestampedModel):
+    email = models.EmailField("Email")
+    name = models.CharField("Имя", max_length=120)
+    phone = models.CharField("Телефон", max_length=20, blank=True)
+    source = models.CharField("Источник", max_length=100, default="website")
+    status = models.CharField("Статус", max_length=20, choices=[
+        ('new', "Новый"),
+        ('contacted', "Связались"),
+        ('qualified', "Квалифицирован"),
+        ('converted', "Конвертирован")
+    ], default='new')
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
+                                  related_name="assigned_leads")
+    converted = models.BooleanField("Конвертирован", default=False)
+    notes = models.TextField("Заметки", blank=True)
+
+    class Meta:
+        verbose_name = "Лид"
+        verbose_name_plural = "Лиды"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} - {self.email}"
+
+
+class Interaction(TimestampedModel):
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name="interactions")
+    type = models.CharField("Тип взаимодействия", max_length=20, choices=[
+        ('call', "Звонок"),
+        ('email', "Email"),
+        ('meeting', "Встреча"),
+        ('message', "Сообщение")
+    ])
+    description = models.TextField("Описание")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="interactions")
+    result = models.CharField("Результат", max_length=200, blank=True)
+
+    class Meta:
+        verbose_name = "Взаимодействие"
+        verbose_name_plural = "Взаимодействия"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.lead.name} - {self.type}"
+
+
+class UserProfile(TimestampedModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    phone = models.CharField("Телефон", max_length=20, blank=True)
+    city = models.CharField("Город", max_length=100, blank=True)
+    balance = models.DecimalField("Баланс", max_digits=10, decimal_places=2, default=0)
+    role = models.CharField("Роль", max_length=20, choices=[
+        ('student', "Студент"),
+        ('instructor', "Инструктор"),
+        ('manager', "Менеджер"),
+        ('admin', "Администратор")
+    ], default='student')
+    segment = models.CharField("Сегмент", max_length=50, blank=True)
+    last_activity = models.DateTimeField("Последняя активность", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Профиль пользователя"
+        verbose_name_plural = "Профили пользователей"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
+
+
+class Segment(TimestampedModel):
+    name = models.CharField("Название", max_length=100)
+    description = models.TextField("Описание", blank=True)
+    conditions = models.JSONField("Условия", default=dict)
+    users = models.ManyToManyField(User, related_name="segments", blank=True)
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        verbose_name = "Сегмент"
+        verbose_name_plural = "Сегменты"
+
+    def __str__(self):
+        return self.name
+
+
+# Support модуль
+class SupportTicket(TimestampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="support_tickets")
+    subject = models.CharField("Тема", max_length=200)
+    description = models.TextField("Описание проблемы")
+    status = models.CharField("Статус", max_length=20, choices=[
+        ('open', "Открыт"),
+        ('in_progress', "В работе"),
+        ('resolved', "Решен"),
+        ('closed', "Закрыт")
+    ], default='open')
+    priority = models.CharField("Приоритет", max_length=20, choices=[
+        ('low', "Низкий"),
+        ('medium', "Средний"),
+        ('high', "Высокий"),
+        ('urgent', "Срочный")
+    ], default='medium')
+    category = models.CharField("Категория", max_length=50, blank=True)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
+                                  related_name="assigned_tickets")
+
+    class Meta:
+        verbose_name = "Тикет поддержки"
+        verbose_name_plural = "Тикеты поддержки"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.subject}"
+
+
+class FAQ(TimestampedModel):
+    question = models.CharField("Вопрос", max_length=500)
+    answer = models.TextField("Ответ")
+    category = models.CharField("Категория", max_length=100)
+    order = models.PositiveIntegerField("Порядок", default=1)
+    is_active = models.BooleanField("Активен", default=True)
+    view_count = models.PositiveIntegerField("Просмотры", default=0)
+
+    class Meta:
+        verbose_name = "FAQ"
+        verbose_name_plural = "FAQ"
+        ordering = ["category", "order"]
+
+    def __str__(self):
+        return self.question
+
+
+# Billing модуль
+class Subscription(TimestampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="subscriptions")
+    plan = models.ForeignKey('Plan', on_delete=models.CASCADE, related_name="subscriptions")
+    status = models.CharField("Статус", max_length=20, choices=[
+        ('active', "Активна"),
+        ('canceled', "Отменена"),
+        ('expired', "Истекла"),
+        ('pending', "Ожидание")
+    ], default='pending')
+    start_date = models.DateTimeField("Начало")
+    end_date = models.DateTimeField("Окончание")
+    auto_renew = models.BooleanField("Автопродление", default=True)
+
+    class Meta:
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.plan.name}"
+
+
+class Plan(TimestampedModel):
+    name = models.CharField("Название", max_length=100)
+    description = models.TextField("Описание", blank=True)
+    price = models.DecimalField("Цена", max_digits=10, decimal_places=2)
+    duration_days = models.PositiveIntegerField("Длительность (дни)")
+    features = models.JSONField("Возможности", default=list)
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        verbose_name = "Тарифный план"
+        verbose_name_plural = "Тарифные планы"
+
+    def __str__(self):
+        return self.name
+
+
+class Refund(TimestampedModel):
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="refunds")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="refunds")
+    amount = models.DecimalField("Сумма", max_digits=10, decimal_places=2)
+    reason = models.TextField("Причина")
+    status = models.CharField("Статус", max_length=20, choices=[
+        ('pending', "На рассмотрении"),
+        ('approved', "Одобрен"),
+        ('rejected', "Отклонен"),
+        ('processed', "Обработан")
+    ], default='pending')
+
+    class Meta:
+        verbose_name = "Возврат"
+        verbose_name_plural = "Возвраты"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount}"
+
+
+# Marketing модуль
+class Mailing(TimestampedModel):
+    subject = models.CharField("Тема", max_length=200)
+    message = models.TextField("Сообщение")
+    channel = models.CharField("Канал", max_length=20, choices=[
+        ('email', "Email"),
+        ('telegram', "Telegram"),
+        ('push', "Push-уведомление")
+    ], default='email')
+    segment = models.ForeignKey(Segment, on_delete=models.CASCADE, related_name="mailings")
+    status = models.CharField("Статус", max_length=20, choices=[
+        ('draft', "Черновик"),
+        ('scheduled', "Запланирована"),
+        ('sent', "Отправлена"),
+        ('canceled', "Отменена")
+    ], default='draft')
+    sent_at = models.DateTimeField("Отправлено", null=True, blank=True)
+    sent = models.PositiveIntegerField("Отправлено", default=0)
+    opens = models.PositiveIntegerField("Открытия", default=0)
+    clicks = models.PositiveIntegerField("Клики", default=0)
+
+    class Meta:
+        verbose_name = "Рассылка"
+        verbose_name_plural = "Рассылки"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.subject
+
+    @property
+    def open_percentage(self):
+        return round((self.opens / self.sent * 100), 2) if self.sent > 0 else 0

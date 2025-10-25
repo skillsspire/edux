@@ -24,7 +24,6 @@ if RENDER_EXTERNAL_HOSTNAME:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
-# === Security ===
 KASPI_WEBHOOK_SECRET = os.environ.get("KASPI_WEBHOOK_SECRET", "dev-secret")
 KASPI_PAYMENT_URL = os.environ.get("KASPI_PAYMENT_URL", "https://pay.kaspi.kz/pay/fhljzakr")
 KASPI_SECRET = os.environ.get("KASPI_SECRET", "dev-secret")
@@ -46,9 +45,8 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
 SECURE_REFERRER_POLICY = "same-origin"
 
-# === Apps ===
-
 DJANGO_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -71,7 +69,6 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# === Middleware ===
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -86,7 +83,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "app.urls"
 
-# === Templates ===
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -107,7 +103,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "app.wsgi.application"
 
-# === Database ===
 USE_PGBOUNCER = os.environ.get("DB_PGBOUNCER", "False") == "True"
 CONN_MAX_AGE_VALUE = 0 if USE_PGBOUNCER else 600
 
@@ -128,7 +123,6 @@ else:
         }
     }
 
-# === Sessions & Cache ===
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 REDIS_URL = os.getenv("REDIS_URL")
 if REDIS_URL:
@@ -140,7 +134,6 @@ if REDIS_URL:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
-# === Auth ===
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -155,7 +148,6 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 
-# === I18N ===
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
@@ -167,7 +159,6 @@ LANGUAGES = [
 ]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
-# === Static ===
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
@@ -175,7 +166,6 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365
 
-# === Media (Supabase) ===
 if DEBUG:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
@@ -192,14 +182,12 @@ else:
     AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET_NAME
     AWS_S3_ENDPOINT_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/s3"
 
-    # 🔑 ключевые настройки для Supabase:
     AWS_S3_REGION_NAME = "us-east-1"
-    AWS_S3_ADDRESSING_STYLE = "path"   # ⚡ обязательно
+    AWS_S3_ADDRESSING_STYLE = "path"
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
 
-# === Email ===
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT") or 587)
@@ -211,13 +199,11 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "SkillsSpire <noreply@
 SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
 
-# === Phone ===
 PHONENUMBER_DEFAULT_REGION = "KZ"
 PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
 
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
 
-# === Logging ===
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
@@ -231,3 +217,93 @@ LOGGING = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+JAZZMIN_SETTINGS = {
+    "site_title": "SkillsSpire Admin",
+    "site_header": "🏔 SkillsSpire CRM + LMS",
+    "welcome_sign": "Добро пожаловать в панель управления SkillsSpire",
+    "site_brand": "SkillsSpire",
+    "site_logo": "images/logo.png",
+    "copyright": "© 2025 SkillsSpire",
+    "theme": "cosmo",
+    "show_ui_builder": True,
+    "custom_css": "css/admin_custom.css" if DEBUG else None,
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "order_with_respect_to": [
+        "app.Course", "app.Module", "app.Lesson",
+        "app.Enrollment", "app.Payment", "app.Review",
+        "auth.User", "auth.Group",
+    ],
+    "icons": {
+        "auth.User": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "app.Category": "fas fa-folder-tree",
+        "app.Course": "fas fa-graduation-cap",
+        "app.Module": "fas fa-layer-group",
+        "app.Lesson": "fas fa-play-circle",
+        "app.LessonProgress": "fas fa-tasks",
+        "app.Enrollment": "fas fa-user-graduate",
+        "app.Payment": "fas fa-credit-card",
+        "app.InstructorProfile": "fas fa-chalkboard-teacher",
+        "app.Review": "fas fa-star",
+        "app.Wishlist": "fas fa-heart",
+        "app.ContactMessage": "fas fa-envelope",
+        "app.Article": "fas fa-newspaper",
+        "app.Material": "fas fa-book",
+        "app.Quiz": "fas fa-question-circle",
+        "app.Question": "fas fa-question",
+        "app.Answer": "fas fa-check-circle",
+        "app.Assignment": "fas fa-tasks",
+        "app.Submission": "fas fa-file-upload",
+        "app.Certificate": "fas fa-certificate",
+        "app.Lead": "fas fa-user-plus",
+        "app.Interaction": "fas fa-comments",
+        "app.UserProfile": "fas fa-user-circle",
+        "app.Segment": "fas fa-users",
+        "app.SupportTicket": "fas fa-ticket-alt",
+        "app.FAQ": "fas fa-question-circle",
+        "app.Subscription": "fas fa-calendar-alt",
+        "app.Plan": "fas fa-cube",
+        "app.Refund": "fas fa-undo",
+        "app.Mailing": "fas fa-envelope-open-text",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": False,
+    "use_google_fonts_cdn": True,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-outline-primary",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    },
+}
