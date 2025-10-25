@@ -2493,3 +2493,106 @@ header .navbar-nav {
 .course-card:hover h5 {
   color: var(--color-primary);
 }
+/* === Современный стиль detail-страницы === */
+.modern-hero {
+  padding: 6rem 0 4rem;
+  background: linear-gradient(135deg, #0046ad 0%, #00a6ff 100%);
+  color: #fff;
+}
+.hero-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.hero-left {
+  flex: 1 1 55%;
+}
+.hero-right {
+  flex: 1 1 35%;
+}
+.course-price-card {
+  background: #fff;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+  text-align: center;
+}
+.course-price-card .old-price {
+  text-decoration: line-through;
+  color: #999;
+}
+.course-price-card .new-price {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.hero-features {
+  list-style: none;
+  margin: 1.2rem 0;
+  padding: 0;
+}
+.hero-features li {
+  margin-bottom: 0.25rem;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: center;
+}
+.about-img img {
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+.program-section .lessons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.lesson-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+.lesson-item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.instructor-card {
+  max-width: 420px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+}
+.instructor-card img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+.mskt {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 96px;
+    height: 96px;
+    z-index: 60;
+    cursor: pointer;
+    pointer-events: none;
+}
