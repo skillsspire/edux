@@ -1,335 +1,185 @@
-  {% extends 'base.html' %}
-  {% load static humanize %}
+{% extends 'base.html' %}
+{% load static humanize %}
 
-  {% block title %}{{ course.title|default:"Курс" }} - SkillsSpire{% endblock %}
+{% block title %}{{ course.title|default:"Курс" }} - SkillsSpire{% endblock %}
 
-  {% block meta %}
+{% block meta %}
   {% static 'img/courses/default.jpg' as default_course_img %}
   <meta name="description" content="{{ course.short_description|default:'' }}">
   <meta property="og:title" content="{{ course.title|default:'Курс' }}">
   <meta property="og:description" content="{{ course.short_description|default:'' }}">
-  <meta property="og:image" content="{% if course_image_url %}{{ course_image_url }}{% elif course.image %}{{ course.image.url|default:default_course_img }}{% else %}{{ default_course_img }}{% endif %}">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="{{ request.build_absolute_uri|default:'' }}">
-  {% endblock %}
+  <meta property="og:image" content="{% if course.image %}{{ course.image.url }}{% else %}{{ default_course_img }}{% endif %}">
+{% endblock %}
 
-  {% block content %}
-  {% if course %}
-  <div class="course-hero">
-    <div class="container py-5">
-      <div class="row g-4 align-items-center">
-        <div class="col-lg-8">
+{% block content %}
+{% if course %}
+<section class="course-hero py-5 bg-gradient position-relative text-white">
+  <div class="container position-relative">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        {% if course.category %}
+          <span class="badge bg-light text-dark mb-3">{{ course.category.name }}</span>
+        {% endif %}
+        <h1 class="fw-bold mb-3">{{ course.title }}</h1>
+        <p class="lead text-white-50">{{ course.short_description }}</p>
 
-          {% if course.category %}
-            <span class="course-badge badge bg-light text-dark mb-2">{{ course.category.name|default:"" }}</span>
+        <ul class="list-inline text-white-50 mb-4">
+          {% if course.duration_hours %}
+            <li class="list-inline-item me-4"><i class="bi bi-clock"></i> {{ course.duration_hours }} ч обучения</li>
           {% endif %}
+          <li class="list-inline-item me-4"><i class="bi bi-award"></i> Сертификат</li>
+          <li class="list-inline-item"><i class="bi bi-phone"></i> Онлайн-доступ 24/7</li>
+        </ul>
 
-          <h1 class="course-title text-white mb-2">{{ course.title|default:"Курс" }}</h1>
-
-          {% if course.short_description %}
-            <p class="course-subtitle text-white-50 mb-4">{{ course.short_description }}</p>
+        <div class="d-flex flex-wrap gap-3">
+          {% if has_access %}
+            <a href="{% url 'lesson_detail' course.slug lessons.0.slug %}" class="btn btn-light btn-lg">
+              <i class="bi bi-play-circle me-1"></i> Начать обучение
+            </a>
+          {% else %}
+            <button class="btn btn-warning text-dark btn-lg" data-bs-toggle="modal" data-bs-target="#enrollModal">
+              <i class="bi bi-cart me-1"></i> Записаться на курс
+            </button>
           {% endif %}
+          <a href="#program" class="btn btn-outline-light btn-lg">
+            <i class="bi bi-list-ul me-1"></i> Программа курса
+          </a>
+        </div>
+      </div>
 
-          {% if has_access and user_progress %}
-          <div class="progress mb-3" style="height: 6px; max-width: 300px;">
-            <div class="progress-bar bg-success" style="--p: {{ user_progress.completion_percentage|default:0 }}%" data-pbar></div>
-          </div>
-          <small class="text-white-50 d-block mb-3">
-            Пройдено: {{ user_progress.completed_lessons_count|default:0 }}/{{ lessons|length|default:0 }} уроков
-          </small>
-          {% endif %}
-
-          <div class="d-flex flex-wrap align-items-center gap-3 mb-4 text-white-50">
-            <div class="d-inline-flex align-items-center gap-2">
-              <i class="bi bi-people"></i>
-              <span>{{ course.students.count|default:0 }} студентов</span>
-            </div>
-            {% if course.duration_hours %}
-            <div class="d-inline-flex align-items-center gap-2">
-              <i class="bi bi-clock"></i>
-              <span>{{ course.duration_hours|default:0 }} часов</span>
-            </div>
-            {% endif %}
-            <div class="d-inline-flex align-items-center gap-2">
-              <i class="bi bi-star"></i>
-              <span>Рейтинг: {{ course.average_rating|default:"-" }}</span>
-            </div>
-          </div>
-
-          <div class="d-flex flex-wrap gap-2">
-            {% if has_access %}
-              {% if lessons %}
-                {% with next_lesson=user_progress.next_lesson|default:lessons.0 %}
-                <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-light">
-                  <i class="bi bi-play-circle me-1"></i>
-                  {% if user_progress and user_progress.current_lesson %}Продолжить обучение{% else %}Начать обучение{% endif %}
-                </a>
-                {% endwith %}
+      <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="card shadow border-0">
+          <div class="card-body text-center">
+            {% with old=course.price new=course.discount_price %}
+              {% if new and new < old %}
+                <div class="d-flex justify-content-center align-items-baseline mb-3">
+                  <span class="text-decoration-line-through text-muted h6 mb-0">{{ old|floatformat:0|intcomma }} ₸</span>
+                  <span class="h3 fw-bold text-primary mb-0 ms-2">{{ new|floatformat:0|intcomma }} ₸</span>
+                </div>
+              {% elif old %}
+                <div class="h3 fw-bold text-primary mb-3">{{ old|floatformat:0|intcomma }} ₸</div>
               {% else %}
-                <button class="btn btn-light" disabled>
-                  <i class="bi bi-clock me-1"></i> Уроки скоро появятся
-                </button>
+                <div class="h4 fw-bold text-success mb-3">Бесплатно</div>
               {% endif %}
+            {% endwith %}
+
+            {% if has_access %}
+              <a href="{% url 'lesson_detail' course.slug lessons.0.slug %}" class="btn btn-success w-100 mb-2">
+                <i class="bi bi-play-circle me-1"></i> Продолжить
+              </a>
             {% else %}
-              <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#enrollModal">
-                <i class="bi bi-cart me-1"></i> Записаться на курс
+              <button class="btn btn-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#enrollModal">
+                <i class="bi bi-cart me-1"></i> Записаться
               </button>
             {% endif %}
+            <button id="wishlistBtn" class="btn btn-outline-primary w-100">
+              <i class="bi {% if is_in_wishlist %}bi-heart-fill{% else %}bi-heart{% endif %} me-1"></i>
+              {% if is_in_wishlist %}В избранном{% else %}Добавить в избранное{% endif %}
+            </button>
 
-            <a href="#course-content" class="btn btn-outline-light">
-              <i class="bi bi-list-ul me-1"></i> Программа курса
-            </a>
-          </div>
-        </div>
-
-        <div class="col-lg-4">
-          <div class="card shadow-sm">
-            <div class="card-body text-center">
-              {% with old=course.price new=course.discount_price %}
-                {% if new and old and new < old %}
-                  <div class="d-flex justify-content-center align-items-baseline gap-2 mb-2">
-                    <span class="text-decoration-line-through text-muted h6 mb-0">{{ old|floatformat:0|intcomma }} ₸</span>
-                    <span class="h3 fw-bold text-primary mb-0">{{ new|floatformat:0|intcomma }} ₸</span>
-                  </div>
-                {% else %}
-                  {% if old and old|floatformat != "0" %}
-                    <div class="h3 fw-bold text-primary mb-2">{{ old|floatformat:0|intcomma }} ₸</div>
-                  {% else %}
-                    <div class="h4 fw-bold text-success mb-2">Бесплатно</div>
-                  {% endif %}
-                {% endif %}
-              {% endwith %}
-
-              <div class="d-grid gap-2">
-                {% if has_access %}
-                  {% if lessons %}
-                    {% with next_lesson=user_progress.next_lesson|default:lessons.0 %}
-                    <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn-success">
-                      <i class="bi bi-play-circle me-1"></i>
-                      {% if user_progress and user_progress.current_lesson %}Продолжить{% else %}Начать обучение{% endif %}
-                    </a>
-                    {% endwith %}
-                  {% else %}
-                    <button class="btn btn-success" disabled>
-                      <i class="bi bi-clock me-1"></i> Уроки скоро появятся
-                    </button>
-                  {% endif %}
-                {% else %}
-                  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
-                    <i class="bi bi-cart me-1"></i> Записаться на курс
-                  </button>
-                {% endif %}
-
-                <button
-                  id="wishlistBtn"
-                  class="btn btn-outline-primary"
-                  data-initial="{{ is_in_wishlist|yesno:'true,false,false' }}">
-                  <i class="bi {% if is_in_wishlist %}bi-heart-fill{% else %}bi-heart{% endif %} me-1"></i>
-                  <span class="btn-text">{% if is_in_wishlist %}В избранном{% else %}Добавить в избранное{% endif %}</span>
-                </button>
-              </div>
-
-              <hr>
-
-              <div class="text-start">
-                <h6 class="mb-3">В курс входит:</h6>
-                <ul class="list-unstyled mb-0">
-                  <li><i class="bi bi-play-circle text-primary me-2"></i> {{ lessons|length|default:0 }} уроков</li>
-                  <li><i class="bi bi-file-text text-primary me-2"></i> Материалы для скачивания</li>
-                  <li><i class="bi bi-infinity text-primary me-2"></i> Бессрочный доступ</li>
-                  <li><i class="bi bi-phone text-primary me-2"></i> Доступ с мобильного</li>
-                  <li><i class="bi bi-award text-primary me-2"></i> Сертификат</li>
-                </ul>
-              </div>
+            <hr>
+            <div class="text-start small text-muted">
+              <h6 class="mb-2 fw-bold">В курс входит:</h6>
+              <ul class="list-unstyled mb-0">
+                <li>📘 {{ lessons|length|default:0 }} уроков</li>
+                <li>💾 Материалы для скачивания</li>
+                <li>♾️ Бессрочный доступ</li>
+                <li>📱 Мобильная версия</li>
+                <li>🎓 Сертификат</li>
+              </ul>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
+</section>
 
-  <div class="container py-5">
-    <div class="row g-4">
-      <div class="col-lg-8">
-
-        <div class="card mb-4">
-          <div class="card-body">
-            <h3 class="h4 mb-3">О курсе</h3>
-            <div class="course-content">
-              {{ course.description|safe|default:"Описание скоро появится." }}
-            </div>
-          </div>
-        </div>
-
-        <div id="course-content" class="card mb-4">
-          <div class="card-header"><h4 class="mb-0 h5">Программа курса</h4></div>
-          <div class="card-body p-0">
-            {% if lessons %}
-              <div class="list-group list-group-flush">
-                {% for lesson in lessons %}
-                  <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                      <i class="bi {% if user_progress and lesson in user_progress.completed_lessons.all %}bi-check-circle-fill text-success{% else %}bi-play-circle text-muted{% endif %} fs-5 me-3"></i>
-                      <div>
-                        <h6 class="mb-1">{{ lesson.title|default:"Урок" }}</h6>
-                        {% if lesson.duration_minutes %}
-                          <small class="text-muted">{{ lesson.duration_minutes }} мин.</small>
-                        {% endif %}
-                      </div>
-                    </div>
-                    {% if has_access %}
-                      <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-sm btn-outline-primary">Смотреть</a>
-                    {% else %}
-                      <span class="badge bg-secondary">Заблокировано</span>
-                    {% endif %}
-                  </div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="p-3"><p class="text-muted mb-0">Уроки появятся скоро.</p></div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="card mb-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0">Отзывы студентов</h5>
-              <span class="badge bg-primary">{{ reviews|length|default:0 }} отзывов</span>
-            </div>
-            
-            {% for review in reviews %}
-            <div class="border-bottom pb-3 mb-3">
-              <div>
-                <strong>
-                  {% if review.user %}
-                    {{ review.user.get_full_name|default:review.user.username }}
-                  {% else %}
-                    {{ review.name|default:"Аноним" }}
-                  {% endif %}
-                </strong>
-                {% if review.rating %}
-                <div class="star-rating small text-warning">
-                  {% for i in "12345" %}
-                    <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
-                  {% endfor %}
-                </div>
-                {% endif %}
-                <small class="text-muted">{{ review.created_at|date:"d M Y" }}</small>
-              </div>
-              <p class="mb-0">{{ review.comment|default:"Без комментария" }}</p>
-            </div>
-            {% empty %}
-            <div class="text-center py-4">
-              <p class="text-muted">Пока нет отзывов. Будьте первым!</p>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
-      </div>
-
-      <div class="col-lg-4">
-        <div class="card mb-4 text-center">
-          <div class="card-body">
-            {% if teacher_profile and teacher_profile.display_avatar_url %}
-              <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name|default:teacher.username|default:'Инструктор' }}" class="rounded-circle mb-3" width="100" height="100">
-            {% else %}
-              <img src="{% static 'img/default.jpg' %}" alt="Инструктор" class="rounded-circle mb-3" width="100" height="100">
-            {% endif %}
-            <h5 class="mb-1">{{ teacher.get_full_name|default:teacher.username|default:"SkillsSpire" }}</h5>
-            {% if teacher_profile and teacher_profile.specialization %}<p class="text-muted mb-1">{{ teacher_profile.specialization }}</p>{% endif %}
-            {% if teacher_profile and teacher_profile.bio %}<p class="small text-muted mb-0">{{ teacher_profile.bio|truncatewords:20 }}</p>{% endif %}
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-body">
-            <h5 class="mb-3">Похожие курсы</h5>
-            {% for item in related_courses_with_images %}
-              <a href="{% url 'course_detail' item.course.slug %}" class="d-flex align-items-center mb-3 text-decoration-none">
-                {% if item.image_url %}
-                  <img src="{{ item.image_url }}" alt="{{ item.course.title }}" class="rounded me-3" width="60" height="60">
-                {% else %}
-                  <img src="{% static 'img/courses/default.jpg' %}" alt="{{ item.course.title|default:'Курс' }}" class="rounded me-3" width="60" height="60">
-                {% endif %}
-                <div class="flex-grow-1">
-                  <h6 class="mb-1 text-body">{{ item.course.title|default:"Курс" }}</h6>
-                  {% if item.course.duration_hours %}
-                    <small class="text-muted">{{ item.course.duration_hours }} часов</small>
-                  {% endif %}
-                </div>
-              </a>
-            {% empty %}
-              <p class="text-muted mb-0">Пока нет рекомендаций.</p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-    </div>
+<section class="py-5 bg-light">
+  <div class="container">
+    <h2 class="fw-bold mb-4">О курсе</h2>
+    <div class="text-muted fs-5">{{ course.description|safe|default:"Описание скоро появится." }}</div>
   </div>
+</section>
 
-  <div class="modal fade" id="enrollModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Запись на курс</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p>Вы уверены, что хотите записаться на курс «{{ course.title|default:"Курс" }}»?</p>
-          <div class="d-flex justify-content-between align-items-center">
-            <span>Стоимость:</span>
-            <span class="h4 text-primary fw-bold">
-              {% if course.discount_price and course.price and course.discount_price < course.price %}
-                {{ course.discount_price|floatformat:0|intcomma }}
-              {% else %}
-                {{ course.price|default:"0"|floatformat:0|intcomma }}
-              {% endif %} ₸
-            </span>
+<section id="program" class="py-5">
+  <div class="container">
+    <h2 class="fw-bold mb-4">Программа курса</h2>
+    {% if lessons %}
+      <div class="list-group list-group-flush shadow-sm rounded overflow-hidden">
+        {% for lesson in lessons %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-play-circle text-primary fs-5 me-3"></i>
+            <div>
+              <h6 class="mb-1">{{ lesson.title }}</h6>
+              <small class="text-muted">{% if lesson.duration_minutes %}{{ lesson.duration_minutes }} мин{% else %}&nbsp;{% endif %}</small>
+            </div>
           </div>
-          {% if not course.price or course.price|floatformat == "0" %}
-          <div class="alert alert-info mt-3">Этот курс бесплатный</div>
+          {% if has_access %}
+            <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-sm btn-outline-primary">Смотреть</a>
+          {% else %}
+            <span class="badge bg-secondary">Заблокировано</span>
           {% endif %}
         </div>
-        <div class="modal-footer">
-          <form action="{% url 'enroll_course' course.slug %}" method="post" class="ms-auto" id="enrollForm">
-            {% csrf_token %}
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-            <button type="submit" class="btn btn-primary">
-              {% if course.price and course.price|floatformat != "0" %}Оплатить и записаться{% else %}Записаться бесплатно{% endif %}
-            </button>
-          </form>
-        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">Программа появится скоро.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="bg-light py-5">
+  <div class="container">
+    <h2 class="fw-bold mb-4">Инструктор</h2>
+    <div class="d-flex align-items-center">
+      <img src="{{ teacher_profile.display_avatar_url|default:static('img/default.jpg') }}" alt="Инструктор" class="rounded-circle me-3" width="80" height="80">
+      <div>
+        <h5 class="mb-1">{{ teacher.get_full_name|default:"SkillsSpire" }}</h5>
+        <p class="text-muted mb-1">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
+        <small class="text-muted">{{ teacher_profile.bio|truncatewords:25 }}</small>
       </div>
     </div>
   </div>
-  {% else %}
-  <div class="container py-5"><div class="alert alert-danger text-center">Курс не найден</div></div>
-  {% endif %}
-  {% endblock %}
+</section>
 
-  {% block extra_js %}
-  <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const enrollForm = document.getElementById('enrollForm');
-    if (enrollForm) {
-      enrollForm.addEventListener('submit', function() {
-        const submitBtn = this.querySelector('button[type="submit"]');
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработка...';
-        }
-      });
-    }
-  });
-  </script>
+<section class="py-5">
+  <div class="container">
+    <h2 class="fw-bold mb-4">Отзывы студентов</h2>
+    {% if reviews %}
+      <div class="row g-4">
+        {% for review in reviews %}
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+              <p class="card-text">“{{ review.comment|truncatewords:35 }}”</p>
+              <div class="text-muted small mt-3">— {{ review.name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">Пока нет отзывов.</p>
+    {% endif %}
+  </div>
+</section>
 
-  <style>
-  .course-hero { background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%); }
-  .course-hero img, .card img { object-fit: cover; }
-  .progress [data-pbar]{ width: var(--p, 0%); }
-  </style>
-  {% endblock %}
+{% else %}
+<div class="container py-5 text-center">
+  <div class="alert alert-danger">Курс не найден</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-gradient {
+  background: linear-gradient(135deg, #0046ad 0%, #06b6d4 100%);
+}
+.list-group-item:hover {
+  background: #f8f9fa;
+}
+</style>
+{% endblock %}
