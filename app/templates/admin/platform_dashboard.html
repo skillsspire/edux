@@ -1,0 +1,111 @@
+v]{% extends "admin/base_site.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="platform-dashboard">
+    <h1>📊 Дашборд платформы SkillsSpire</h1>
+    
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>👥 Всего студентов</h3>
+            <div class="value">{{ total_students|intcomma }}</div>
+        </div>
+        <div class="metric-card">
+            <h3>📚 Курсов</h3>
+            <div class="value">{{ total_courses|intcomma }}</div>
+        </div>
+        <div class="metric-card">
+            <h3>💰 Выручка (30 дней)</h3>
+            <div class="value">{{ total_revenue|intcomma }} ₸</div>
+        </div>
+        <div class="metric-card">
+            <h3>📈 Завершение курсов</h3>
+            <div class="value">{{ completion_rate }}%</div>
+        </div>
+    </div>
+
+    <div class="dashboard-sections">
+        <div class="section">
+            <h2>🎓 Популярные курсы</h2>
+            <table>
+                {% for course in popular_courses %}
+                <tr>
+                    <td><strong>{{ course.title }}</strong></td>
+                    <td>{{ course.enrollment_count }} студентов</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>💳 Последние платежи</h2>
+            <table>
+                {% for payment in recent_payments %}
+                <tr>
+                    <td><strong>{{ payment.user.username }}</strong></td>
+                    <td>{{ payment.course.title|truncatewords:2 }}</td>
+                    <td>{{ payment.amount }} ₸</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.metric-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.metric-card h3 {
+    margin: 0 0 10px 0;
+    color: #6b7280;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+.metric-card .value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.dashboard-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.section table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.section tr {
+    border-bottom: 1px solid #eee;
+}
+
+.section td {
+    padding: 10px;
+}
+</style>
+{% endblock %}
