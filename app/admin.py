@@ -7,6 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
+from django.db.models.functions import TruncMonth
 
 from .models import (
     Category, InstructorProfile, Course, Module, Lesson, LessonProgress,
@@ -511,21 +512,25 @@ class CustomAdminSite(admin.AdminSite):
         return TemplateResponse(request, "admin/learning_analytics.html", context)
     
     def financial_reports(self, request):
-        monthly_revenue = Payment.objects.filter(
-            status='success',
-            created_at__gte=timezone.now() - timedelta(days=365)
-        ).extra({
-            'month': "strftime('%%Y-%%m', created_at)"
-        }).values('month').annotate(
-            total=Sum('amount'),
-            count=Count('id')
-        ).order_by('month')
-        
+        one_year_ago = timezone.now() - timedelta(days=365)
+
+        monthly_revenue = (
+            Payment.objects.filter(status='success', created_at__gte=one_year_ago)
+            .annotate(month=TruncMonth('created_at'))  # ✅ заменили .extra() на TruncMonth
+            .values('month')
+            .annotate(
+                total=Sum('amount'),
+                count=Count('id')
+         )
+            .order_by('month')
+        )
+
         context = {
             **self.each_context(request),
             'monthly_revenue': monthly_revenue,
         }
         return TemplateResponse(request, "admin/financial_reports.html", context)
+
     
     def calculate_completion_rate(self):
         total_enrollments = Enrollment.objects.count()
@@ -534,41 +539,25 @@ class CustomAdminSite(admin.AdminSite):
 
     def get_app_list(self, request):
         app_list = super().get_app_list(request)
-        
         custom_app_list = []
-        
-        learning_app = {
-            'name': '🏫 Обучение',
-            'app_label': 'learning',
-            'models': []
-        }
-        
-        sales_app = {
-            'name': '💼 Продажи и CRM',
-            'app_label': 'sales',
-            'models': []
-        }
-        
-        content_app = {
-            'name': '🧠 Контент',
-            'app_label': 'content',
-            'models': []
-        }
-        
+
+        learning_app = {"name": "🏫 Обучение", "app_label": "learning", "models": []}
+        sales_app = {"name": "💼 Продажи и CRM", "app_label": "sales", "models": []}
+        content_app = {"name": "🧠 Контент", "app_label": "content", "models": []}
+
         for app in app_list:
-            if app['app_label'] == 'app':
-                for model in app['models']:
-                    if model['object_name'] in ['Course', 'Module', 'Lesson', 'LessonProgress', 'Enrollment']:
-                        learning_app['models'].append(model)
-                    elif model['object_name'] in ['Payment', 'Review', 'Wishlist', 'ContactMessage']:
-                        sales_app['models'].append(model)
-                    elif model['object_name'] in ['Category', 'Article', 'Material']:
-                        content_app['models'].append(model)
-                    elif model['object_name'] in ['InstructorProfile']:
-                        learning_app['models'].append(model)
-        
-        custom_app_list.extend([learning_app, sales_app, content_app])
-        return custom_app_list
+            if app.get("app_label") == "app":
+                for model in app.get("models", []):
+                    name = model.get("object_name", "")
+                    if name in ["Course", "Module", "Lesson", "LessonProgress", "Enrollment", "InstructorProfile"]:
+                        learning_app["models"].append(model)
+                    elif name in ["Payment", "Review", "Wishlist", "ContactMessage"]:
+                        sales_app["models"].append(model)
+                    elif name in ["Category", "Article", "Material"]:
+                        content_app["models"].append(model)
+
+        return [learning_app, sales_app, content_app]
+
 
 admin_site = CustomAdminSite(name='skills_spire_admin')
 
@@ -590,5 +579,3 @@ admin_site.register(Material, MaterialAdmin)
 # ✅ РЕГИСТРИРУЕМ User и Group для работы autocomplete_fields
 admin_site.register(User, UserAdmin)
 admin_site.register(Group, GroupAdmin)
-
-admin.site = admin_site
