@@ -220,10 +220,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 JAZZMIN_SETTINGS = {
     "site_title": "SkillsSpire Admin",
-    "site_header": "🏔 SkillsSpire CRM + LMS",
+    "site_header": "SkillsSpire",
     "welcome_sign": "Добро пожаловать в панель управления SkillsSpire",
     "site_brand": "SkillsSpire",
-    "site_logo": "images/logo.png",
+    "site_logo": "app/static/img/logo_skillsspire.png",
     "copyright": "© 2025 SkillsSpire",
     "theme": "cosmo",
     "show_ui_builder": True,

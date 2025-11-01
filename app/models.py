@@ -38,16 +38,14 @@ class Category(TimestampedModel):
 
 
 class InstructorProfile(TimestampedModel):
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="instructor_profile",
-        verbose_name="Пользователь",
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="instructor_profile", verbose_name="Пользователь")
     specialization = models.CharField("Специализация", max_length=255, blank=True)
     bio = models.TextField("О себе", blank=True)
     avatar = models.ImageField("Аватар", upload_to="instructors/", blank=True, null=True)
     is_approved = models.BooleanField("Профиль подтверждён", default=True)
+
+    # 🧩 добавь обратно:
+    experience = models.CharField("Опыт (лет)", max_length=100, blank=True, null=True)
 
     class Meta:
         verbose_name = "Профиль инструктора"
