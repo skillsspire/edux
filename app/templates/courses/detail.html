@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static humanize %}
 
 {% block title %}{{ course.title }} — SkillsSpire{% endblock %}
@@ -6,66 +6,64 @@
 {% block content %}
 
 <!-- ============================
-     HERO СОВРЕМЕННОГО ТИПА
+          HERO (Course)
 ============================ -->
-<section class="modern-hero">
+<section class="course-hero fade-up">
   <div class="container">
-    <div class="hero-inner">
+    <div class="course-hero-grid">
 
-      <!-- ЛЕВАЯ ЧАСТЬ -->
-      <div class="hero-left">
-        <span class="course-badge">{{ course.category.name }}</span>
+      <!-- LEFT INFO BLOCK -->
+      <div class="course-hero-left">
 
-        <h1 class="course-title">{{ course.title }}</h1>
+        <span class="course-category">{{ course.category.name }}</span>
 
-        <p class="course-subtitle">
+        <h1 class="course-title-xl">{{ course.title }}</h1>
+
+        <p class="course-subtitle-lg">
           {{ course.short_description }}
         </p>
 
-        <ul class="hero-features">
+        <ul class="course-features-list">
           <li>🎓 Сертификат</li>
           <li>♾️ Бессрочный доступ</li>
           <li>📱 Мобильный формат</li>
           <li>💾 Материалы для скачивания</li>
         </ul>
 
-        <div class="hero-actions">
-          <a class="hero-btn hero-btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
-            <i class="bi bi-cart"></i> Записаться
+        <div class="course-hero-actions">
+          <a class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#enrollModal">
+            Записаться
           </a>
 
-          <a class="hero-btn hero-btn-secondary" href="#program">
-            <i class="bi bi-list-ul"></i> Программа курса
+          <a class="btn btn-secondary btn-lg" href="#program">
+            Программа курса
           </a>
         </div>
+
       </div>
 
-      <!-- ПРАВАЯ ЦЕНТРОВАЯ PRICE-CARD -->
-      <div class="hero-right">
-        <div class="course-price-card">
-          <div class="new-price">
+      <!-- RIGHT PRICE CARD -->
+      <div class="course-hero-right">
+        <div class="price-card">
+          <div class="price-amount">
             {{ course.price|floatformat:0|intcomma }} ₸
           </div>
 
-          <button class="btn btn-primary btn-full mt-3"
-                  data-bs-toggle="modal"
-                  data-bs-target="#enrollModal">
-            <i class="bi bi-cart"></i> Записаться
+          <button class="btn btn-primary btn-full mt-2" data-bs-toggle="modal" data-bs-target="#enrollModal">
+            Записаться
           </button>
 
           <button id="wishlistBtn" class="btn btn-outline btn-full mt-2">
             <i class="bi bi-heart"></i> В избранное
           </button>
 
-          <div class="mt-4 small text-start">
-            <ul class="hero-features small">
-              <li>📘 {{ lessons|length }} уроков</li>
-              <li>💾 Скачиваемые материалы</li>
-              <li>♾️ Пожизненный доступ</li>
-              <li>📱 Удобно на телефоне</li>
-              <li>🎓 Сертификат</li>
-            </ul>
-          </div>
+          <ul class="price-card-features">
+            <li>📘 {{ lessons|length }} уроков</li>
+            <li>💾 Материалы для скачивания</li>
+            <li>♾️ Пожизненный доступ</li>
+            <li>📱 Удобно на телефоне</li>
+            <li>🎓 Сертификат</li>
+          </ul>
         </div>
       </div>
 
@@ -74,84 +72,105 @@
 </section>
 
 
+
 <!-- ============================
-        О КУРСЕ
+           ABOUT COURSE
 ============================ -->
-<section class="section">
+<section class="section fade-up">
   <div class="container">
     <h2 class="section-title">О курсе</h2>
 
-    <div class="fs-5 text-muted">
+    <div class="section-text">
       {{ course.description|safe|default:"Описание скоро появится." }}
     </div>
   </div>
 </section>
 
 
+
 <!-- ============================
-       ПРОГРАММА КУРСА
+        COURSE PROGRAM
 ============================ -->
-<section id="program" class="section bg-light">
+<section id="program" class="section bg-light fade-up">
   <div class="container">
     <h2 class="section-title">Программа курса</h2>
 
     {% if lessons %}
-      <div class="lessons-list">
-        {% for lesson in lessons %}
-        <div class="lesson-item">
-          <div>
-            <h4 class="mb-1">{{ lesson.title }}</h4>
-            <small class="text-muted">{{ lesson.duration_minutes|default:"" }} мин</small>
-          </div>
+    <div class="lessons-list">
+      {% for lesson in lessons %}
+      <div class="lesson-card">
 
-          <span class="badge bg-secondary">Закрыто</span>
+        <div class="lesson-info">
+          <h4 class="lesson-title">{{ lesson.title }}</h4>
+          <span class="lesson-duration">
+            {% if lesson.duration_minutes %}{{ lesson.duration_minutes }} мин{% endif %}
+          </span>
         </div>
-        {% endfor %}
+
+        <span class="lesson-lock">
+          <i class="bi bi-lock-fill"></i>
+        </span>
+
       </div>
+      {% endfor %}
+    </div>
+
     {% else %}
       <p class="text-muted">Программа появится позже.</p>
     {% endif %}
-
   </div>
 </section>
 
 
+
 <!-- ============================
-         ИНСТРУКТОР
+           INSTRUCTOR
 ============================ -->
-<section class="section">
+<section class="section fade-up">
   <div class="container">
     <h2 class="section-title">Инструктор</h2>
 
-    <div class="instructor-card">
-      <div class="text-center">
-        <img src="{{ teacher_profile.avatar.url|default:'/static/img/avatar-placeholder.svg' }}"
-             alt="Инструктор">
+    <div class="instructor-card-xl">
 
-        <h4 class="fw-bold mt-3">{{ teacher.get_full_name }}</h4>
-        <p class="text-muted">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
+      <img
+        src="{{ teacher_profile.avatar.url|default:'/static/img/avatar-placeholder.svg' }}"
+        alt="Инструктор"
+        class="instructor-photo-xl"
+      >
 
-        <p class="text-muted small">{{ teacher_profile.bio|truncatewords:30 }}</p>
+      <div class="instructor-info-xl">
+        <h4 class="instructor-name">{{ teacher.get_full_name }}</h4>
+        <p class="instructor-role">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
+        <p class="instructor-bio">
+          {{ teacher_profile.bio|truncatewords:40 }}
+        </p>
       </div>
+
     </div>
   </div>
 </section>
 
 
+
 <!-- ============================
-         ОТЗЫВЫ
+           REVIEWS
 ============================ -->
-<section class="section bg-light">
+<section class="section bg-light fade-up">
   <div class="container">
     <h2 class="section-title">Отзывы студентов</h2>
 
     {% if reviews %}
-    <div class="testimonials-grid">
+    <div class="reviews-grid">
       {% for review in reviews %}
-      <div class="testimonial-card">
-        <p>“{{ review.comment|truncatewords:25 }}”</p>
-        <div class="small text-muted mt-3">
-          — {{ review.name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}
+      <div class="review-card">
+        <p class="review-text">“{{ review.comment|truncatewords:25 }}”</p>
+        <div class="review-author">
+          <span class="review-name">
+            — {{ review.name|default:"Аноним" }}
+          </span>
+          <span class="review-date">
+            {{ review.created_at|date:"d M Y" }}
+          </span>
         </div>
       </div>
       {% endfor %}
@@ -159,8 +178,9 @@
     {% else %}
       <p class="text-muted">Пока нет отзывов.</p>
     {% endif %}
-
   </div>
 </section>
+
+
 
 {% endblock %}

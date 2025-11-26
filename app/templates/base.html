@@ -6,10 +6,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}SkillsSpire — Академические онлайн-курсы{% endblock %}</title>
+  <title>{% block title %}SkillsSpire - Онлайн-курсы{% endblock %}</title>
 
-  <meta property="og:title" content="{% block og_title %}SkillsSpire — Академические онлайн-курсы{% endblock %}">
-  <meta property="og:description" content="{% block og_description %}Учитесь у преподавателей с PhD. Академические курсы, сертификаты, фундаментальные знания.{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}SkillsSpire - Онлайн-курсы{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Освойте востребованные навыки с лучшими экспертами. Практические курсы с гарантией результата.{% endblock %}">
   <meta property="og:image" content="{% block og_image %}{% static 'img/og-default.jpg' %}{% endblock %}">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
   <meta property="og:type" content="website">
@@ -21,114 +21,113 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="{% static 'css/main.css' %}?v={{ now|date:'U' }}">
-
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?force={{ now|date:'U' }}">
+  
   <!-- AI Widget CSS -->
   <link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}">
-
+  
   <style>
-    #ai-bubble { z-index: 1300; }
-    .mskt { bottom: 88px; }
-    @media (max-width:480px){ .mskt { bottom: 100px; } }
-
-    /* Premium academic minimalism */
-    .nav-brand {
-      display: flex; 
-      align-items: center;
-      gap: .5rem;
-      font-size: 1.25rem;
-      font-weight: 700;
-      white-space: nowrap;
+    #ai-bubble{ z-index:1300; }
+    .mskt{ bottom:88px; }
+    @media (max-width:480px){ .mskt{ bottom:100px; } }
+    
+    /* Анимация махания для маскота */
+    @keyframes mskt-wave {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-5deg) scale(1.05); }
+      50% { transform: rotate(5deg) scale(1.05); }
+      75% { transform: rotate(-3deg) scale(1.03); }
     }
+
+    /* 🔹 Фикс для логотипа */
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem; /* расстояние между логотипом и текстом */
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--color-text, #000);
+      text-decoration: none;
+    }
+
     .nav-brand img {
+      display: block;
       height: 40px;
       width: auto;
     }
-  </style>
 
+    .nav-brand span {
+      white-space: nowrap;
+    }
+  </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
 
 {% include "components/mascot_snowleopard.html" %}
 
-<!-- ===============================
-           NAVIGATION (Coursera style)
-================================ -->
 <nav class="main-nav">
   <div class="container nav-container">
-
-    <!-- LOGO -->
     <a class="nav-brand" href="{% url 'home' %}">
-      <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire" />
-      <span>SkillsSpire</span>
+      <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire" width="40" height="40">
     </a>
-
-    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
 
     <div class="nav-menu" id="navMenu">
       <div class="nav-menu-inner">
-
-        <!-- MAIN NAVIGATION -->
         <ul class="nav-list">
-          <li><a href="{% url 'home' %}">Главная</a></li>
-          <li><a href="{% url 'courses_list' %}">Все курсы</a></li>
-          <li><a href="{% url 'articles_list' %}">Статьи</a></li>
-          <li><a href="{% url 'materials_list' %}">Материалы</a></li>
-          <li><a href="{% url 'about' %}">О нас</a></li>
-          <li><a href="{% url 'contact' %}">Контакты</a></li>
-
+          <li><a class="nav-link" href="{% url 'home' %}">Главная</a></li>
+          <li><a class="nav-link" href="{% url 'courses_list' %}">Все курсы</a></li>
+          <li><a class="nav-link" href="{% url 'articles_list' %}">Статьи</a></li>
+          <li><a class="nav-link" href="{% url 'materials_list' %}">Материалы</a></li>
+          <li><a class="nav-link" href="{% url 'about' %}">О нас</a></li>
+          <li><a class="nav-link" href="{% url 'contact' %}">Контакты</a></li>
           {% if user.is_authenticated and user.is_instructor %}
-          <li class="nav-highlight">
-            <a href="{% url 'course_create' %}"><i class="bi bi-plus-circle"></i> Создать курс</a>
-          </li>
+          <li class="nav-highlight"><a class="nav-link" href="{% url 'course_create' %}"><i class="bi bi-plus-circle"></i> Создать курс</a></li>
           {% endif %}
         </ul>
 
-        <!-- RIGHT SIDE: SEARCH + PROFILE -->
         <div class="nav-actions">
-
-          <!-- SEARCH -->
-          <form class="nav-search" method="get" action="{% url 'courses_list' %}">
+          <form class="nav-search" action="{% url 'courses_list' %}" method="get">
             <input type="search" name="q" placeholder="Поиск курсов...">
-            <button type="submit"><i class="bi bi-search"></i></button>
+            <button type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
           </form>
 
           {% if user.is_authenticated %}
+          <div class="nav-notifications">
+            <button class="nav-icon-btn is-disabled"
+                    type="button"
+                    title="Уведомления скоро появятся"
+                    aria-disabled="true"
+                    disabled>
+              <i class="bi bi-bell"></i>
+            </button>
+          </div>
 
-          <!-- NO NOTIFICATIONS YET -->
-          <button class="nav-icon-btn is-disabled" disabled title="Уведомления скоро появятся">
-            <i class="bi bi-bell"></i>
-          </button>
-
-          <!-- USER PROFILE -->
           <div class="nav-user dropdown">
-            <button class="nav-user-btn">
+            <button class="nav-user-btn" aria-haspopup="true" aria-expanded="false">
               {% if user.is_instructor and user.instructor_profile.avatar %}
-                <img src="{{ user.instructor_profile.avatar.url }}" width="32" height="32" style="border-radius:50%;">
+                <img src="{{ user.instructor_profile.avatar.url }}" alt="{{ user.get_full_name }}" width="32" height="32" style="border-radius:50%;object-fit:cover;">
               {% else %}
                 <div class="nav-user-avatar">{{ user.first_name|first|default:user.email|first|upper }}</div>
               {% endif %}
               <span>{{ user.first_name|default:user.email }}</span>
               <i class="bi bi-chevron-down"></i>
             </button>
-
             <div class="dropdown-menu">
               <h6>Мой аккаунт</h6>
               <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Дашборд</a>
               <a href="{% url 'my_courses' %}"><i class="bi bi-book"></i> Мои курсы</a>
-
               <div class="dropdown-divider"></div>
-
-              <!-- REMOVE "SETTINGS" ✔ -->
-              <!-- <a><i class="bi bi-gear"></i> Настройки</a> — удалено -->
-
-              <form action="{% url 'logout' %}" method="post">{% csrf_token %}
+              <a href="#"><i class="bi bi-gear"></i> Настройки</a>
+              <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
                 <button type="submit"><i class="bi bi-box-arrow-right"></i> Выйти</button>
               </form>
             </div>
           </div>
-
           {% else %}
           <div class="nav-auth">
             <a href="{% url 'signup' %}" class="btn btn-outline">Регистрация</a>
@@ -136,27 +135,24 @@
           </div>
           {% endif %}
 
-          <!-- LANGUAGE + THEME -->
           <div class="nav-utils">
-            <form method="post" action="{% url 'set_language' %}">{% csrf_token %}
+            <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
               {% get_current_language as LANGUAGE_CODE %}
               <input type="hidden" name="next" value="{{ request.path }}">
-              <select name="language" onchange="this.form.submit()">
+              <select name="language" onchange="this.form.submit()" aria-label="Language">
                 <option value="ru" {% if LANGUAGE_CODE == 'ru' %}selected{% endif %}>RU</option>
                 <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>EN</option>
                 <option value="kz" {% if LANGUAGE_CODE == 'kz' %}selected{% endif %}>KZ</option>
               </select>
             </form>
-            <button id="themeToggle" class="theme-toggle">🌙</button>
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">🌙</button>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </nav>
 
-<!-- MESSAGES -->
 {% if messages %}
 <div class="messages-container">
   <div class="container">
@@ -169,7 +165,7 @@
         {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
         <span>{{ message }}</span>
       </div>
-      <button class="alert-close">&times;</button>
+      <button class="alert-close" aria-label="Close">&times;</button>
     </div>
     {% endfor %}
   </div>
@@ -180,16 +176,20 @@
   {% block content %}{% endblock %}
 </main>
 
-<!-- FOOTER -->
 <footer class="main-footer">
   <div class="container">
     <div class="footer-grid">
-
       <div class="footer-col">
         <a class="footer-brand" href="{% url 'home' %}">
           <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire">
         </a>
-        <p>Академическая платформа онлайн-обучения.</p>
+        <p>Платформа для онлайн-обучения с лучшими курсами от экспертов рынка.</p>
+        <div class="footer-social">
+          <a href="#"><i class="bi bi-telegram"></i></a>
+          <a href="#"><i class="bi bi-whatsapp"></i></a>
+          <a href="#"><i class="bi bi-youtube"></i></a>
+          <a href="#"><i class="bi bi-instagram"></i></a>
+        </div>
       </div>
 
       <div class="footer-col">
@@ -215,7 +215,8 @@
       </div>
 
       <div class="footer-col">
-        <h5>Подписка</h5>
+        <h5>Подписка на рассылку</h5>
+        <p>Подпишитесь, чтобы получать новости о курсах.</p>
         <form class="footer-subscribe">
           <input type="email" placeholder="Ваш email">
           <button type="submit">Подписаться</button>
@@ -223,31 +224,87 @@
       </div>
     </div>
 
-    <div class="footer-bottom">
-      <p>© 2025 SkillsSpire. Все права защищены.</p>
+  <div class="footer-bottom">
+    <div class="footer-info">
+      <p>ТОО «SkillsSpire» — 240440040785, Казахстан, г. Астана</p>
+      <p>E-mail: <a href="mailto:support@skillsspire.com">support@skillsspire.com</a> | Тел: <a href="tel:+77012925568">+7 (701) 292-55-68</a></p>
+    </div>
+    <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
+    <div class="footer-payments">
+      <img src="{% static 'img/payments/visa.png' %}" alt="Visa">
+      <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard">
     </div>
   </div>
 </footer>
 
 <!-- AI Widget HTML -->
-<div id="ai-bubble" class="ai-floating"></div>
+<div id="ai-bubble" class="ai-floating" title="ИИ помощник SkillsSpire"></div>
 <div id="ai-panel">
   <div id="ai-header">
-    <span>🤖 ИИ помощник</span>
+    <span>🤖 ИИ помощник SkillsSpire</span>
     <button id="ai-close">✕</button>
   </div>
   <div id="ai-messages">
-    <div class="ai-msg ai-bot">Привет! Чем могу помочь? 🎓</div>
+    <div class="ai-msg ai-bot">
+      Привет! Я ваш помощник по курсам SkillsSpire. Чем могу помочь? 🎓
+    </div>
   </div>
+  <div id="ai-status"></div>
   <div id="ai-inputbar">
-    <textarea id="ai-text" placeholder="Задайте вопрос..." rows="1"></textarea>
+    <textarea id="ai-text" placeholder="Задайте вопрос о курсах..." rows="1"></textarea>
     <button id="ai-send">➤</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
-<script src="{% static 'js/main.js' %}" defer></script>
+<script defer src="{% static 'js/main.js' %}"></script>
+
+<!-- AI Widget JS -->
 <script src="{% static 'ai-widget/ai-widget.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Интеграция маскота с ИИ-помощником
+  const mskt = document.querySelector('.mskt');
+  const msktImage = document.querySelector('.mskt-image');
+  const aiBubble = document.getElementById('ai-bubble');
+  
+  if (msktImage && aiBubble) {
+    // Клик по маскоту открывает ИИ-помощник
+    msktImage.addEventListener('click', function() {
+      if (window.aiAssistant) {
+        window.aiAssistant.togglePanel();
+      } else {
+        const bubble = document.querySelector('.mskt-bubble');
+        if (bubble) {
+          bubble.textContent = 'Открываю помощника...';
+          setTimeout(() => {
+            aiBubble.click();
+            bubble.textContent = 'Нужна помощь?';
+          }, 500);
+        }
+      }
+    });
+    
+    // Анимация "махания"
+    msktImage.addEventListener('mouseenter', function() {
+      this.style.animation = 'mskt-wave 0.5s ease-in-out';
+    });
+    
+    msktImage.addEventListener('animationend', function() {
+      this.style.animation = 'mskt-idle 3.6s ease-in-out infinite';
+    });
+  }
+  
+  if (aiBubble) {
+    aiBubble.addEventListener('click', function() {
+      if (msktImage) {
+        msktImage.style.animation = 'mskt-wave 0.5s ease-in-out';
+      }
+    });
+  }
+});
+</script>
 
 {% block extra_js %}{% endblock %}
 </body>
