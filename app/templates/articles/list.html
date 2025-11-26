@@ -4,158 +4,224 @@
 {% block title %}Все статьи — SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="articles-container container py-5">
 
-  <!-- Заголовок -->
-  <div class="text-center mb-5">
-    <h1 class="fw-bold mb-3" style="font-size: 2rem;">Полезные статьи</h1>
-    <p class="text-muted" style="font-size: 1.1rem;">
-      Актуальные материалы по финансам, аналитике, менеджменту и карьерному росту
-    </p>
+<section class="articles-hero">
+  <div class="container">
+    <h1>Полезные статьи</h1>
+    <p>Лучшие материалы по аналитике, финансам, IT и карьерному росту</p>
   </div>
+</section>
 
-  {% if articles %}
-    <!-- Featured статья (только текст) -->
-    <div class="featured-article mb-5 p-4">
+<section class="articles-section">
+  <div class="container">
+
+    {% if articles %}
+
+      <!-- FEATURED -->
       {% with first=articles.0 %}
-      <a href="{% url 'article_detail' first.slug %}" class="featured-link">
+      <a href="{% url 'article_detail' first.slug %}" class="featured-modern">
+        <div class="fm-content">
 
-        <div class="featured-text">
           {% if first.category %}
-            <span class="badge bg-primary mb-3">{{ first.category.name }}</span>
+            <span class="fm-badge">{{ first.category.name }}</span>
           {% endif %}
 
-          <h2 class="featured-title">{{ first.title }}</h2>
+          <h2 class="fm-title">{{ first.title }}</h2>
 
-          <p class="featured-excerpt">
-            {{ first.excerpt|truncatewords:50 }}
-          </p>
+          <p class="fm-excerpt">{{ first.excerpt|truncatewords:40 }}</p>
 
-          <span class="read-more">Читать статью →</span>
+          <span class="fm-read">Читать статью →</span>
         </div>
 
+        <div class="fm-bg"></div>
       </a>
       {% endwith %}
-    </div>
 
-    <!-- Сетка статей без картинок -->
-    <div class="articles-grid">
-      {% for article in articles|slice:"1:" %}
-        <article class="article-card p-4">
+      <!-- GRID -->
+      <div class="articles-modern-grid">
+        {% for article in articles|slice:"1:" %}
+        <a href="{% url 'article_detail' article.slug %}" class="article-modern-card">
 
-          <a href="{% url 'article_detail' article.slug %}" class="article-link">
+          {% if article.category %}
+            <span class="am-badge">{{ article.category.name }}</span>
+          {% endif %}
 
-            {% if article.category %}
-              <span class="badge bg-primary mb-3">{{ article.category.name }}</span>
-            {% endif %}
+          <h3 class="am-title">{{ article.title }}</h3>
 
-            <h3 class="article-title">{{ article.title }}</h3>
+          <p class="am-date">
+            <i class="bi bi-calendar3"></i>
+            {{ article.published_at|date:"d M Y" }}
+          </p>
 
-            <p class="date">
-              <i class="bi bi-calendar3 me-1"></i>
-              {% if article.published_at %}
-                {{ article.published_at|date:"d E Y" }}
-              {% endif %}
-            </p>
+          <p class="am-excerpt">{{ article.excerpt|truncatewords:22 }}</p>
 
-            <p class="excerpt">{{ article.excerpt|default:"Описание появится позже." }}</p>
+          <span class="am-read">Читать →</span>
 
-            <span class="read-more mt-2 d-inline-block">Читать статью →</span>
+        </a>
+        {% endfor %}
+      </div>
 
-          </a>
+    {% else %}
+      <div class="empty-box">
+        <i class="bi bi-file-text"></i>
+        <h3>Статьи скоро появятся</h3>
+        <p>Мы уже работаем над новым контентом!</p>
+      </div>
+    {% endif %}
 
-        </article>
-      {% endfor %}
-    </div>
-
-  {% else %}
-    <div class="text-center py-5">
-      <i class="bi bi-file-text" style="font-size: 3rem; color: var(--color-border)"></i>
-      <h4 class="text-muted mt-3">Статьи скоро появятся</h4>
-      <p class="text-muted">Мы готовим для вас полезные материалы</p>
-    </div>
-  {% endif %}
-</div>
+  </div>
+</section>
 
 {% endblock %}
 
+
 {% block extra_css %}
 <style>
-/* Контейнер */
-.articles-container {
-  max-width: 1100px;
-}
 
-/* Featured статья — теперь без картинки */
-.featured-article {
-  border-radius: 14px;
-  border: 1px solid var(--color-border);
-  background: var(--bs-light);
-  box-shadow: var(--shadow-sm);
+/* HERO */
+.articles-hero {
+  padding: 4rem 0 3rem;
+  text-align: center;
 }
-
-.featured-title {
-  font-size: 1.7rem;
-  font-weight: 700;
-  margin-bottom: 12px;
+.articles-hero h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: .75rem;
 }
-
-.featured-excerpt {
-  font-size: 1.1rem;
+.articles-hero p {
+  font-size: 1.15rem;
   color: var(--color-text-secondary);
-  margin-bottom: 18px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.featured-link {
+/* FEATURED ARTICLE */
+.featured-modern {
+  display: flex;
+  position: relative;
+  padding: 2.6rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: #fff;
+  margin-bottom: 3rem;
+  overflow: hidden;
   text-decoration: none;
-  color: inherit;
-  display: block;
+  box-shadow: var(--shadow-lg);
+}
+.fm-content {
+  position: relative;
+  z-index: 2;
+  max-width: 580px;
+}
+.fm-badge {
+  background: rgba(255,255,255,.2);
+  padding: .4rem .9rem;
+  font-size: .85rem;
+  border-radius: 999px;
+  display: inline-block;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(4px);
+}
+.fm-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin-bottom: .75rem;
+}
+.fm-excerpt {
+  font-size: 1.1rem;
+  opacity: .9;
+  margin-bottom: 1.2rem;
+}
+.fm-read {
+  font-weight: 600;
+  font-size: 1.05rem;
 }
 
-/* Сетка */
-.articles-grid {
+/* Decorative ellipse */
+.fm-bg {
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 260px;
+  height: 260px;
+  background: rgba(255,255,255,.12);
+  filter: blur(25px);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* GRID */
+.articles-modern-grid {
   display: grid;
   gap: 28px;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
-/* Карточка */
-.article-card {
-  border-radius: 14px;
-  border: 1px solid var(--color-border);
+/* CARD */
+.article-modern-card {
+  display: block;
+  padding: 1.7rem 1.9rem;
+  border-radius: 18px;
   background: #fff;
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
-  transition: var(--transition);
+  text-decoration: none;
+  color: inherit;
+  transition: all .25s ease;
 }
-
-.article-card:hover {
-  transform: translateY(-4px);
+.article-modern-card:hover {
+  transform: translateY(-6px);
   box-shadow: var(--shadow-md);
 }
 
-.article-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.excerpt {
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: var(--color-text-secondary);
-  max-height: 65px;
-  overflow: hidden;
-}
-
-.read-more {
+.am-badge {
+  background: rgba(1,52,157,.08);
+  color: var(--color-primary);
+  padding: .35rem .8rem;
+  border-radius: 999px;
+  font-size: .8rem;
   font-weight: 600;
-  color: var(--bs-primary);
+  display: inline-block;
+  margin-bottom: .7rem;
 }
 
-.date {
-  font-size: 0.85rem;
+.am-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: .5rem;
+}
+
+.am-date {
+  font-size: .85rem;
   color: var(--color-text-tertiary);
-  margin-bottom: 8px;
+  margin-bottom: .8rem;
+}
+
+.am-excerpt {
+  font-size: .95rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.am-read {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* EMPTY STATE */
+.empty-box {
+  text-align: center;
+  padding: 4rem 0;
+}
+.empty-box i {
+  font-size: 3rem;
+  color: var(--color-border);
+  margin-bottom: 1rem;
+}
+.empty-box h3 {
+  font-weight: 700;
+  margin-bottom: .5rem;
 }
 
 </style>
