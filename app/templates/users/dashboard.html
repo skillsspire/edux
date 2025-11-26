@@ -4,154 +4,315 @@
 {% block title %}{% trans "My Dashboard" %} — SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="dashboard-container container py-4">
 
-  <div class="section-header">
-    <h1 class="mb-2">{% trans "My Dashboard" %}</h1>
-    <p class="text-muted">{% trans "Track your progress and continue learning." %}</p>
-  </div>
+    <!-- Левая + правая колонка -->
+    <div class="dashboard-layout">
 
-  {# -------- Статистика -------- #}
-  <section class="dashboard-stats mb-4">
-    <ul class="stats-grid">
-      <li class="stat-card">
-        <div class="stat-value">{{ total_courses|default:0 }}</div>
-        <div class="stat-label">{% trans "Enrolled courses" %}</div>
-      </li>
-      <li class="stat-card">
-        <div class="stat-value">{{ completed_courses|default:0 }}</div>
-        <div class="stat-label">{% trans "Completed courses" %}</div>
-      </li>
-      <li class="stat-card">
-        <div class="stat-value">{{ total_lessons|default:0 }}</div>
-        <div class="stat-label">{% trans "Lessons visited" %}</div>
-      </li>
-      <li class="stat-card">
-        <div class="stat-value">{{ completed_lessons|default:0 }}</div>
-        <div class="stat-label">{% trans "Lessons completed" %}</div>
-      </li>
-    </ul>
-  </section>
+        <!-- =============== ЛЕВАЯ КОЛОНКА (контент) =============== -->
+        <div class="dashboard-main">
 
-  <h2 class="h4 mb-3">{% trans "My Courses" %}</h2>
-
-  {% if enrollments %}
-    <div class="courses-grid">
-      {% for e in enrollments %}
-        {% with c=e.course %}
-        {% with p=progress_map|get_item:c.id|default:0 %}
-        <div class="course-card">
-          {% if c.thumbnail and c.thumbnail.name %}
-            <img src="{{ c.thumbnail.url }}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
-          {% elif c.image and c.image.name %}
-            <img src="{{ c.image.url }}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
-          {% else %}
-            <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
-          {% endif %}
-
-          <div class="course-card-content">
-            <span class="course-category">
-              {% trans "Instructor:" %}
-              {% if c.instructor %}
-                {{ c.instructor.get_full_name|default:c.instructor.username }}
-              {% else %}
-                SkillsSpire
-              {% endif %}
-            </span>
-
-            <h3 class="course-card-title">{{ c.title }}</h3>
-
-            <div class="course-card-meta">
-              <div class="progressbar" role="progressbar"
-                   aria-label="{% trans 'Course progress' %}"
-                   aria-valuenow="{{ p }}" aria-valuemin="0" aria-valuemax="100"
-                   title="{{ p }}%">
-                <span class="bar" data-w="{{ p }}"></span>
-              </div>
-              <small class="text-muted">{{ p }}% {% trans "completed" %}</small>
+            <!-- Заголовок -->
+            <div class="dash-header mb-4">
+                <h1 class="h2 fw-bold">{% trans "My Dashboard" %}</h1>
+                <p class="text-muted">{% trans "Track your progress and continue learning." %}</p>
             </div>
 
-            {% if e.completed %}
-              <p class="text-success mb-2">{% trans "Completed" %}</p>
+            <!-- Статистика -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_courses|default:0 }}</div>
+                    <div class="stat-label">{% trans "Enrolled courses" %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ completed_courses|default:0 }}</div>
+                    <div class="stat-label">{% trans "Completed courses" %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_lessons|default:0 }}</div>
+                    <div class="stat-label">{% trans "Lessons visited" %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ completed_lessons|default:0 }}</div>
+                    <div class="stat-label">{% trans "Lessons completed" %}</div>
+                </div>
+            </div>
+
+            <!-- Мои курсы -->
+            <h2 class="h4 fw-bold mt-4 mb-3">{% trans "My Courses" %}</h2>
+
+            {% if enrollments %}
+            <div class="courses-grid">
+                {% for e in enrollments %}
+                {% with c=e.course %}
+                {% with p=progress_map|get_item:c.id|default:0 %}
+                <div class="course-card">
+
+                    <!-- Картинка курса -->
+                    {% if c.thumbnail and c.thumbnail.name %}
+                        <img src="{{ c.thumbnail.url }}" class="course-card-img" alt="{{ c.title }}">
+                    {% elif c.image and c.image.name %}
+                        <img src="{{ c.image.url }}" class="course-card-img" alt="{{ c.title }}">
+                    {% else %}
+                        <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ c.title }}">
+                    {% endif %}
+
+                    <div class="course-card-content">
+                        <span class="course-category">
+                            {% trans "Instructor" %}:
+                            {% if c.instructor %}
+                                {{ c.instructor.get_full_name|default:c.instructor.username }}
+                            {% else %}
+                                SkillsSpire
+                            {% endif %}
+                        </span>
+
+                        <h3 class="course-card-title">{{ c.title }}</h3>
+
+                        <div class="course-progress-block">
+                            <div class="progressbar" aria-label="{% trans 'Course progress' %}">
+                                <span class="bar" data-w="{{ p }}"></span>
+                            </div>
+                            <small class="text-muted">{{ p }}% {% trans "completed" %}</small>
+                        </div>
+                    </div>
+
+                    <div class="course-card-footer">
+                        <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
+                            {% if e.completed %}{% trans "View course" %}{% else %}{% trans "Continue learning" %}{% endif %}
+                        </a>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endwith %}
+                {% endfor %}
+            </div>
+
             {% else %}
-              <p class="text-muted mb-2">{% trans "In progress" %}</p>
-            {% endif %}
-          </div>
-
-          <div class="course-card-footer">
-            <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
-              {% if e.completed %}{% trans "View course" %}{% else %}{% trans "Continue learning" %}{% endif %}
-            </a>
-          </div>
-        </div>
-        {% endwith %}
-        {% endwith %}
-      {% endfor %}
-    </div>
-
-  {% elif my_courses %}
-    <div class="courses-grid">
-      {% for c in my_courses %}
-        {% with p=progress_map|get_item:c.id|default:0 %}
-        <div class="course-card">
-          {% if c.thumbnail and c.thumbnail.name %}
-            <img src="{{ c.thumbnail.url }}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
-          {% elif c.image and c.image.name %}
-            <img src="{{ c.image.url }}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
-          {% else %}
-            <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ c.title }}" loading="lazy">
-          {% endif %}
-
-          <div class="course-card-content">
-            <span class="course-category">
-              {% trans "Instructor:" %}
-              {% if c.instructor %}
-                {{ c.instructor.get_full_name|default:c.instructor.username }}
-              {% else %}
-                SkillsSpire
-              {% endif %}
-            </span>
-
-            <h3 class="course-card-title">{{ c.title }}</h3>
-
-            <div class="course-card-meta">
-              <div class="progressbar" role="progressbar"
-                   aria-label="{% trans 'Course progress' %}"
-                   aria-valuenow="{{ p }}" aria-valuemin="0" aria-valuemax="100"
-                   title="{{ p }}%">
-                <span class="bar" data-w="{{ p }}"></span>
-              </div>
-              <small class="text-muted">{{ p }}% {% trans "completed" %}</small>
+            <div class="empty-state">
+                <p class="mb-2">{% trans "You are not enrolled in any courses yet." %}</p>
+                <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse Courses" %}</a>
             </div>
-          </div>
-
-          <div class="course-card-footer">
-            <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
-              {% trans "Continue learning" %}
-            </a>
-          </div>
+            {% endif %}
         </div>
-        {% endwith %}
-      {% endfor %}
-    </div>
 
-  {% else %}
-    <div class="empty-state">
-      <p class="mb-2">{% trans "You are not enrolled in any courses yet." %}</p>
-      <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse Courses" %}</a>
+        <!-- =============== ПРАВАЯ КОЛОНКА =============== -->
+        <aside class="dashboard-sidebar">
+
+            <!-- Профиль -->
+            <div class="sidebar-card profile-card">
+                <div class="profile-avatar">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="">
+                    {% else %}
+                        <span>{{ user.first_name|first|default:"U" }}</span>
+                    {% endif %}
+                </div>
+
+                <h4 class="profile-name">{{ user.get_full_name|default:user.username }}</h4>
+                <p class="profile-email text-muted">{{ user.email }}</p>
+
+                <a href="{% url 'profile_settings' %}" class="btn btn-outline btn-full mt-2">
+                    ⚙️ {% trans "Settings" %}
+                </a>
+            </div>
+
+            <!-- Статистика прогресса -->
+            <div class="sidebar-card">
+                <h4 class="sidebar-title">{% trans "Progress overview" %}</h4>
+
+                <ul class="progress-list">
+                    <li>
+                        <span>{% trans "Courses completed" %}</span>
+                        <strong>{{ completed_courses }}</strong>
+                    </li>
+                    <li>
+                        <span>{% trans "Lessons completed" %}</span>
+                        <strong>{{ completed_lessons }}</strong>
+                    </li>
+                    <li>
+                        <span>{% trans "Active courses" %}</span>
+                        <strong>{{ total_courses }}</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Наставник -->
+            <div class="sidebar-card mentor-card">
+                <h4 class="sidebar-title">{% trans "Your mentor" %}</h4>
+
+                <div class="mentor-block">
+                    <img src="{% static 'img/mentor-default.png' %}" class="mentor-avatar" alt="">
+                    <div>
+                        <div class="mentor-name">SkillsSpire Mentor</div>
+                        <div class="mentor-role text-muted">{% trans "Support" %}</div>
+                    </div>
+                </div>
+
+                <a href="mailto:support@skillsspire.com"
+                   class="btn btn-primary btn-full mt-2">📩 {% trans "Contact mentor" %}</a>
+            </div>
+
+        </aside>
+
     </div>
-  {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ====== ЛЕЙАУТ ====== */
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ====== СТАТИСТИКА ====== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+.stat-label {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+/* ====== ПРАВАЯ КОЛОНКА ====== */
+.dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebar-card {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-title {
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+/* ====== ПРОФИЛЬ ====== */
+.profile-card {
+    text-align: center;
+}
+
+.profile-avatar {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    background: var(--color-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+/* ====== СТАТЫ В СТОРОНЕ ====== */
+.progress-list {
+    list-style: none;
+    padding: 0;
+}
+
+.progress-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    font-size: 1rem;
+}
+
+/* ====== НАСТАВНИК ====== */
+.mentor-block {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.mentor-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.mentor-name {
+    font-weight: 700;
+}
+
+/* ====== ПРОГРЕСС БАР ====== */
+.progressbar {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+
+.progressbar .bar {
+    display: block;
+    height: 100%;
+    background: var(--color-primary);
+    width: 0%;
+    transition: width .4s ease;
+}
+
+.course-progress-block {
+    margin-top: auto;
+}
+
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  // Проставляем ширину прогресс-бара из data-w (устраняет ошибки CSS в шаблоне)
-  document.querySelectorAll('.progressbar .bar').forEach(function(el){
-    var v = Number(el.dataset.w || 0);
-    if (isNaN(v)) v = 0;
-    v = Math.max(0, Math.min(100, v));
-    el.style.width = v + '%';
-  });
+document.querySelectorAll('.progressbar .bar').forEach(el=>{
+    const w = Number(el.dataset.w || 0);
+    el.style.width = Math.max(0, Math.min(100, w)) + '%';
+});
 </script>
 {% endblock %}
