@@ -647,6 +647,10 @@ def dashboard(request):
 # ---------- reviews & wishlist ----------
 
 @login_required
+def profile_settings(request):
+    return render(request, "users/profile_settings.html", {})
+
+@login_required
 def add_review(request, slug):
     course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
 

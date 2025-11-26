@@ -6,13 +6,13 @@ from django.conf.urls.static import static
 
 from .forms import EmailAuthenticationForm
 from . import views
-from app.admin import admin_site  # ✅ добавляем
+from app.admin import admin_site  # кастомная админка
 
 kaspi_secret = getattr(settings, "KASPI_WEBHOOK_SECRET", "dev-secret")
 
 urlpatterns = [
     # --- Админка ---
-    path("admin/", admin_site.urls),  # ✅ используем кастомную админку
+    path("admin/", admin_site.urls),
 
     # --- Главная и статические страницы ---
     path("", views.home, name="home"),
@@ -41,6 +41,9 @@ urlpatterns = [
     # --- Пользовательский кабинет ---
     path("my-courses/", views.my_courses, name="my_courses"),
     path("dashboard/", views.dashboard, name="dashboard"),
+
+    # --- Настройки профиля (исправляет ошибку!) ---
+    path("settings/", views.profile_settings, name="profile_settings"),
 
     # --- Аутентификация ---
     path(
