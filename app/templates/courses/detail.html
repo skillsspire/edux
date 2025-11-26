@@ -4,157 +4,163 @@
 {% block title %}{{ course.title }} — SkillsSpire{% endblock %}
 
 {% block content %}
-{% if course %}
-<section class="course-hero text-white">
-  <div class="container py-5">
-    <span class="badge bg-light text-dark mb-3">{{ course.category.name }}</span>
 
-    <h1 class="fw-bold mb-3">{{ course.title }}</h1>
+<!-- ============================
+     HERO СОВРЕМЕННОГО ТИПА
+============================ -->
+<section class="modern-hero">
+  <div class="container">
+    <div class="hero-inner">
 
-    <p class="lead text-white-50 mb-4">
-      {{ course.short_description }}
-    </p>
+      <!-- ЛЕВАЯ ЧАСТЬ -->
+      <div class="hero-left">
+        <span class="course-badge">{{ course.category.name }}</span>
 
-    <ul class="list-inline mb-4 text-white-50">
-      <li class="list-inline-item me-4"><i class="bi bi-award"></i> Сертификат</li>
-      <li class="list-inline-item"><i class="bi bi-phone"></i> Доступ 24/7</li>
-    </ul>
+        <h1 class="course-title">{{ course.title }}</h1>
 
-    <div class="d-flex flex-wrap gap-3">
-      <button class="btn btn-warning text-dark btn-lg" data-bs-toggle="modal" data-bs-target="#enrollModal">
-        <i class="bi bi-cart me-1"></i> Записаться на курс
-      </button>
+        <p class="course-subtitle">
+          {{ course.short_description }}
+        </p>
 
-      <a href="#program" class="btn btn-outline-light btn-lg">
-        <i class="bi bi-list-ul me-1"></i> Программа курса
-      </a>
-    </div>
-  </div>
-</section>
-
-<section class="price-box">
-  <div class="container py-4">
-    <div class="card price-card shadow-sm mx-auto">
-      <div class="card-body text-center">
-        <div class="h3 fw-bold text-primary mb-3">
-          {{ course.price|floatformat:0|intcomma }} ₸
-        </div>
-
-        <button class="btn btn-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#enrollModal">
-          <i class="bi bi-cart me-1"></i> Записаться
-        </button>
-
-        <button id="wishlistBtn" class="btn btn-outline-primary w-100">
-          <i class="bi bi-heart me-1"></i> Добавить в избранное
-        </button>
-
-        <hr>
-        <ul class="list-unstyled small text-muted text-start">
-          <li>📘 {{ lessons|length }} уроков</li>
-          <li>💾 Материалы для скачивания</li>
-          <li>♾️ Бессрочный доступ</li>
-          <li>📱 Мобильная версия</li>
+        <ul class="hero-features">
           <li>🎓 Сертификат</li>
+          <li>♾️ Бессрочный доступ</li>
+          <li>📱 Мобильный формат</li>
+          <li>💾 Материалы для скачивания</li>
         </ul>
+
+        <div class="hero-actions">
+          <a class="hero-btn hero-btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
+            <i class="bi bi-cart"></i> Записаться
+          </a>
+
+          <a class="hero-btn hero-btn-secondary" href="#program">
+            <i class="bi bi-list-ul"></i> Программа курса
+          </a>
+        </div>
       </div>
+
+      <!-- ПРАВАЯ ЦЕНТРОВАЯ PRICE-CARD -->
+      <div class="hero-right">
+        <div class="course-price-card">
+          <div class="new-price">
+            {{ course.price|floatformat:0|intcomma }} ₸
+          </div>
+
+          <button class="btn btn-primary btn-full mt-3"
+                  data-bs-toggle="modal"
+                  data-bs-target="#enrollModal">
+            <i class="bi bi-cart"></i> Записаться
+          </button>
+
+          <button id="wishlistBtn" class="btn btn-outline btn-full mt-2">
+            <i class="bi bi-heart"></i> В избранное
+          </button>
+
+          <div class="mt-4 small text-start">
+            <ul class="hero-features small">
+              <li>📘 {{ lessons|length }} уроков</li>
+              <li>💾 Скачиваемые материалы</li>
+              <li>♾️ Пожизненный доступ</li>
+              <li>📱 Удобно на телефоне</li>
+              <li>🎓 Сертификат</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
 
-<section class="py-5">
+
+<!-- ============================
+        О КУРСЕ
+============================ -->
+<section class="section">
   <div class="container">
-    <h2 class="fw-bold section-title">О курсе</h2>
-    <div class="fs-5 text-muted">{{ course.description|safe|default:"Описание скоро появится." }}</div>
+    <h2 class="section-title">О курсе</h2>
+
+    <div class="fs-5 text-muted">
+      {{ course.description|safe|default:"Описание скоро появится." }}
+    </div>
   </div>
 </section>
 
-<section id="program" class="py-5 bg-light">
+
+<!-- ============================
+       ПРОГРАММА КУРСА
+============================ -->
+<section id="program" class="section bg-light">
   <div class="container">
-    <h2 class="fw-bold section-title">Программа курса</h2>
+    <h2 class="section-title">Программа курса</h2>
 
     {% if lessons %}
-      <div class="list-group shadow-sm rounded-3 overflow-hidden">
+      <div class="lessons-list">
         {% for lesson in lessons %}
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="mb-1">{{ lesson.title }}</h6>
-              <small class="text-muted">{{ lesson.duration_minutes|default:"" }} мин</small>
-            </div>
-            <span class="badge bg-secondary">Доступно после записи</span>
+        <div class="lesson-item">
+          <div>
+            <h4 class="mb-1">{{ lesson.title }}</h4>
+            <small class="text-muted">{{ lesson.duration_minutes|default:"" }} мин</small>
           </div>
+
+          <span class="badge bg-secondary">Закрыто</span>
+        </div>
         {% endfor %}
       </div>
     {% else %}
       <p class="text-muted">Программа появится позже.</p>
     {% endif %}
+
   </div>
 </section>
 
-<section class="py-5">
+
+<!-- ============================
+         ИНСТРУКТОР
+============================ -->
+<section class="section">
   <div class="container">
-    <h2 class="fw-bold section-title">Инструктор</h2>
+    <h2 class="section-title">Инструктор</h2>
 
-    <div class="card shadow-sm border-0 p-3 instructor-card">
-      <div class="d-flex align-items-center">
-        <img src="{% static 'img/avatar-placeholder.svg' %}"
-             class="rounded-circle me-3"
-             width="80" height="80" alt="Инструктор">
+    <div class="instructor-card">
+      <div class="text-center">
+        <img src="{{ teacher_profile.avatar.url|default:'/static/img/avatar-placeholder.svg' }}"
+             alt="Инструктор">
 
-        <div>
-          <h5 class="fw-bold mb-1">{{ teacher.get_full_name }}</h5>
-          <p class="text-muted mb-1">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
-          <small class="text-muted d-block">{{ teacher_profile.bio|truncatewords:25 }}</small>
-        </div>
+        <h4 class="fw-bold mt-3">{{ teacher.get_full_name }}</h4>
+        <p class="text-muted">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
+
+        <p class="text-muted small">{{ teacher_profile.bio|truncatewords:30 }}</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="py-5 bg-light">
+
+<!-- ============================
+         ОТЗЫВЫ
+============================ -->
+<section class="section bg-light">
   <div class="container">
-    <h2 class="fw-bold section-title">Отзывы студентов</h2>
+    <h2 class="section-title">Отзывы студентов</h2>
 
     {% if reviews %}
-      <div class="row g-4">
-        {% for review in reviews %}
-          <div class="col-md-6 col-lg-4">
-            <div class="card review-card shadow-sm">
-              <div class="card-body">
-                <p class="card-text">“{{ review.comment|truncatewords:28 }}”</p>
-                <div class="small text-muted mt-3">— {{ review.name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}</div>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
+    <div class="testimonials-grid">
+      {% for review in reviews %}
+      <div class="testimonial-card">
+        <p>“{{ review.comment|truncatewords:25 }}”</p>
+        <div class="small text-muted mt-3">
+          — {{ review.name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}
+        </div>
       </div>
+      {% endfor %}
+    </div>
     {% else %}
       <p class="text-muted">Пока нет отзывов.</p>
     {% endif %}
+
   </div>
 </section>
 
-{% endif %}
-{% endblock %}
-
-{% block extra_css %}
-<style>
-.course-hero {
-  background: linear-gradient(135deg, #0046ad, #06b6d4);
-}
-.section-title {
-  border-left: 4px solid #0046ad;
-  padding-left: 10px;
-  margin-bottom: 1.5rem;
-}
-.price-card {
-  max-width: 420px;
-  border-radius: 16px;
-}
-.instructor-card {
-  border-radius: 16px;
-}
-.review-card {
-  border-radius: 16px;
-}
-</style>
 {% endblock %}
