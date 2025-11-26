@@ -4,133 +4,118 @@
 {% block title %}Регистрация - SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-      <div class="card shadow-lg rounded-4">
-        <div class="card-body p-5">
-          <h2 class="card-title text-center mb-4 text-primary fw-bold">Регистрация</h2>
 
-          <form method="post" novalidate>
+<div class="container" style="max-width: 780px; margin: 3rem auto;">
+    <div style="
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border);
+        border-radius: 24px;
+        padding: 3rem 3.5rem;
+        box-shadow: var(--shadow-lg);
+    ">
+
+        <!-- Header -->
+        <h1 style="font-size: 1.9rem; font-weight: 800; margin-bottom: 2rem;">
+            Регистрация
+        </h1>
+
+        <!-- Google auth -->
+        <a href="{% url 'social:begin' 'google-oauth2' %}"
+           style="
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             gap: 10px;
+             background: #fff;
+             border: 1px solid var(--color-border);
+             border-radius: 14px;
+             padding: 0.9rem 1rem;
+             margin-bottom: 1.6rem;
+             font-weight: 600;
+             box-shadow: var(--shadow-sm);
+           ">
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="22">
+            Войти через Google
+        </a>
+
+        <div style="text-align:center; color:var(--color-text-tertiary); margin:1.2rem 0;">
+            или
+        </div>
+
+        <form method="post" novalidate>
             {% csrf_token %}
 
             {% if form.non_field_errors %}
-            <div class="alert alert-danger py-2">
-              {% for error in form.non_field_errors %}
-                {{ error }}
-              {% endfor %}
+            <div style="
+                background: var(--color-error-bg);
+                color: var(--color-error-text);
+                padding: .75rem 1rem;
+                border-radius: var(--radius-md);
+                margin-bottom: 1.2rem;">
+                {{ form.non_field_errors }}
             </div>
             {% endif %}
 
             <!-- Username -->
-            <div class="mb-3">
-              <label for="{{ form.username.id_for_label }}" class="form-label">Имя пользователя</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
-                {{ form.username|add_class:"form-control"|attr:"placeholder:Введите имя пользователя"|attr:"autocomplete:username" }}
-              </div>
-              {% for error in form.username.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
+            <div style="margin-bottom: 1rem;">
+                <label class="form-label">Имя пользователя</label>
+                {{ form.username|add_class:"reg-input"|attr:"placeholder:Введите имя пользователя" }}
             </div>
 
             <!-- Email -->
-            <div class="mb-3">
-              <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
-                {{ form.email|add_class:"form-control"|attr:"placeholder:you@example.com"|attr:"autocomplete:email" }}
-              </div>
-              {% for error in form.email.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
+            <div style="margin-bottom: 1rem;">
+                <label class="form-label">Email</label>
+                {{ form.email|add_class:"reg-input"|attr:"placeholder:you@example.com" }}
             </div>
 
-            <!-- Name -->
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="{{ form.first_name.id_for_label }}" class="form-label">Имя</label>
-                {{ form.first_name|add_class:"form-control"|attr:"placeholder:Иван"|attr:"autocomplete:given-name" }}
-                {% for error in form.first_name.errors %}
-                <div class="text-danger small mt-1">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="{{ form.last_name.id_for_label }}" class="form-label">Фамилия</label>
-                {{ form.last_name|add_class:"form-control"|attr:"placeholder:Иванов"|attr:"autocomplete:family-name" }}
-                {% for error in form.last_name.errors %}
-                <div class="text-danger small mt-1">{{ error }}</div>
-                {% endfor %}
-              </div>
+            <!-- First & last name -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;">
+                <div>
+                    <label class="form-label">Имя</label>
+                    {{ form.first_name|add_class:"reg-input"|attr:"placeholder:Иван" }}
+                </div>
+                <div>
+                    <label class="form-label">Фамилия</label>
+                    {{ form.last_name|add_class:"reg-input"|attr:"placeholder:Иванов" }}
+                </div>
             </div>
 
-            <!-- Password1 -->
-            <div class="mb-3">
-              <label for="{{ form.password1.id_for_label }}" class="form-label">Пароль</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                {{ form.password1|add_class:"form-control"|attr:"placeholder:••••••"|attr:"autocomplete:new-password" }}
-                <button type="button" class="btn btn-outline-secondary" id="togglePassword1">
-                  <i class="bi bi-eye-fill"></i>
-                </button>
-              </div>
-              {% for error in form.password1.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
+            <!-- Password -->
+            <div style="margin: 1rem 0;">
+                <label class="form-label">Пароль</label>
+                {{ form.password1|add_class:"reg-input"|attr:"placeholder:••••••" }}
             </div>
 
-            <!-- Password2 -->
-            <div class="mb-4">
-              <label for="{{ form.password2.id_for_label }}" class="form-label">Подтверждение пароля</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                {{ form.password2|add_class:"form-control"|attr:"placeholder:••••••"|attr:"autocomplete:new-password" }}
-                <button type="button" class="btn btn-outline-secondary" id="togglePassword2">
-                  <i class="bi bi-eye-fill"></i>
-                </button>
-              </div>
-              {% for error in form.password2.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
+            <!-- Password confirmation -->
+            <div style="margin-bottom: 2rem;">
+                <label class="form-label">Подтверждение пароля</label>
+                {{ form.password2|add_class:"reg-input"|attr:"placeholder:••••••" }}
             </div>
 
-            <!-- Submit -->
-            <button type="submit" class="btn btn-primary w-100 btn-lg rounded-pill shadow-sm">
-              Зарегистрироваться
+            <button type="submit"
+                    style="
+                        width: 100%;
+                        padding: 1rem;
+                        background: var(--color-primary);
+                        color: #fff;
+                        font-weight: 700;
+                        border: none;
+                        border-radius: 16px;
+                        font-size: 1.1rem;
+                        box-shadow: var(--shadow-md);
+                        cursor: pointer;
+                    ">
+                Зарегистрироваться
             </button>
-          </form>
+        </form>
 
-          <hr class="my-4">
-
-          <div class="text-center">
-            <p class="mb-0">Уже есть аккаунт?</p>
-            <a href="{% url 'login' %}" class="btn btn-outline-primary mt-2 w-50 rounded-pill">Войти</a>
-          </div>
+        <div style="text-align:center; margin-top: 1.8rem; font-size: 0.95rem;">
+            Уже есть аккаунт?
+            <a href="{% url 'login' %}" style="color: var(--color-primary); font-weight:600;">
+                Войти
+            </a>
         </div>
-      </div>
     </div>
-  </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  function togglePassword(btnId, inputName) {
-    const btn = document.getElementById(btnId);
-    const input = document.querySelector(`input[name="${inputName}"]`);
-    if (btn && input) {
-      btn.addEventListener('click', () => {
-        const type = input.type === 'password' ? 'text' : 'password';
-        input.type = type;
-        const icon = btn.querySelector('i');
-        icon.classList.toggle('bi-eye-fill');
-        icon.classList.toggle('bi-eye-slash-fill');
-      });
-    }
-  }
-  togglePassword('togglePassword1', 'password1');
-  togglePassword('togglePassword2', 'password2');
-});
-</script>
 {% endblock %}

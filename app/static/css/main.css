@@ -2596,3 +2596,53 @@ header .navbar-nav {
     cursor: pointer;
     pointer-events: none;
 }
+
+.reg-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--color-border);
+    background: #f9fafb;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.reg-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(1, 52, 157, 0.15);
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--color-text-primary);
+}
+
+.reg-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--color-border);
+    background: #f9fafb;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.reg-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(1, 52, 157, 0.15);
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--color-text-primary);
+}
