@@ -1,30 +1,27 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Бесплатные академические курсы — SkillsSpire{% endblock %}
+{% block title %}Бесплатные курсы от профессоров — SkillsSpire{% endblock %}
 
 {% block content %}
-
-<!-- HERO -->
-<section class="courses-hero">
-  <div class="container text-center">
-    <h1>Бесплатные академические курсы</h1>
-    <p class="lead">
-      Обучение у преподавателей с PhD — бесплатно. Сертификаты доступны при необходимости.
-    </p>
-
-    <p class="subtext">
-      Качественные фундаментальные курсы по экономике, финансам, менеджменту и аналитике.  
-      Получите знания университетского уровня и академический сертификат для резюме или поступления за рубеж.
-    </p>
-  </div>
-</section>
-
-<section class="section py-5">
+<section class="section courses-section py-5">
   <div class="container">
 
-    <!-- ФИЛЬТРЫ -->
-    <div class="filters-modern shadow-sm mb-5">
+    <!-- Заголовок -->
+    <div class="section-header text-center mb-5">
+      <h1 class="fw-bold mb-3">Бесплатные курсы от профессоров</h1>
+      <p class="lead text-secondary">
+        Учись бесплатно. Сертификаты доступны за символическую плату.
+      </p>
+      <p class="text-muted mt-2">
+        На платформе <strong>SkillsSpire</strong> доступны онлайн-курсы по финансам, аналитике,
+        менеджменту и экономике.<br>
+        После прохождения курса вы можете получить академический сертификат для резюме и поступления за рубеж.
+      </p>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filters-form shadow-sm mb-5">
       <select class="filter-select" data-param="level">
         <option value="">Все уровни</option>
         <option value="beginner" {% if request.GET.level == 'beginner' %}selected{% endif %}>Начинающий</option>
@@ -33,7 +30,7 @@
       </select>
 
       <select class="filter-select" data-param="certificate">
-        <option value="">Все форматы</option>
+        <option value="">Все курсы</option>
         <option value="available" {% if request.GET.certificate == 'available' %}selected{% endif %}>С сертификатом</option>
         <option value="not_available" {% if request.GET.certificate == 'not_available' %}selected{% endif %}>Без сертификата</option>
       </select>
@@ -45,49 +42,45 @@
       </select>
     </div>
 
-    <!-- СЕТКА КУРСОВ -->
-    <div class="courses-grid-modern">
+    <!-- Сетка курсов -->
+    <div class="courses-grid">
       {% for course in courses %}
-      <a href="{% url 'course_detail' course.course.slug %}" class="course-card-modern-link">
-        <article class="course-card-modern">
+      <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
+        <article class="course-card">
+          <img src="{{ course.image_url }}" alt="{{ course.title }}" class="course-card-img" loading="lazy">
 
-          <img src="{{ course.image_url }}"
-               alt="{{ course.title }}"
-               class="course-card-img"
-               loading="lazy">
+          <div class="course-card-content">
+            <div class="d-flex justify-content-between align-items-center mb-2">
 
-          <div class="course-card-body">
-
-            <div class="course-card-top">
               {% if course.type == 'profession' %}
-                <span class="tag tag-blue">Профессия</span>
+                <span class="badge bg-primary">Профессия</span>
               {% else %}
-                <span class="tag tag-gray">Курс</span>
+                <span class="badge bg-secondary">Курс</span>
               {% endif %}
 
               {% if course.is_popular %}
-                <span class="tag tag-hot">Хит</span>
+                <span class="badge bg-danger">Хит продаж</span>
               {% endif %}
             </div>
 
-            <h3 class="course-title">{{ course.title }}</h3>
+            <h3 class="course-card-title">{{ course.title }}</h3>
 
-            <p class="course-desc">
+            <p class="course-card-text">
               {{ course.short_description|default:course.course.description|truncatewords:22 }}
             </p>
 
-            <div class="course-meta">
+            <div class="course-card-meta small text-muted mt-auto">
               {% if course.duration_hours %}
-                <span>⏱ {{ course.duration_hours }} ч</span>
+                ⏱ {{ course.duration_hours }} ч{% if course.has_certificate %} • {% endif %}
               {% endif %}
               {% if course.has_certificate %}
-                <span>🎓 Сертификат</span>
+                🎓 Сертификат
               {% endif %}
             </div>
-
           </div>
         </article>
       </a>
+
       {% empty %}
       <div class="text-center py-5">
         <i class="bi bi-search" style="font-size:3rem;color:#cbd5e0;"></i>
@@ -95,211 +88,141 @@
         <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
         <a href="{% url 'courses_list' %}" class="btn btn-primary mt-3">Сбросить фильтры</a>
       </div>
-      {% endempty %}
+      {% endfor %}
     </div>
 
     <!-- ПАГИНАЦИЯ -->
     {% if is_paginated %}
     <nav class="mt-5 pagination-modern">
       <ul class="pagination justify-content-center">
+
         {% if page_obj.has_previous %}
-        <li><a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">Назад</a></li>
+        <li>
+          <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">
+            Назад
+          </a>
+        </li>
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
-        {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-        <li class="{% if page_obj.number == num %}active{% endif %}">
-          <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">{{ num }}</a>
-        </li>
-        {% endif %}
+          {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="{% if page_obj.number == num %}active{% endif %}">
+            <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">
+              {{ num }}
+            </a>
+          </li>
+          {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <li><a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">Вперед</a></li>
+        <li>
+          <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">
+            Вперед
+          </a>
+        </li>
         {% endif %}
       </ul>
     </nav>
     {% endif %}
+
   </div>
 </section>
-
 {% endblock %}
-
 
 {% block extra_css %}
 <style>
-
-/* === HERO БЛОК === */
-.courses-hero {
-  text-align: center;
-  padding: 5.5rem 0 4rem;
-  background: linear-gradient(135deg,#01349D,#3b5cc5);
-  color:#fff;
+/* Фон секции */
+.courses-section {
+  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
 }
 
-.courses-hero h1 {
-  font-size: clamp(28px, 4vw, 42px);
-  font-weight: 800;
-  margin-bottom: .8rem;
-}
-
-.courses-hero .lead {
-  font-size: 1.25rem;
-  opacity: .95;
-}
-
-.courses-hero .subtext {
-  margin-top: 1rem;
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
-  opacity: .85;
-}
-
-
-/* === ФИЛЬТРЫ === */
-.filters-modern {
+/* Фильтры */
+.filters-form {
   display: flex;
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
-  padding: 1rem 1.5rem;
   background: #fff;
-  border-radius: 14px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   border: 1px solid var(--color-border);
 }
-
-.filters-modern select {
-  padding: .7rem 1rem;
-  border-radius: 10px;
+.filters-form select {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
   border: 1px solid var(--color-border);
+  background: #fff;
   font-size: 1rem;
-  background: var(--color-bg-white);
-  cursor: pointer;
-  transition: .2s;
 }
 
-.filters-modern select:hover {
-  border-color: var(--color-primary);
-}
-
-
-/* === СЕТКА КУРСОВ === */
-.courses-grid-modern {
+/* Сетка курсов */
+.courses-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(300px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.8rem;
 }
 
-.course-card-modern-link {
+/* Карточка курса */
+.course-card-link {
   text-decoration: none;
   color: inherit;
   display: block;
 }
-
-.course-card-modern {
+.course-card {
   background: #fff;
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #e5e7eb;
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
-  transition: .25s ease;
+  transition: all 0.25s ease;
 }
-
-.course-card-modern:hover {
+.course-card:hover {
   transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
 }
-
 .course-card-img {
-  height: 190px;
-  object-fit: cover;
   width: 100%;
+  height: 200px;
+  object-fit: cover;
 }
-
-.course-card-body {
-  padding: 1.3rem 1.4rem 1.5rem;
+.course-card-content {
+  padding: 1.25rem 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
-
-.tag {
-  font-size: .75rem;
-  padding: .35rem .75rem;
-  border-radius: 999px;
-  font-weight: 600;
-}
-
-.tag-blue { background:#eaf1ff; color:#01349d; }
-.tag-gray { background:#f1f1f3; color:#4a4a4a; }
-.tag-hot { background:#fee2e2; color:#b91c1c; }
-
-.course-card-top {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: .8rem;
-}
-
-.course-title {
-  font-size: 1.15rem;
+.course-card-title {
+  font-size: 1.1rem;
   font-weight: 700;
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
 }
-
-.course-desc {
-  flex: 1;
-  color: var(--color-text-secondary);
+.course-card-text {
   font-size: 0.95rem;
-  line-height: 1.45;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+.course-card-meta {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
 }
 
-.course-meta {
-  margin-top: 1rem;
-  display: flex;
-  gap: 1rem;
-  font-size: .9rem;
-  color: var(--color-text-tertiary);
+/* Бэйджи */
+.course-card .badge {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
 }
-
-
-/* === ПАГИНАЦИЯ === */
-.pagination-modern ul {
-  gap: .5rem;
-}
-
-.pagination-modern a {
-  padding: .55rem 1rem;
-  border-radius: 10px;
-  background: #fff;
-  color: #01349d;
-  border: 1px solid #dce0e6;
-  text-decoration: none;
-  transition: .2s;
-}
-
-.pagination-modern .active a {
-  background: #01349d;
-  color: #fff;
-}
-
-.pagination-modern a:hover {
-  background: #f0f4ff;
-}
-
 </style>
 {% endblock %}
 
-
 {% block extra_js %}
 <script>
-document.querySelectorAll('.filter-select').forEach(select => {
-  select.addEventListener('change', () => {
-    const url = new URL(window.location);
-    const param = select.dataset.param;
-    const value = select.value;
+document.querySelectorAll('.filter-select').forEach(el => {
+  el.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    const param = el.dataset.param;
+    const value = el.value;
 
     if (value) url.searchParams.set(param, value);
     else url.searchParams.delete(param);
