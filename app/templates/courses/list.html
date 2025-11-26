@@ -14,8 +14,7 @@
         Учись бесплатно. Сертификаты доступны за символическую плату.
       </p>
       <p class="text-muted mt-2">
-        На платформе <strong>SkillsSpire</strong> доступны онлайн-курсы по финансам, аналитике,
-        менеджменту и экономике.<br>
+        На платформе <strong>SkillsSpire</strong> доступны онлайн-курсы по финансам, аналитике, менеджменту и экономике.<br>
         После прохождения курса вы можете получить академический сертификат для резюме и поступления за рубеж.
       </p>
     </div>
@@ -51,7 +50,6 @@
 
           <div class="course-card-content">
             <div class="d-flex justify-content-between align-items-center mb-2">
-
               {% if course.type == 'profession' %}
                 <span class="badge bg-primary">Профессия</span>
               {% else %}
@@ -64,12 +62,12 @@
             </div>
 
             <h3 class="course-card-title">{{ course.title }}</h3>
-
             <p class="course-card-text">
               {{ course.short_description|default:course.course.description|truncatewords:22 }}
             </p>
 
-            <div class="course-card-meta small text-muted mt-auto">
+            <!-- нижний блок -->
+            <div class="course-card-meta mt-auto small text-muted">
               {% if course.duration_hours %}
                 ⏱ {{ course.duration_hours }} ч{% if course.has_certificate %} • {% endif %}
               {% endif %}
@@ -82,7 +80,7 @@
       </a>
 
       {% empty %}
-      <div class="text-center py-5">
+      <div class="col-12 text-center py-5">
         <i class="bi bi-search" style="font-size:3rem;color:#cbd5e0;"></i>
         <h4 class="text-muted mt-3">Курсы не найдены</h4>
         <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
@@ -93,30 +91,33 @@
 
     <!-- ПАГИНАЦИЯ -->
     {% if is_paginated %}
-    <nav class="mt-5 pagination-modern">
+    <nav class="mt-5 pagination-modern" aria-label="Навигация по страницам">
       <ul class="pagination justify-content-center">
 
         {% if page_obj.has_previous %}
-        <li>
-          <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">
+        <li class="page-item">
+          <a class="page-link"
+             href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
             Назад
           </a>
         </li>
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
-          {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <li class="{% if page_obj.number == num %}active{% endif %}">
-            <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">
-              {{ num }}
-            </a>
-          </li>
-          {% endif %}
+        {% if num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+          <a class="page-link"
+             href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+            {{ num }}
+          </a>
+        </li>
+        {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <li>
-          <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key!='page' %}&{{key}}={{value}}{% endif %}{% endfor %}">
+        <li class="page-item">
+          <a class="page-link"
+             href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
             Вперед
           </a>
         </li>
@@ -124,19 +125,15 @@
       </ul>
     </nav>
     {% endif %}
-
   </div>
 </section>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-/* Фон секции */
 .courses-section {
   background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
 }
-
-/* Фильтры */
 .filters-form {
   display: flex;
   gap: 1rem;
@@ -151,28 +148,25 @@
   padding: 0.6rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--color-border);
-  background: #fff;
+  background: var(--color-bg-white);
   font-size: 1rem;
 }
-
-/* Сетка курсов */
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.8rem;
 }
-
-/* Карточка курса */
 .course-card-link {
   text-decoration: none;
   color: inherit;
   display: block;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .course-card {
   background: #fff;
   border-radius: 14px;
-  overflow: hidden;
   box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: all 0.25s ease;
@@ -193,7 +187,7 @@
   flex: 1;
 }
 .course-card-title {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
 }
@@ -203,15 +197,14 @@
   flex: 1;
 }
 .course-card-meta {
-  margin-top: 0.75rem;
   font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.75rem;
 }
-
-/* Бэйджи */
-.course-card .badge {
-  border-radius: 999px;
-  font-size: 0.8rem;
-  padding: 0.35rem 0.75rem;
+.pagination-modern .page-link {
+  border-radius: 8px;
+  margin: 0 4px;
+  padding: 0.6rem 1rem;
 }
 </style>
 {% endblock %}
