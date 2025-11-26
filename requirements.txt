@@ -45,6 +45,7 @@ PyJWT==2.10.1
 pyphen==0.17.2
 python-dateutil==2.9.0.post0
 python-decouple==3.8
+python-dotenv==1.0.1
 qrcode==8.2
 realtime==2.20.0
 s3transfer==0.14.0
@@ -67,3 +68,5 @@ webencodings==0.5.1
 websockets==15.0.1
 whitenoise==6.9.0
 zopfli==0.2.3.post1
+python-dotenv==1.0.1
+dj-database-url==3.0.1

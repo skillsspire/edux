@@ -1,10 +1,13 @@
 import os
 from pathlib import Path
-import dj_database_url
 from dotenv import load_dotenv
-load_dotenv()
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Загружаем .env
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
