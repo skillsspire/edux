@@ -8,141 +8,155 @@
 
   <!-- Заголовок -->
   <div class="text-center mb-5">
-    <h1 class="fw-bold mb-3" style="font-size: 2rem;">
-      Полезные статьи
-    </h1>
+    <h1 class="fw-bold mb-3" style="font-size: 2rem;">Полезные статьи</h1>
     <p class="text-muted" style="font-size: 1.1rem;">
       Актуальные материалы по финансам, аналитике, менеджменту и карьерному росту
     </p>
   </div>
 
   {% if articles %}
-    <!-- Featured статья БЕЗ КАРТИНКИ -->
-    <div class="featured-clean mb-5 p-4 rounded shadow-sm bg-light">
+    <!-- Featured статья (только текст) -->
+    <div class="featured-article mb-5 p-4">
       {% with first=articles.0 %}
-      <a href="{% url 'article_detail' first.slug %}" class="text-decoration-none text-dark d-block">
+      <a href="{% url 'article_detail' first.slug %}" class="featured-link">
 
-        {% if first.category %}
-          <span class="badge bg-primary mb-2">{{ first.category.name }}</span>
-        {% endif %}
+        <div class="featured-text">
+          {% if first.category %}
+            <span class="badge bg-primary mb-3">{{ first.category.name }}</span>
+          {% endif %}
 
-        <h2 class="fw-bold" style="font-size: 1.6rem;">
-          {{ first.title }}
-        </h2>
+          <h2 class="featured-title">{{ first.title }}</h2>
 
-        <p class="text-muted" style="font-size: 1rem;">
-          {{ first.excerpt|truncatewords:30 }}
-        </p>
+          <p class="featured-excerpt">
+            {{ first.excerpt|truncatewords:50 }}
+          </p>
 
-        <span class="fw-semibold text-primary">Читать статью →</span>
+          <span class="read-more">Читать статью →</span>
+        </div>
 
       </a>
       {% endwith %}
     </div>
 
-    <!-- Список статей БЕЗ КАРТИНОК -->
-    <div class="articles-grid-clean">
+    <!-- Сетка статей без картинок -->
+    <div class="articles-grid">
       {% for article in articles|slice:"1:" %}
-        <article class="article-card-clean p-3 rounded shadow-sm bg-white">
-          <a href="{% url 'article_detail' article.slug %}" class="text-decoration-none text-dark d-block">
+        <article class="article-card p-4">
+
+          <a href="{% url 'article_detail' article.slug %}" class="article-link">
 
             {% if article.category %}
-              <span class="badge bg-primary mb-2">{{ article.category.name }}</span>
+              <span class="badge bg-primary mb-3">{{ article.category.name }}</span>
             {% endif %}
 
-            <h3 class="fw-semibold mb-2" style="font-size: 1.15rem;">
-              {{ article.title }}
-            </h3>
+            <h3 class="article-title">{{ article.title }}</h3>
 
-            <p class="date text-muted small">
+            <p class="date">
               <i class="bi bi-calendar3 me-1"></i>
               {% if article.published_at %}
                 {{ article.published_at|date:"d E Y" }}
               {% endif %}
             </p>
 
-            <p class="excerpt text-muted" style="font-size: 0.95rem;">
-              {{ article.excerpt|default:"Описание появится позже." }}
-            </p>
+            <p class="excerpt">{{ article.excerpt|default:"Описание появится позже." }}</p>
 
-            <span class="text-primary fw-bold small d-inline-block mt-1">
-              Читать статью →
-            </span>
+            <span class="read-more mt-2 d-inline-block">Читать статью →</span>
 
           </a>
+
         </article>
       {% endfor %}
     </div>
 
   {% else %}
-    <!-- Пусто -->
     <div class="text-center py-5">
       <i class="bi bi-file-text" style="font-size: 3rem; color: var(--color-border)"></i>
       <h4 class="text-muted mt-3">Статьи скоро появятся</h4>
       <p class="text-muted">Мы готовим для вас полезные материалы</p>
-      <a href="{% url 'home' %}" class="btn btn-primary mt-3">Вернуться на главную</a>
     </div>
   {% endif %}
-
-  <!-- Пагинация -->
-  {% if is_paginated %}
-    <nav class="mt-5" aria-label="Навигация по страницам">
-      <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">← Назад</a></li>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-          {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-              <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-            </li>
-          {% endif %}
-        {% endfor %}
-
-        {% if page_obj.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперёд →</a></li>
-        {% endif %}
-      </ul>
-    </nav>
-  {% endif %}
-
 </div>
-{% endblock %}
 
+{% endblock %}
 
 {% block extra_css %}
 <style>
+/* Контейнер */
 .articles-container {
-  max-width: 1200px;
+  max-width: 1100px;
 }
 
-/* Featured clean */
-.featured-clean {
-  border-left: 5px solid var(--bs-primary);
+/* Featured статья — теперь без картинки */
+.featured-article {
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--bs-light);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Clean grid */
-.articles-grid-clean {
+.featured-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.featured-excerpt {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 18px;
+}
+
+.featured-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+/* Сетка */
+.articles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 25px;
+  gap: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
-/* Clean cards */
-.article-card-clean {
-  transition: all 0.25s ease;
+/* Карточка */
+.article-card {
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
 }
 
-.article-card-clean:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+.article-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.article-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
 .excerpt {
-  line-height: 1.4;
-  max-height: 4.2rem; /* 3 строки */
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  max-height: 65px;
   overflow: hidden;
 }
+
+.read-more {
+  font-weight: 600;
+  color: var(--bs-primary);
+}
+
+.date {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+}
+
 </style>
 {% endblock %}
