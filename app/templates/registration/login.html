@@ -1,118 +1,67 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Login" %} - SkillsSpire{% endblock %}
+{% block title %}{% trans "Login" %} — SkillsSpire{% endblock %}
 
 {% block content %}
+<section class="section py-5">
+  <div class="container" style="max-width: 420px;">
+    <div class="card p-4 shadow-sm rounded">
 
-<div class="container" style="max-width: 460px; margin: 3rem auto;">
-    <div style="
-        background: var(--color-bg-white);
-        border: 1px solid var(--color-border);
-        border-radius: 24px;
-        padding: 3rem 3.2rem;
-        box-shadow: var(--shadow-lg);
-    ">
+      <!-- Header -->
+      <h1 class="text-center mb-4 fw-bold" style="font-size: 1.9rem;">
+        Вход в аккаунт
+      </h1>
 
-        <!-- Header -->
-        <h1 style="font-size: 1.9rem; font-weight: 800; margin-bottom: 2rem; text-align:center;">
-            Вход в аккаунт
-        </h1>
+      {% if form.errors %}
+      <div class="alert alert-danger">
+        <strong>Ошибка входа:</strong>
+        <ul class="mb-0">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
 
-        <!-- Google Login -->
-        <a href="{% url 'social:begin' 'google-oauth2' %}"
-           style="
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             gap: 10px;
-             background: #fff;
-             border: 1px solid var(--color-border);
-             border-radius: 14px;
-             padding: 0.9rem 1rem;
-             margin-bottom: 1.6rem;
-             font-weight: 600;
-             box-shadow: var(--shadow-sm);
-           ">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="22">
-            Войти через Google
+      <!-- Login form -->
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+
+        <div class="mb-3">
+          <label class="form-label">Email или имя пользователя</label>
+          <input type="text" name="username" class="form-control"
+                 required autocomplete="email"
+                 placeholder="Введите email или имя пользователя">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Пароль</label>
+          <input type="password" name="password" class="form-control"
+                 required autocomplete="current-password"
+                 placeholder="Введите пароль">
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-2">
+          Войти
+        </button>
+      </form>
+
+      <!-- Links -->
+      <div class="text-center mt-3">
+        <a href="{% url 'password_reset' %}" class="text-decoration-none">
+          Забыли пароль?
         </a>
-
-        <div style="text-align:center; color:var(--color-text-tertiary); margin:1.2rem 0;">
-            или
-        </div>
-
-        {% if form.errors %}
-        <div style="
-            background: var(--color-error-bg);
-            color: var(--color-error-text);
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-        ">
-            {% trans "Incorrect username or password." %}
-        </div>
-        {% endif %}
-
-        <form method="post" novalidate>
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.GET.next }}">
-
-            <!-- Username -->
-            <div style="margin-bottom: 1rem;">
-                <label class="form-label">{% trans "Email or Username" %}</label>
-                <input type="text"
-                       name="username"
-                       class="reg-input"
-                       placeholder="{% trans 'Enter your email or username' %}"
-                       autocomplete="email"
-                       required>
-            </div>
-
-            <!-- Password -->
-            <div style="margin-bottom: 1.4rem;">
-                <label class="form-label">{% trans "Password" %}</label>
-                <input type="password"
-                       name="password"
-                       class="reg-input"
-                       placeholder="{% trans 'Enter your password' %}"
-                       autocomplete="current-password"
-                       required>
-            </div>
-
-            <!-- Submit -->
-            <button type="submit"
-                style="
-                    width: 100%;
-                    padding: 1rem;
-                    background: var(--color-primary);
-                    color: #fff;
-                    font-weight: 700;
-                    border: none;
-                    border-radius: 16px;
-                    font-size: 1.1rem;
-                    box-shadow: var(--shadow-md);
-                    cursor: pointer;
-                ">
-                {% trans "Login" %}
-            </button>
-        </form>
-
-        <!-- Bottom links -->
-        <div style="text-align:center; margin-top: 1.8rem; font-size: 0.95rem;">
-            <a href="{% url 'password_reset' %}" style="color: var(--color-primary); font-weight:600;">
-                {% trans "Forgot your password?" %}
-            </a>
-
-            <p style="margin-top: 1rem;">
-                {% trans "Don't have an account?" %}
-                <a href="{% url 'signup' %}" style="color: var(--color-primary); font-weight:700;">
-                    {% trans "Sign Up" %}
-                </a>
-            </p>
-        </div>
+        <p class="mt-2 mb-0">
+          Нет аккаунта?
+          <a href="{% url 'signup' %}" class="fw-bold text-primary">Регистрация</a>
+        </p>
+      </div>
 
     </div>
-</div>
-
+  </div>
+</section>
 {% endblock %}

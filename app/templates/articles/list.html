@@ -17,59 +17,57 @@
   </div>
 
   {% if articles %}
-    <!-- Featured статья (первая) -->
-    <div class="featured-article mb-5">
+    <!-- Featured статья БЕЗ КАРТИНКИ -->
+    <div class="featured-clean mb-5 p-4 rounded shadow-sm bg-light">
       {% with first=articles.0 %}
-      <a href="{% url 'article_detail' first.slug %}" class="featured-link">
+      <a href="{% url 'article_detail' first.slug %}" class="text-decoration-none text-dark d-block">
 
-        {% if first.image %}
-          <img src="{{ first.image.url }}" alt="{{ first.title }}">
-        {% else %}
-          <img src="{% static 'img/article-placeholder.jpg' %}" alt="">
+        {% if first.category %}
+          <span class="badge bg-primary mb-2">{{ first.category.name }}</span>
         {% endif %}
 
-        <div class="overlay">
-          {% if first.category %}
-            <span class="badge bg-primary mb-2">{{ first.category.name }}</span>
-          {% endif %}
-          <h2 style="font-size: 1.6rem; font-weight: 700;">{{ first.title }}</h2>
-          <p style="opacity: .9;">{{ first.excerpt|truncatewords:30 }}</p>
-          <span class="read-more">Читать статью →</span>
-        </div>
+        <h2 class="fw-bold" style="font-size: 1.6rem;">
+          {{ first.title }}
+        </h2>
+
+        <p class="text-muted" style="font-size: 1rem;">
+          {{ first.excerpt|truncatewords:30 }}
+        </p>
+
+        <span class="fw-semibold text-primary">Читать статью →</span>
 
       </a>
       {% endwith %}
     </div>
 
-    <!-- Сетка статей -->
-    <div class="articles-grid">
+    <!-- Список статей БЕЗ КАРТИНОК -->
+    <div class="articles-grid-clean">
       {% for article in articles|slice:"1:" %}
-        <article class="article-card">
-          <a href="{% url 'article_detail' article.slug %}" class="article-link">
+        <article class="article-card-clean p-3 rounded shadow-sm bg-white">
+          <a href="{% url 'article_detail' article.slug %}" class="text-decoration-none text-dark d-block">
 
-            {% if article.image %}
-              <img src="{{ article.image.url }}" alt="{{ article.title }}">
-            {% else %}
-              <img src="{% static 'img/article-placeholder.jpg' %}" alt="">
+            {% if article.category %}
+              <span class="badge bg-primary mb-2">{{ article.category.name }}</span>
             {% endif %}
 
-            <div class="card-body">
-              {% if article.category %}
-                <span class="badge bg-primary mb-2">{{ article.category.name }}</span>
-              {% endif %}
-              <h3 style="font-size: 1.15rem; font-weight: 700;">{{ article.title }}</h3>
-              <p class="date">
-                <i class="bi bi-calendar3 me-1"></i>
-                {% if article.published_at %}
-                  {{ article.published_at|date:"d E Y" }}
-                {% endif %}
-              </p>
-              <p class="excerpt">{{ article.excerpt|default:"Описание появится позже." }}</p>
-            </div>
+            <h3 class="fw-semibold mb-2" style="font-size: 1.15rem;">
+              {{ article.title }}
+            </h3>
 
-            <div class="card-footer">
-              <span class="text-primary fw-bold small">Читать статью →</span>
-            </div>
+            <p class="date text-muted small">
+              <i class="bi bi-calendar3 me-1"></i>
+              {% if article.published_at %}
+                {{ article.published_at|date:"d E Y" }}
+              {% endif %}
+            </p>
+
+            <p class="excerpt text-muted" style="font-size: 0.95rem;">
+              {{ article.excerpt|default:"Описание появится позже." }}
+            </p>
+
+            <span class="text-primary fw-bold small d-inline-block mt-1">
+              Читать статью →
+            </span>
 
           </a>
         </article>
@@ -77,7 +75,6 @@
     </div>
 
   {% else %}
-
     <!-- Пусто -->
     <div class="text-center py-5">
       <i class="bi bi-file-text" style="font-size: 3rem; color: var(--color-border)"></i>
@@ -85,7 +82,6 @@
       <p class="text-muted">Мы готовим для вас полезные материалы</p>
       <a href="{% url 'home' %}" class="btn btn-primary mt-3">Вернуться на главную</a>
     </div>
-
   {% endif %}
 
   <!-- Пагинация -->
@@ -93,9 +89,7 @@
     <nav class="mt-5" aria-label="Навигация по страницам">
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">← Назад</a>
-          </li>
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">← Назад</a></li>
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
@@ -107,9 +101,7 @@
         {% endfor %}
 
         {% if page_obj.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперёд →</a>
-          </li>
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперёд →</a></li>
         {% endif %}
       </ul>
     </nav>
@@ -118,90 +110,39 @@
 </div>
 {% endblock %}
 
+
 {% block extra_css %}
 <style>
-
 .articles-container {
   max-width: 1200px;
 }
 
-/* Удаляем Playfair Display — используем Poppins */
-h1, h2, h3, h4, h5 {
-  font-family: inherit !important;
+/* Featured clean */
+.featured-clean {
+  border-left: 5px solid var(--bs-primary);
 }
 
-/* Featured */
-.featured-article {
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-}
-.featured-article img {
-  width: 100%;
-  height: 420px;
-  object-fit: cover;
-  transition: transform .4s ease;
-}
-.featured-link:hover img {
-  transform: scale(1.03);
-}
-.overlay {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  padding: 35px 30px;
-  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.7) 100%);
-  color: #fff;
-}
-
-/* Grid */
-.articles-grid {
+/* Clean grid */
+.articles-grid-clean {
   display: grid;
-  gap: 30px;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
 }
 
-/* Cards */
-.article-card {
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  overflow: hidden;
-  background: #fff;
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
-}
-.article-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-}
-.article-card img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
+/* Clean cards */
+.article-card-clean {
+  transition: all 0.25s ease;
 }
 
-.card-body {
-  padding: 18px;
-}
-
-.card-footer {
-  padding: 14px 18px;
-  border-top: 1px solid var(--color-border);
-}
-
-.date {
-  font-size: 0.85rem;
-  color: var(--color-text-tertiary);
-  margin-bottom: 6px;
+.article-card-clean:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
 
 .excerpt {
-  font-size: 0.95rem;
-  color: var(--color-text-secondary);
   line-height: 1.4;
-  height: 60px;
+  max-height: 4.2rem; /* 3 строки */
   overflow: hidden;
 }
-
 </style>
 {% endblock %}

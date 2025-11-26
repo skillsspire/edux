@@ -1,121 +1,78 @@
 {% extends "base.html" %}
-{% load static widget_tweaks %}
+{% load i18n widget_tweaks %}
 
-{% block title %}Регистрация - SkillsSpire{% endblock %}
+{% block title %}Регистрация — SkillsSpire{% endblock %}
 
 {% block content %}
+<section class="section py-5">
+  <div class="container" style="max-width: 460px;">
+    <div class="card p-4 shadow-sm rounded">
 
-<div class="container" style="max-width: 780px; margin: 3rem auto;">
-    <div style="
-        background: var(--color-bg-white);
-        border: 1px solid var(--color-border);
-        border-radius: 24px;
-        padding: 3rem 3.5rem;
-        box-shadow: var(--shadow-lg);
-    ">
+      <h1 class="mb-4 fw-bold text-center" style="font-size: 1.9rem;">
+        Регистрация
+      </h1>
 
-        <!-- Header -->
-        <h1 style="font-size: 1.9rem; font-weight: 800; margin-bottom: 2rem;">
-            Регистрация
-        </h1>
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+          {{ error }}
+        {% endfor %}
+      </div>
+      {% endif %}
 
-        <!-- Google auth -->
-        <a href="{% url 'social:begin' 'google-oauth2' %}"
-           style="
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             gap: 10px;
-             background: #fff;
-             border: 1px solid var(--color-border);
-             border-radius: 14px;
-             padding: 0.9rem 1rem;
-             margin-bottom: 1.6rem;
-             font-weight: 600;
-             box-shadow: var(--shadow-sm);
-           ">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="22">
-            Войти через Google
-        </a>
+      <form method="post" novalidate>
+        {% csrf_token %}
 
-        <div style="text-align:center; color:var(--color-text-tertiary); margin:1.2rem 0;">
-            или
+        <div class="mb-3">
+          <label class="form-label">Имя пользователя</label>
+          {{ form.username|add_class:"form-control"|attr:"placeholder:Ваш логин" }}
+          {% for error in form.username.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
         </div>
 
-        <form method="post" novalidate>
-            {% csrf_token %}
-
-            {% if form.non_field_errors %}
-            <div style="
-                background: var(--color-error-bg);
-                color: var(--color-error-text);
-                padding: .75rem 1rem;
-                border-radius: var(--radius-md);
-                margin-bottom: 1.2rem;">
-                {{ form.non_field_errors }}
-            </div>
-            {% endif %}
-
-            <!-- Username -->
-            <div style="margin-bottom: 1rem;">
-                <label class="form-label">Имя пользователя</label>
-                {{ form.username|add_class:"reg-input"|attr:"placeholder:Введите имя пользователя" }}
-            </div>
-
-            <!-- Email -->
-            <div style="margin-bottom: 1rem;">
-                <label class="form-label">Email</label>
-                {{ form.email|add_class:"reg-input"|attr:"placeholder:you@example.com" }}
-            </div>
-
-            <!-- First & last name -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;">
-                <div>
-                    <label class="form-label">Имя</label>
-                    {{ form.first_name|add_class:"reg-input"|attr:"placeholder:Иван" }}
-                </div>
-                <div>
-                    <label class="form-label">Фамилия</label>
-                    {{ form.last_name|add_class:"reg-input"|attr:"placeholder:Иванов" }}
-                </div>
-            </div>
-
-            <!-- Password -->
-            <div style="margin: 1rem 0;">
-                <label class="form-label">Пароль</label>
-                {{ form.password1|add_class:"reg-input"|attr:"placeholder:••••••" }}
-            </div>
-
-            <!-- Password confirmation -->
-            <div style="margin-bottom: 2rem;">
-                <label class="form-label">Подтверждение пароля</label>
-                {{ form.password2|add_class:"reg-input"|attr:"placeholder:••••••" }}
-            </div>
-
-            <button type="submit"
-                    style="
-                        width: 100%;
-                        padding: 1rem;
-                        background: var(--color-primary);
-                        color: #fff;
-                        font-weight: 700;
-                        border: none;
-                        border-radius: 16px;
-                        font-size: 1.1rem;
-                        box-shadow: var(--shadow-md);
-                        cursor: pointer;
-                    ">
-                Зарегистрироваться
-            </button>
-        </form>
-
-        <div style="text-align:center; margin-top: 1.8rem; font-size: 0.95rem;">
-            Уже есть аккаунт?
-            <a href="{% url 'login' %}" style="color: var(--color-primary); font-weight:600;">
-                Войти
-            </a>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          {{ form.email|add_class:"form-control"|attr:"placeholder:you@example.com" }}
+          {% for error in form.email.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
         </div>
+
+        <div class="mb-3">
+          <label class="form-label">Имя</label>
+          {{ form.first_name|add_class:"form-control"|attr:"placeholder:Иван" }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Фамилия</label>
+          {{ form.last_name|add_class:"form-control"|attr:"placeholder:Иванов" }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Пароль</label>
+          {{ form.password1|add_class:"form-control"|attr:"placeholder:Введите пароль" }}
+          {% for error in form.password1.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Подтверждение пароля</label>
+          {{ form.password2|add_class:"form-control"|attr:"placeholder:Повторите пароль" }}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-2">
+          Создать аккаунт
+        </button>
+      </form>
+
+      <div class="text-center mt-3">
+        Уже есть аккаунт?
+        <a href="{% url 'login' %}" class="fw-bold text-primary">Войти</a>
+      </div>
+
     </div>
-</div>
-
+  </div>
+</section>
 {% endblock %}
