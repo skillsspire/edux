@@ -650,12 +650,19 @@ def dashboard(request):
 def profile_settings(request):
     return render(request, "users/profile_settings.html", {})
 
+
 @login_required
-def enroll_course(request, slug):
+def toggle_favorite(request, slug):
     course = get_object_or_404(Course, slug=slug)
-    Enrollment.objects.get_or_create(user=request.user, course=course)
-    messages.success(request, "Вы записались на курс!")
-    return redirect('my_courses')
+    fav, created = Wishlist.objects.get_or_create(user=request.user, course=course)
+
+    if not created:
+        fav.delete()
+        messages.info(request, "Удалено из избранного.")
+    else:
+        messages.success(request, "Добавлено в избранное.")
+    
+    return redirect("course_detail", slug=slug)
 
 @login_required
 def add_review(request, slug):
@@ -682,26 +689,6 @@ def add_review(request, slug):
         form = ReviewForm()
 
     return render(request, "courses/add_review.html", {"course": course, "form": form})
-
-
-@login_required
-def toggle_wishlist(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, course=course)
-
-    if created:
-        message = "Курс добавлен в избранное"
-        in_wishlist = True
-    else:
-        wishlist_item.delete()
-        message = "Курс удален из избранного"
-        in_wishlist = False
-
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"success": True, "message": message, "in_wishlist": in_wishlist})
-
-    messages.success(request, message)
-    return redirect("course_detail", slug=slug)
 
 
 # ---------- static pages ----------
