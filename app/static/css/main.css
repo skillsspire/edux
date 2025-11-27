@@ -2646,3 +2646,33 @@ header .navbar-nav {
     margin-bottom: 0.35rem;
     color: var(--color-text-primary);
 }
+
+.hero-detail {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 40px;
+    align-items: start;
+}
+
+.hero-right > * {
+    margin-bottom: 18px;
+}
+
+.hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.full {
+    width: 100%;
+}
+
+.price-box {
+    background: rgba(255,255,255,.15);
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+}

@@ -49,9 +49,11 @@
             {{ course.price|floatformat:0|intcomma }} ₸
           </div>
 
-          <button class="btn btn-primary btn-full mt-2" data-bs-toggle="modal" data-bs-target="#enrollModal">
-            Записаться
-          </button>
+          <form action="{% url 'enroll_course' course.slug %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Записаться</button>
+          </form>
+
 
           <button id="wishlistBtn" class="btn btn-outline btn-full mt-2">
             <i class="bi bi-heart"></i> В избранное
