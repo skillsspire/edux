@@ -276,6 +276,25 @@ def home(request):
 
     return render(request, "home.html", context)
 
+@login_required
+def toggle_wishlist(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, course=course)
+
+    if created:
+        message = "Курс добавлен в избранное"
+        in_wishlist = True
+    else:
+        wishlist_item.delete()
+        message = "Курс удален из избранного"
+        in_wishlist = False
+
+    # AJAX
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"success": True, "in_wishlist": in_wishlist, "message": message})
+
+    messages.success(request, message)
+    return redirect("course_detail", slug=slug)
 
 # ---------- catalog ----------
 
@@ -649,20 +668,6 @@ def dashboard(request):
 @login_required
 def profile_settings(request):
     return render(request, "users/profile_settings.html", {})
-
-
-@login_required
-def toggle_favorite(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    fav, created = Wishlist.objects.get_or_create(user=request.user, course=course)
-
-    if not created:
-        fav.delete()
-        messages.info(request, "Удалено из избранного.")
-    else:
-        messages.success(request, "Добавлено в избранное.")
-    
-    return redirect("course_detail", slug=slug)
 
 @login_required
 def add_review(request, slug):

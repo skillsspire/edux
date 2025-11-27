@@ -49,9 +49,9 @@
             {{ course.price|floatformat:0|intcomma }} ₸
           </div>
 
-          <form action="{% url 'enroll_course' course_obj.slug %}" method="post">
+          <form action="{% url 'enroll_course' course.slug %}" method="post">
             {% csrf_token %}
-            <button type="submit" class="btn btn-primary">Записаться</button>
+          <button type="submit" class="btn btn-primary">Записаться</button>
           </form>
 
 
