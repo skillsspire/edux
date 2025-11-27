@@ -5,188 +5,147 @@
 
 {% block content %}
 
-<!-- ============================
-          HERO (Course)
-============================ -->
-<section class="course-hero fade-up">
-  <div class="container">
-    <div class="course-hero-grid">
+<section class="course-hero modern-hero">
+  <div class="container hero-inner">
+    <div class="hero-left">
+      <span class="course-badge">{{ course.category.name }}</span>
+      <h1>{{ course.title }}</h1>
+      <p>{{ course.short_description }}</p>
 
-      <!-- LEFT INFO BLOCK -->
-      <div class="course-hero-left">
+      <ul class="hero-features">
+        <li>🎓 Сертификат</li>
+        <li>♾️ Бессрочный доступ</li>
+        <li>📱 Удобно на телефоне</li>
+        <li>💾 Материалы</li>
+      </ul>
 
-        <span class="course-category">{{ course.category.name }}</span>
-
-        <h1 class="course-title-xl">{{ course.title }}</h1>
-
-        <p class="course-subtitle-lg">
-          {{ course.short_description }}
-        </p>
-
-        <ul class="course-features-list">
-          <li>🎓 Сертификат</li>
-          <li>♾️ Бессрочный доступ</li>
-          <li>📱 Мобильный формат</li>
-          <li>💾 Материалы для скачивания</li>
-        </ul>
-
-        <div class="course-hero-actions">
-          <a class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#enrollModal">
-            Записаться
+      <div class="hero-actions">
+        {% if has_access %}
+          <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-lg">
+            Начать обучение
           </a>
-
-          <a class="btn btn-secondary btn-lg" href="#program">
-            Программа курса
-          </a>
-        </div>
-
-      </div>
-
-      <!-- RIGHT PRICE CARD -->
-      <div class="course-hero-right">
-        <div class="price-card">
-          <div class="price-amount">
-            {{ course.price|floatformat:0|intcomma }} ₸
-          </div>
-
+        {% else %}
           <form action="{% url 'enroll_course' course.slug %}" method="post">
             {% csrf_token %}
-          <button type="submit" class="btn btn-primary">Записаться</button>
+            <button class="btn btn-primary btn-lg">Записаться бесплатно</button>
           </form>
+        {% endif %}
 
-
-          <a href="{% url 'toggle_wishlist' course_obj.slug %}" class="btn btn-outline btn-full mt-2">
-              {% if is_in_wishlist %}
-                  <i class="bi bi-heart-fill"></i> Удалить из избранного
-              {% else %}
-                  <i class="bi bi-heart"></i> В избранное
-              {% endif %}
-          </a>
-
-          <ul class="price-card-features">
-            <li>📘 {{ lessons|length }} уроков</li>
-            <li>💾 Материалы для скачивания</li>
-            <li>♾️ Пожизненный доступ</li>
-            <li>📱 Удобно на телефоне</li>
-            <li>🎓 Сертификат</li>
-          </ul>
-        </div>
+        <a href="#program" class="btn btn-outline btn-lg">Программа курса</a>
       </div>
+    </div>
 
+    <div class="hero-right">
+      <div class="course-price-card">
+        <p class="new-price">Бесплатно</p>
+
+        {% if has_access %}
+          <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-full">
+            Перейти к обучению
+          </a>
+        {% else %}
+          <form action="{% url 'enroll_course' course.slug %}" method="post">
+            {% csrf_token %}
+            <button class="btn btn-primary btn-full">Записаться</button>
+          </form>
+        {% endif %}
+
+        <a href="{% url 'toggle_wishlist' course.slug %}" class="btn btn-outline btn-full mt-2">
+          {% if is_in_wishlist %}
+            <i class="bi bi-heart-fill"></i> Удалить из избранного
+          {% else %}
+            <i class="bi bi-heart"></i> В избранное
+          {% endif %}
+        </a>
+      </div>
     </div>
   </div>
 </section>
 
 
-
-<!-- ============================
-           ABOUT COURSE
-============================ -->
-<section class="section fade-up">
-  <div class="container">
-    <h2 class="section-title">О курсе</h2>
-
-    <div class="section-text">
-      {{ course.description|safe|default:"Описание скоро появится." }}
+<section class="section course-about">
+  <div class="container about-grid">
+    <div class="about-text">
+      <h2>О курсе</h2>
+      <p>{{ course.description|safe|default:"Описание скоро появится." }}</p>
+      <ul>
+        <li>📘 {{ lessons|length }} уроков</li>
+        <li>♾️ Доступ навсегда</li>
+        <li>🎓 Сертификат по окончании</li>
+      </ul>
+    </div>
+    <div class="about-img">
+      <img src="{{ course.display_image_url|default:static('img/default.jpg') }}" alt="{{ course.title }}">
     </div>
   </div>
 </section>
 
 
-
-<!-- ============================
-        COURSE PROGRAM
-============================ -->
-<section id="program" class="section bg-light fade-up">
+<section id="program" class="section program-section">
   <div class="container">
-    <h2 class="section-title">Программа курса</h2>
+    <h2 class="text-center mb-3">Программа курса</h2>
 
     {% if lessons %}
-    <div class="lessons-list">
-      {% for lesson in lessons %}
-      <div class="lesson-card">
+      <div class="lessons-list">
+        {% for lesson in lessons %}
+          <div class="lesson-item">
+            <div class="lesson-info">
+              <h3>{{ lesson.title }}</h3>
+              {% if lesson.duration_minutes %}
+                <span class="lesson-duration">{{ lesson.duration_minutes }} мин</span>
+              {% endif %}
+            </div>
 
-        <div class="lesson-info">
-          <h4 class="lesson-title">{{ lesson.title }}</h4>
-          <span class="lesson-duration">
-            {% if lesson.duration_minutes %}{{ lesson.duration_minutes }} мин{% endif %}
-          </span>
-        </div>
-
-        <span class="lesson-lock">
-          <i class="bi bi-lock-fill"></i>
-        </span>
-
+            <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-outline">
+              ▶ Смотреть
+            </a>
+          </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
-
     {% else %}
-      <p class="text-muted">Программа появится позже.</p>
+      <p class="text-center text-muted">Программа появится скоро.</p>
     {% endif %}
   </div>
 </section>
 
 
+<section class="section instructor-section">
+  <div class="container text-center">
+    <h2>Инструктор</h2>
 
-<!-- ============================
-           INSTRUCTOR
-============================ -->
-<section class="section fade-up">
-  <div class="container">
-    <h2 class="section-title">Инструктор</h2>
-
-    <div class="instructor-card-xl">
-
-      <img
-        src="{{ teacher_profile.avatar.url|default:'/static/img/avatar-placeholder.svg' }}"
-        alt="Инструктор"
-        class="instructor-photo-xl"
-      >
-
-      <div class="instructor-info-xl">
-        <h4 class="instructor-name">{{ teacher.get_full_name }}</h4>
-        <p class="instructor-role">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
-        <p class="instructor-bio">
-          {{ teacher_profile.bio|truncatewords:40 }}
-        </p>
+    {% if teacher_profile %}
+      <div class="instructor-card">
+        <img src="{{ teacher_profile.display_avatar_url|default:static('img/avatar-placeholder.svg') }}" alt="Инструктор">
+        <h3>{{ teacher_profile.user.get_full_name }}</h3>
+        <p class="text-secondary">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
+        <p>{{ teacher_profile.bio|truncatewords:35 }}</p>
       </div>
-
-    </div>
+    {% else %}
+      <p>Информация появится позже.</p>
+    {% endif %}
   </div>
 </section>
 
 
-
-<!-- ============================
-           REVIEWS
-============================ -->
-<section class="section bg-light fade-up">
+<section class="testimonials-section">
   <div class="container">
-    <h2 class="section-title">Отзывы студентов</h2>
+    <h2 class="text-center mb-3">Отзывы студентов</h2>
 
     {% if reviews %}
-    <div class="reviews-grid">
-      {% for review in reviews %}
-      <div class="review-card">
-        <p class="review-text">“{{ review.comment|truncatewords:25 }}”</p>
-        <div class="review-author">
-          <span class="review-name">
-            — {{ review.name|default:"Аноним" }}
-          </span>
-          <span class="review-date">
-            {{ review.created_at|date:"d M Y" }}
-          </span>
-        </div>
+      <div class="testimonials-grid">
+        {% for review in reviews %}
+          <div class="testimonial-card">
+            <p>“{{ review.comment|truncatewords:35 }}”</p>
+            <p class="text-sm text-secondary">
+              — {{ review.name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}
+            </p>
+          </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
     {% else %}
-      <p class="text-muted">Пока нет отзывов.</p>
+      <p class="text-center text-muted">Отзывов пока нет.</p>
     {% endif %}
   </div>
 </section>
-
-
 
 {% endblock %}

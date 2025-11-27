@@ -1,128 +1,182 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
+
+{% block title %}{{ course.title }} — SkillsSpire{% endblock %}
+
 {% block content %}
 
-<!-- HERO -->
 <section class="course-hero modern-hero">
-  <div class="container hero-inner">
-    <div class="hero-left">
-      <span class="course-badge">{{ course.category.name }}</span>
-      <h1>{{ course.title }}</h1>
-      <p>{{ course.short_description }}</p>
+    <div class="container hero-inner">
 
-      <ul class="hero-features">
-        <li>🎓 Сертификат</li>
-        <li>📱 Онлайн-доступ 24/7</li>
-        {% if course.duration_hours %}<li>⏰ {{ course.duration_hours }} часов</li>{% endif %}
-      </ul>
+        <div class="hero-left">
+            <span class="course-badge">{{ course.category.name }}</span>
+            <h1>{{ course.title }}</h1>
+            <p>{{ course.short_description }}</p>
 
-      <div class="hero-actions">
-        {% if has_access %}
-          <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary">Начать обучение</a>
-        {% else %}
-          {% if user.is_authenticated %}
-            <a href="{% url 'course_payment' course.slug %}" class="btn btn-primary">Записаться на курс</a>
-          {% else %}
-            <a href="{% url 'register' %}?next={% url 'course_payment' course.slug %}" class="btn btn-primary">Записаться на курс</a>
-          {% endif %}
-        {% endif %}
-        <a href="#program" class="btn btn-outline">Программа курса</a>
-      </div>
-    </div>
+            <ul class="hero-features">
+                <li>🎓 Сертификат</li>
+                <li>📱 Онлайн доступ 24/7</li>
+                {% if course.duration_hours %}<li>⏰ {{ course.duration_hours }} часов</li>{% endif %}
+            </ul>
 
-    <div class="hero-right">
-      <div class="course-price-card">
-        {% if course.discount_price %}
-          <p class="old-price">{{ course.price }} ₸</p>
-          <p class="new-price">{{ course.discount_price }} ₸</p>
-        {% else %}
-          <p class="new-price">{{ course.price|default:"Бесплатно" }} ₸</p>
-        {% endif %}
-        <button class="btn btn-primary btn-full">🛒 Записаться</button>
-        <button class="btn btn-outline btn-full mt-2">♡ Добавить в избранное</button>
-      </div>
-    </div>
-  </div>
-</section>
+            <div class="hero-actions">
 
-<!-- О КУРСЕ -->
-<section class="section course-about">
-  <div class="container about-grid">
-    <div class="about-text">
-      <h2>О курсе</h2>
-      <p>{{ course.description|default:"Описание скоро появится." }}</p>
-      <ul>
-        <li>📘 {{ lessons|length }} уроков</li>
-        <li>♾️ Бессрочный доступ</li>
-        <li>🎓 Сертификат по окончании</li>
-      </ul>
-    </div>
-    <div class="about-img">
-      <img src="{{ course.image.url|default:static('img/default.jpg') }}" alt="{{ course.title }}">
-    </div>
-  </div>
-</section>
+                {% if has_access %}
+                    <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary">
+                        Перейти к обучению
+                    </a>
 
-<!-- ПРОГРАММА -->
-<section id="program" class="section program-section">
-  <div class="container">
-    <h2 class="text-center mb-3">Программа курса</h2>
-    {% if lessons %}
-      <div class="lessons-list">
-        {% for lesson in lessons %}
-          <div class="lesson-item">
-            <div class="lesson-info">
-              <h3>{{ lesson.title }}</h3>
-              <p>{{ lesson.description|truncatewords:20 }}</p>
+                {% else %}
+
+                    {% if course.price == 0 %}
+                        <form action="{% url 'enroll_course' course.slug %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Записаться бесплатно</button>
+                        </form>
+
+                    {% else %}
+                        <a href="{% url 'create_payment' course.slug %}" class="btn btn-primary">
+                            Оплатить и начать
+                        </a>
+                    {% endif %}
+
+                {% endif %}
+
+                <a href="#program" class="btn btn-outline">Программа</a>
             </div>
-            {% if has_access %}
-              <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-outline">▶ Смотреть</a>
-            {% else %}
-              <button class="btn btn-outline" disabled>🔒 Недоступно</button>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-center text-muted">Программа появится скоро.</p>
-    {% endif %}
-  </div>
-</section>
-
-<!-- ИНСТРУКТОР -->
-<section class="section instructor-section">
-  <div class="container text-center">
-    <h2>Инструктор</h2>
-    {% if teacher_profile %}
-      <div class="instructor-card">
-        <img src="{{ teacher_profile.display_avatar_url|default:static('img/default.jpg') }}" alt="Инструктор">
-        <h3>{{ teacher_profile.user.get_full_name }}</h3>
-        <p class="text-secondary">{{ teacher_profile.title|default:"Эксперт" }}</p>
-        <p>{{ teacher_profile.bio|truncatewords:30 }}</p>
-      </div>
-    {% else %}
-      <p>Информация появится позже.</p>
-    {% endif %}
-  </div>
-</section>
-
-<!-- ОТЗЫВЫ -->
-<section class="testimonials-section">
-  <div class="container">
-    <h2 class="text-center mb-3">Отзывы студентов</h2>
-    {% if reviews %}
-      <div class="testimonials-grid">
-        {% for review in reviews %}
-        <div class="testimonial-card">
-          <p>“{{ review.text|truncatewords:35 }}”</p>
-          <p class="text-sm text-secondary">— {{ review.user.get_full_name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}</p>
         </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-center text-muted">Отзывов пока нет.</p>
-    {% endif %}
-  </div>
+
+        <div class="hero-right">
+            <div class="course-price-card">
+
+                {% if course.discount_price %}
+                    <p class="old-price">{{ course.price|floatformat:0|intcomma }} ₸</p>
+                    <p class="new-price">{{ course.discount_price|floatformat:0|intcomma }} ₸</p>
+                {% else %}
+                    <p class="new-price">
+                        {% if course.price == 0 %}Бесплатно{% else %}{{ course.price|floatformat:0|intcomma }} ₸{% endif %}
+                    </p>
+                {% endif %}
+
+                {% if has_access %}
+                    <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-full">
+                        Перейти к обучению
+                    </a>
+                {% else %}
+                    {% if course.price == 0 %}
+                        <form action="{% url 'enroll_course' course.slug %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-full">Записаться бесплатно</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'create_payment' course.slug %}" class="btn btn-primary btn-full">
+                            Оплатить курс
+                        </a>
+                    {% endif %}
+                {% endif %}
+
+                <form action="{% url 'toggle_wishlist' course.slug %}" method="post" class="mt-2">
+                    {% csrf_token %}
+                    <button class="btn btn-outline btn-full">
+                        ♡ В избранное
+                    </button>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section course-about">
+    <div class="container about-grid">
+        <div class="about-text">
+            <h2>О курсе</h2>
+            <p>{{ course.description|safe|default:"Описание скоро появится." }}</p>
+
+            <ul>
+                <li>📘 {{ lessons|length }} уроков</li>
+                <li>♾️ Пожизненный доступ</li>
+                <li>🎓 Сертификат по окончании</li>
+            </ul>
+        </div>
+
+        <div class="about-img">
+            <img src="{{ course.display_image_url }}" alt="{{ course.title }}">
+        </div>
+    </div>
+</section>
+
+
+<section id="program" class="section program-section">
+    <div class="container">
+        <h2 class="text-center mb-3">Программа курса</h2>
+
+        {% if lessons %}
+            <div class="lessons-list">
+
+                {% for lesson in lessons %}
+                <div class="lesson-item">
+                    <div class="lesson-info">
+                        <h3>{{ lesson.title }}</h3>
+                        {% if lesson.duration_minutes %}
+                        <p>{{ lesson.duration_minutes }} мин</p>
+                        {% endif %}
+                    </div>
+
+                    {% if has_access %}
+                        <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-outline">
+                            ▶ Смотреть
+                        </a>
+                    {% else %}
+                        <button class="btn btn-outline" disabled>🔒 Недоступно</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+            <p class="text-center text-muted">Программа появится позже.</p>
+        {% endif %}
+    </div>
+</section>
+
+
+<section class="section instructor-section">
+    <div class="container text-center">
+        <h2>Инструктор</h2>
+
+        <div class="instructor-card">
+            <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name }}">
+            <h3>{{ teacher.get_full_name }}</h3>
+            <p class="text-secondary">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
+            <p>{{ teacher_profile.bio|truncatewords:30 }}</p>
+        </div>
+
+    </div>
+</section>
+
+
+<section class="testimonials-section">
+    <div class="container">
+        <h2 class="text-center mb-3">Отзывы студентов</h2>
+
+        {% if reviews %}
+        <div class="testimonials-grid">
+            {% for r in reviews %}
+            <div class="testimonial-card">
+                <p>“{{ r.comment|truncatewords:35 }}”</p>
+                <p class="text-sm text-secondary">— {{ r.name|default:"Аноним" }}, {{ r.created_at|date:"d M Y" }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+            <p class="text-center text-muted">Отзывов пока нет.</p>
+        {% endif %}
+    </div>
 </section>
 
 {% endblock %}

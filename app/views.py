@@ -542,19 +542,9 @@ def lesson_detail(request, course_slug, lesson_slug):
 
 @login_required
 def enroll_course(request, slug):
-    course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
-
-    if course.students.filter(id=request.user.id).exists():
-        messages.info(request, "Вы уже записаны на этот курс")
-        return redirect("course_detail", slug=slug)
-
-    if course.price and float(course.price or 0) > 0:
-        return redirect("create_payment", slug=slug)
-
+    course = get_object_or_404(Course, slug=slug)
     Enrollment.objects.get_or_create(user=request.user, course=course)
-    course.students.add(request.user)
-    messages.success(request, f'Вы успешно записаны на курс "{course.title}"')
-    return redirect("course_detail", slug=slug)
+    return redirect("lesson_detail", course_slug=course.slug, lesson_slug=course.modules.first().lessons.first().slug)
 
 
 @login_required
