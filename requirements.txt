@@ -70,3 +70,4 @@ whitenoise==6.9.0
 zopfli==0.2.3.post1
 python-dotenv==1.0.1
 dj-database-url==3.0.1
+django-recaptcha==4.1.0

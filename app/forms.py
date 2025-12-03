@@ -4,6 +4,10 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 from .models import ContactMessage, Review
 
+# reCAPTCHA
+from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV2Checkbox
+
 User = get_user_model()
 
 
@@ -23,6 +27,9 @@ class BootstrapFormMixin:
             widget.attrs["class"] = f"{existing} {base}".strip()
 
 
+# --------------------------
+# LOGIN FORM
+# --------------------------
 class EmailAuthenticationForm(BootstrapFormMixin, AuthenticationForm):
     username = forms.CharField(
         label=_("Email or Username"),
@@ -40,14 +47,28 @@ class EmailAuthenticationForm(BootstrapFormMixin, AuthenticationForm):
     )
 
 
+# --------------------------
+# REGISTRATION FORM (+ reCAPTCHA)
+# --------------------------
 class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
     email = forms.EmailField(required=True, label=_("Email"))
     first_name = forms.CharField(max_length=30, required=True, label=_("First name"))
     last_name = forms.CharField(max_length=30, required=True, label=_("Last name"))
 
+    # 👉 Добавляем капчу ЗДЕСЬ
+    captcha = ReCaptchaField(widget=ReCaptchaV2Checkbox())
+
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ("username", "email", "first_name", "last_name", "password1", "password2")
+        fields = (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "password1",
+            "password2",
+            "captcha",  # 👉 Обязательно добавляем сюда
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,31 +99,25 @@ class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
             "autocomplete": "new-password",
         })
 
-        # Убираем шум из help_text
+        # Убираем help_text у некоторых полей
         for name in ("username", "password1", "password2"):
             if name in self.fields:
                 self.fields[name].help_text = ""
 
+    # Проверка уникальности email
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if email and User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(_("A user with this email already exists."))
         return email
 
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data["email"]
-        user.first_name = self.cleaned_data["first_name"]
-        user.last_name = self.cleaned_data["last_name"]
-        if commit:
-            user.save()
-        return user
 
-
+# --------------------------
+# CONTACT FORM
+# --------------------------
 class ContactForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = ContactMessage
-        # Оставляю subject, раз он используется в проекте.
         fields = ["name", "email", "subject", "message"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": _("Your name")}),
@@ -112,10 +127,13 @@ class ContactForm(BootstrapFormMixin, forms.ModelForm):
         }
 
 
+# --------------------------
+# REVIEW FORM
+# --------------------------
 class ReviewForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Review
-        fields = ["rating", "comment"]  # если в модели поле текста называется иначе, замени "comment" на актуальное
+        fields = ["rating", "comment"]
         widgets = {
             "rating": forms.NumberInput(attrs={"min": 1, "max": 5, "placeholder": _("Rating 1–5")}),
             "comment": forms.Textarea(attrs={"rows": 4, "placeholder": _("Your review about the course")}),
