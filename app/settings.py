@@ -8,7 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Загружаем .env
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-
+RECAPTCHA_PUBLIC_KEY = os.environ.get("RECAPTCHA_PUBLIC_KEY")
+RECAPTCHA_PRIVATE_KEY = os.environ.get("RECAPTCHA_PRIVATE_KEY")
 SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 

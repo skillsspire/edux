@@ -103,7 +103,7 @@
         </div>
 
         <div class="about-img">
-            <img src="{{ course.display_image_url }}" alt="{{ course.title }}">
+            <img src="{{ course.display_image_url|default:'/static/img/default.jpg' }}" alt="{{ course.title }}">
         </div>
     </div>
 </section>
