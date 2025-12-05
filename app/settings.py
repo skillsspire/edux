@@ -70,6 +70,7 @@ THIRD_PARTY_APPS = [
     "ckeditor",
     "widget_tweaks",
     "storages",
+    "captcha",
 ]
 
 LOCAL_APPS = [
