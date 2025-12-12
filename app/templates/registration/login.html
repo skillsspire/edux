@@ -3,65 +3,570 @@
 
 {% block title %}{% trans "Login" %} — SkillsSpire{% endblock %}
 
+{% block extra_css %}
+<style>
+.login-section {
+  padding: 4rem 0;
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-bg-section) 0%, var(--color-bg-white) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-section::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, rgba(1, 52, 157, 0.05) 0%, rgba(59, 92, 197, 0.05) 100%);
+  border-radius: 50%;
+}
+
+.login-section::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, rgba(255, 77, 140, 0.05) 0%, rgba(255, 111, 163, 0.05) 100%);
+  border-radius: 50%;
+}
+
+.login-container {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.login-card {
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+.login-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-header::before {
+  content: '👋';
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%);
+  font-size: 3rem;
+  opacity: 0.15;
+}
+
+.login-header h1 {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.login-subtitle {
+  font-size: 1rem;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
+
+.login-body {
+  padding: 2.5rem 2rem;
+}
+
+.login-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+.login-form .form-control {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  background: var(--color-bg-section);
+  color: var(--color-text-primary);
+  transition: all 0.3s ease;
+}
+
+.login-form .form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-bg-white);
+  box-shadow: 0 0 0 4px rgba(1, 52, 157, 0.15);
+}
+
+.login-form .form-control::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.password-container {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+  color: var(--color-primary);
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.forgot-password {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.forgot-password:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 1.1rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(1, 52, 157, 0.25);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+.submit-btn.is-loading {
+  background: var(--color-primary-dark);
+  cursor: not-allowed;
+}
+
+.submit-btn.is-loading span {
+  display: none;
+}
+
+.submit-btn.is-loading::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.register-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.register-link:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* Стили для сообщений об ошибках */
+.alert-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  animation: slideInDown 0.3s ease;
+}
+
+.alert-error ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+}
+
+.alert-error li {
+  margin-bottom: 0.25rem;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Стили для успешных сообщений */
+.alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  animation: slideInDown 0.3s ease;
+}
+
+.alert-success .alert-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .login-section {
+    padding: 2rem 1rem;
+  }
+  
+  .login-header {
+    padding: 2rem 1.5rem;
+  }
+  
+  .login-header::before {
+    font-size: 2rem;
+    right: 20px;
+  }
+  
+  .login-body {
+    padding: 2rem 1.5rem;
+  }
+  
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-header h1 {
+    font-size: 1.6rem;
+  }
+  
+  .login-form .form-control {
+    padding: 0.9rem 1rem;
+  }
+  
+  .submit-btn {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="section py-5">
-  <div class="container" style="max-width: 420px;">
-    <div class="card p-4 shadow-sm rounded">
-
-      <!-- Header -->
-      <h1 class="text-center mb-4 fw-bold" style="font-size: 1.9rem;">
-        Вход в аккаунт
-      </h1>
-
-      {% if form.errors %}
-      <div class="alert alert-danger">
-        <strong>Ошибка входа:</strong>
-        <ul class="mb-0">
-          {% for field, errors in form.errors.items %}
-            {% for error in errors %}
-              <li>{{ error }}</li>
+<section class="login-section">
+  <div class="container login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>С возвращением!</h1>
+        <p class="login-subtitle">Войдите в свой аккаунт, чтобы продолжить обучение</p>
+      </div>
+      
+      <div class="login-body">
+        {% if form.errors %}
+        <div class="alert-error">
+          <strong>Не удалось войти. Проверьте данные:</strong>
+          <ul>
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
             {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if messages %}
+          {% for message in messages %}
+            {% if message.tags == 'success' %}
+              <div class="alert-success">
+                <div class="alert-content">
+                  <i>✅</i>
+                  <div>{{ message }}</div>
+                </div>
+              </div>
+            {% endif %}
           {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
+        {% endif %}
 
-      <!-- Login form -->
-      <form method="post" novalidate>
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.GET.next }}">
+        <form method="post" novalidate class="login-form" id="login-form">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.GET.next }}">
 
-        <div class="mb-3">
-          <label class="form-label">Email или имя пользователя</label>
-          <input type="text" name="username" class="form-control"
-                 required autocomplete="email"
-                 placeholder="Введите email или имя пользователя">
+          <div class="form-group">
+            <label for="username">Email или имя пользователя</label>
+            <input type="text" name="username" id="username" class="form-control"
+                   required autocomplete="email"
+                   placeholder="Введите email или имя пользователя"
+                   value="{{ form.username.value|default:'' }}">
+            <div class="form-text" style="font-size: 0.85rem; color: var(--color-text-tertiary); margin-top: 0.25rem;">
+              Используйте email или логин, указанные при регистрации
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Пароль</label>
+            <div class="password-container">
+              <input type="password" name="password" id="password" class="form-control"
+                     required autocomplete="current-password"
+                     placeholder="Введите пароль">
+              <button type="button" class="toggle-password" id="toggle-password">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox" name="remember" value="1">
+              <span>Запомнить меня на этом устройстве</span>
+            </label>
+            <a href="{% url 'password_reset' %}" class="forgot-password">
+              <i>🔑</i>
+              <span>Забыли пароль?</span>
+            </a>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submit-btn">
+            <i>🚀</i>
+            <span>Войти в аккаунт</span>
+          </button>
+        </form>
+
+        <div class="login-footer">
+          <p>
+            Ещё нет аккаунта?
+            <a href="{% url 'signup' %}" class="register-link">
+              Создать аккаунт <i>→</i>
+            </a>
+          </p>
+          
+          <p style="font-size: 0.85rem; color: var(--color-text-tertiary); margin-top: 1rem;">
+            Продолжая, вы соглашаетесь с 
+            <a href="/terms/" style="color: var(--color-primary); text-decoration: none;">Условиями использования</a>
+          </p>
         </div>
-
-        <div class="mb-3">
-          <label class="form-label">Пароль</label>
-          <input type="password" name="password" class="form-control"
-                 required autocomplete="current-password"
-                 placeholder="Введите пароль">
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100 mt-2">
-          Войти
-        </button>
-      </form>
-
-      <!-- Links -->
-      <div class="text-center mt-3">
-        <a href="{% url 'password_reset' %}" class="text-decoration-none">
-          Забыли пароль?
-        </a>
-        <p class="mt-2 mb-0">
-          Нет аккаунта?
-          <a href="{% url 'signup' %}" class="fw-bold text-primary">Регистрация</a>
-        </p>
       </div>
-
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('login-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const togglePasswordBtn = document.getElementById('toggle-password');
+  const passwordInput = document.getElementById('password');
+  
+  // Переключение видимости пароля
+  togglePasswordBtn.addEventListener('click', function() {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    togglePasswordBtn.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+  });
+  
+  // Обработка отправки формы
+  form.addEventListener('submit', function(e) {
+    // Проверяем заполненность полей
+    const username = document.getElementById('username').value.trim();
+    const password = passwordInput.value.trim();
+    
+    if (!username || !password) {
+      e.preventDefault();
+      showToast('Заполните все поля', 'error');
+      return false;
+    }
+    
+    // Блокируем кнопку
+    submitBtn.classList.add('is-loading');
+    submitBtn.disabled = true;
+    
+    return true;
+  });
+  
+  // Автоматическое заполнение имени пользователя, если есть в URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const nextParam = urlParams.get('next');
+  if (nextParam && nextParam.includes('signup')) {
+    // Если пользователь только что зарегистрировался, показываем сообщение
+    showToast('Аккаунт успешно создан! Теперь войдите.', 'success');
+  }
+  
+  // Плавное появление карточки
+  const loginCard = document.querySelector('.login-card');
+  setTimeout(() => {
+    loginCard.style.opacity = '1';
+    loginCard.style.transform = 'translateY(0)';
+  }, 100);
+  
+  // Установка начальных стилей для анимации
+  loginCard.style.opacity = '0';
+  loginCard.style.transform = 'translateY(20px)';
+  loginCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  
+  // Автофокус на поле username
+  const usernameField = document.getElementById('username');
+  if (usernameField) {
+    setTimeout(() => usernameField.focus(), 300);
+  }
+});
+
+// Функция для показа уведомлений
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: ${type === 'error' ? 'var(--color-error)' : type === 'success' ? 'var(--color-success)' : 'var(--color-primary)'};
+    color: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Удаляем через 4 секунды
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => {
+      document.body.removeChild(toast);
+    }, 300);
+  }, 4000);
+}
+
+// Добавляем стили для анимации уведомлений
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(toastStyles);
+</script>
 {% endblock %}

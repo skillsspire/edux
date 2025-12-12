@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load i18n static app_extras %}
 
-{% block title %}{% trans "My Dashboard" %} — SkillsSpire{% endblock %}
+{% block title %}Мой кабинет — SkillsSpire{% endblock %}
 
 {% block content %}
 <div class="dashboard-container container py-4">
@@ -14,32 +14,37 @@
 
             <!-- Заголовок -->
             <div class="dash-header mb-4">
-                <h1 class="h2 fw-bold">{% trans "My Dashboard" %}</h1>
-                <p class="text-muted">{% trans "Track your progress and continue learning." %}</p>
+                <h1 class="h2 fw-bold">Мой кабинет</h1>
+                <p class="text-muted">Отслеживайте прогресс и продолжайте обучение</p>
             </div>
 
             <!-- Статистика -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value">{{ total_courses|default:0 }}</div>
-                    <div class="stat-label">{% trans "Enrolled courses" %}</div>
+                    <div class="stat-label">Активные курсы</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ completed_courses|default:0 }}</div>
-                    <div class="stat-label">{% trans "Completed courses" %}</div>
+                    <div class="stat-label">Завершённые курсы</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ total_lessons|default:0 }}</div>
-                    <div class="stat-label">{% trans "Lessons visited" %}</div>
+                    <div class="stat-label">Просмотренные уроки</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{{ completed_lessons|default:0 }}</div>
-                    <div class="stat-label">{% trans "Lessons completed" %}</div>
+                    <div class="stat-label">Пройденные уроки</div>
                 </div>
             </div>
 
             <!-- Мои курсы -->
-            <h2 class="h4 fw-bold mt-4 mb-3">{% trans "My Courses" %}</h2>
+            <div class="section-header">
+                <h2 class="h4 fw-bold">Мои курсы</h2>
+                {% if enrollments %}
+                <p class="text-muted">{{ enrollments|length }} курсов в вашем списке</p>
+                {% endif %}
+            </div>
 
             {% if enrollments %}
             <div class="courses-grid">
@@ -58,28 +63,50 @@
                     {% endif %}
 
                     <div class="course-card-content">
-                        <span class="course-category">
-                            {% trans "Instructor" %}:
-                            {% if c.instructor %}
-                                {{ c.instructor.get_full_name|default:c.instructor.username }}
-                            {% else %}
-                                SkillsSpire
-                            {% endif %}
-                        </span>
+                        <div class="course-meta">
+                            <span class="course-category">
+                                {% if c.category %}
+                                    {{ c.category.name }}
+                                {% else %}
+                                    Обучение
+                                {% endif %}
+                            </span>
+                            <span class="course-instructor">
+                                {% if c.instructor %}
+                                    {{ c.instructor.get_full_name|default:c.instructor.username }}
+                                {% else %}
+                                    SkillsSpire
+                                {% endif %}
+                            </span>
+                        </div>
 
                         <h3 class="course-card-title">{{ c.title }}</h3>
+                        <p class="course-card-text">{{ c.short_description|default:c.description|truncatechars:100 }}</p>
 
                         <div class="course-progress-block">
-                            <div class="progressbar" aria-label="{% trans 'Course progress' %}">
+                            <div class="progress-info">
+                                <span class="progress-percent">{{ p }}% завершено</span>
+                                <span class="progress-time">
+                                    {% if c.duration %}
+                                        {{ c.duration }} часов
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="progressbar" aria-label="Прогресс курса">
                                 <span class="bar" data-w="{{ p }}"></span>
                             </div>
-                            <small class="text-muted">{{ p }}% {% trans "completed" %}</small>
                         </div>
                     </div>
 
                     <div class="course-card-footer">
                         <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
-                            {% if e.completed %}{% trans "View course" %}{% else %}{% trans "Continue learning" %}{% endif %}
+                            {% if p >= 100 %}
+                                📜 Просмотреть курс
+                            {% elif p > 0 %}
+                                ➡️ Продолжить обучение
+                            {% else %}
+                                🚀 Начать обучение
+                            {% endif %}
                         </a>
                     </div>
                 </div>
@@ -90,8 +117,12 @@
 
             {% else %}
             <div class="empty-state">
-                <p class="mb-2">{% trans "You are not enrolled in any courses yet." %}</p>
-                <a href="{% url 'courses_list' %}" class="btn btn-primary">{% trans "Browse Courses" %}</a>
+                <div class="empty-icon">📚</div>
+                <h3>Курсы не найдены</h3>
+                <p class="mb-3">Вы ещё не записались ни на один курс</p>
+                <a href="{% url 'courses_list' %}" class="btn btn-primary">
+                    👀 Найти курсы
+                </a>
             </div>
             {% endif %}
         </div>
@@ -103,54 +134,114 @@
             <div class="sidebar-card profile-card">
                 <div class="profile-avatar">
                     {% if user.avatar %}
-                        <img src="{{ user.avatar.url }}" alt="">
+                        <img src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}">
                     {% else %}
-                        <span>{{ user.first_name|first|default:"U" }}</span>
+                        <span>{{ user.first_name|first|default:user.username|first|upper }}</span>
                     {% endif %}
                 </div>
 
                 <h4 class="profile-name">{{ user.get_full_name|default:user.username }}</h4>
-                <p class="profile-email text-muted">{{ user.email }}</p>
+                <p class="profile-email">{{ user.email }}</p>
 
-                <a href="{% url 'profile_settings' %}" class="btn btn-outline btn-full mt-2">
-                    ⚙️ {% trans "Settings" %}
-                </a>
+                <div class="profile-actions">
+                    <a href="{% url 'profile_settings' %}" class="btn btn-outline btn-full">
+                        ⚙️ Настройки профиля
+                    </a>
+                </div>
             </div>
 
             <!-- Статистика прогресса -->
             <div class="sidebar-card">
-                <h4 class="sidebar-title">{% trans "Progress overview" %}</h4>
+                <h4 class="sidebar-title">📊 Статистика обучения</h4>
 
                 <ul class="progress-list">
                     <li>
-                        <span>{% trans "Courses completed" %}</span>
+                        <span class="stat-icon">✅</span>
+                        <div class="stat-info">
+                            <span class="stat-label">Завершённые курсы</span>
+                        </div>
                         <strong>{{ completed_courses }}</strong>
                     </li>
                     <li>
-                        <span>{% trans "Lessons completed" %}</span>
+                        <span class="stat-icon">📖</span>
+                        <div class="stat-info">
+                            <span class="stat-label">Пройденные уроки</span>
+                        </div>
                         <strong>{{ completed_lessons }}</strong>
                     </li>
                     <li>
-                        <span>{% trans "Active courses" %}</span>
+                        <span class="stat-icon">🔥</span>
+                        <div class="stat-info">
+                            <span class="stat-label">Активные курсы</span>
+                        </div>
                         <strong>{{ total_courses }}</strong>
+                    </li>
+                    <li>
+                        <span class="stat-icon">⏱️</span>
+                        <div class="stat-info">
+                            <span class="stat-label">Часов обучения</span>
+                        </div>
+                        <strong>{{ total_hours|default:"0" }}</strong>
                     </li>
                 </ul>
             </div>
 
-            <!-- Наставник -->
+            <!-- Поддержка -->
             <div class="sidebar-card mentor-card">
-                <h4 class="sidebar-title">{% trans "Your mentor" %}</h4>
+                <h4 class="sidebar-title">💬 Нужна помощь?</h4>
 
                 <div class="mentor-block">
-                    <img src="{% static 'img/mentor-default.png' %}" class="mentor-avatar" alt="">
+                    <div class="mentor-avatar">
+                        <span>👨‍🏫</span>
+                    </div>
                     <div>
-                        <div class="mentor-name">SkillsSpire Mentor</div>
-                        <div class="mentor-role text-muted">{% trans "Support" %}</div>
+                        <div class="mentor-name">Помощник SkillsSpire</div>
+                        <div class="mentor-role">Поддержка 24/7</div>
                     </div>
                 </div>
 
-                <a href="mailto:support@skillsspire.com"
-                   class="btn btn-primary btn-full mt-2">📩 {% trans "Contact mentor" %}</a>
+                <div class="support-links">
+                    <a href="mailto:support@skillsspire.com" class="support-link">
+                        📩 Написать на почту
+                    </a>
+                    <a href="https://t.me/skillsspire_support" target="_blank" class="support-link">
+                        💬 Telegram-чат
+                    </a>
+                    <a href="{% url 'faq' %}" class="support-link">
+                        ❓ Частые вопросы
+                    </a>
+                </div>
+            </div>
+
+            <!-- Быстрые ссылки -->
+            <div class="sidebar-card quick-links-card">
+                <h4 class="sidebar-title">🔗 Быстрые ссылки</h4>
+                <ul class="quick-links">
+                    <li>
+                        <a href="{% url 'courses_list' %}">
+                            <span>🎯</span>
+                            <span>Все курсы</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'articles_list' %}">
+                            <span>📰</span>
+                            <span>Статьи</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'materials' %}">
+                            <span>📚</span>
+                            <span>Материалы</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'certificates' %}">
+                            <span>🏆</span>
+                            <span>Мои сертификаты</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
 
         </aside>
@@ -161,45 +252,252 @@
 
 {% block extra_css %}
 <style>
-
 /* ====== ЛЕЙАУТ ====== */
-.dashboard-layout {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 2rem;
+.dashboard-container {
+    max-width: 1400px;
 }
 
-@media (max-width: 992px) {
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 2.5rem;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr 300px;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
     .dashboard-layout {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
+}
+
+/* ====== ЗАГОЛОВОК ====== */
+.dash-header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.dash-header::before {
+    content: '🎓';
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 4rem;
+    opacity: 0.15;
+}
+
+.dash-header h1 {
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.dash-header p {
+    opacity: 0.9;
+    font-size: 1.1rem;
 }
 
 /* ====== СТАТИСТИКА ====== */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
 }
 
 .stat-card {
     background: var(--color-bg-white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 1.5rem;
+    padding: 1.75rem;
     text-align: center;
     box-shadow: var(--shadow-sm);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: 800;
     color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
 }
 
 .stat-label {
     color: var(--color-text-secondary);
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* ====== СЕКЦИИ ====== */
+.section-header {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+/* ====== КАРТОЧКИ КУРСОВ ====== */
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.course-card {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.course-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+}
+
+.course-card-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.course-card-content {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.course-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+}
+
+.course-category {
+    background: rgba(1, 52, 157, 0.1);
+    color: var(--color-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.course-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.course-card-text {
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.course-progress-block {
+    margin-top: 1rem;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.progress-percent {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.progress-time {
+    color: var(--color-text-tertiary);
+}
+
+.progressbar {
+    width: 100%;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progressbar .bar {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    width: 0%;
+    transition: width 0.6s ease;
+}
+
+.course-card-footer {
+    padding: 1.5rem;
+    padding-top: 0;
+}
+
+.btn-full {
+    width: 100%;
+    padding: 0.9rem;
+    font-weight: 600;
+}
+
+/* ====== ПУСТОЕ СОСТОЯНИЕ ====== */
+.empty-state {
+    background: var(--color-bg-section);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2rem;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary);
 }
 
 /* ====== ПРАВАЯ КОЛОНКА ====== */
@@ -213,13 +511,18 @@
     background: var(--color-bg-white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 1.5rem;
+    padding: 1.75rem;
     box-shadow: var(--shadow-sm);
 }
 
 .sidebar-title {
+    font-size: 1.1rem;
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* ====== ПРОФИЛЬ ====== */
@@ -228,16 +531,17 @@
 }
 
 .profile-avatar {
-    width: 86px;
-    height: 86px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
-    margin: 0 auto 1rem;
-    background: var(--color-primary);
+    margin: 0 auto 1.25rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+    font-size: 2.5rem;
+    font-weight: 700;
 }
 
 .profile-avatar img {
@@ -248,71 +552,255 @@
 }
 
 .profile-name {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 700;
+    margin-bottom: 0.25rem;
 }
 
-/* ====== СТАТЫ В СТОРОНЕ ====== */
+.profile-email {
+    color: var(--color-text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.profile-actions {
+    margin-top: 1rem;
+}
+
+/* ====== СТАТИСТИКА В СТОРОНЕ ====== */
 .progress-list {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 .progress-list li {
     display: flex;
-    justify-content: space-between;
-    padding: 0.4rem 0;
-    font-size: 1rem;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--color-border);
 }
 
-/* ====== НАСТАВНИК ====== */
+.progress-list li:last-child {
+    border-bottom: none;
+}
+
+.stat-icon {
+    font-size: 1.2rem;
+    width: 30px;
+    text-align: center;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+}
+
+.progress-list strong {
+    font-size: 1.1rem;
+    color: var(--color-primary);
+}
+
+/* ====== ПОДДЕРЖКА ====== */
 .mentor-block {
     display: flex;
     align-items: center;
     gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--color-bg-section);
+    border-radius: var(--radius-md);
 }
 
 .mentor-avatar {
-    width: 58px;
-    height: 58px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    object-fit: cover;
+    background: linear-gradient(135deg, var(--color-accent-pink) 0%, var(--color-accent-purple) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
 }
 
 .mentor-name {
     font-weight: 700;
+    font-size: 1.1rem;
 }
 
-/* ====== ПРОГРЕСС БАР ====== */
-.progressbar {
-    width: 100%;
-    height: 6px;
-    background: var(--color-border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 0.4rem;
+.mentor-role {
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+}
+
+.support-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.support-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    background: var(--color-bg-section);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.support-link:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateX(4px);
+}
+
+/* ====== БЫСТРЫЕ ССЫЛКИ ====== */
+.quick-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.quick-links li {
+    margin-bottom: 0.5rem;
+}
+
+.quick-links li:last-child {
+    margin-bottom: 0;
+}
+
+.quick-links a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    background: var(--color-bg-section);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.quick-links a:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateX(4px);
+}
+
+.quick-links span:first-child {
+    font-size: 1.2rem;
+}
+
+/* ====== КНОПКИ ====== */
+.btn {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(1, 52, 157, 0.25);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-outline:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* ====== ТЕМНАЯ ТЕМА ====== */
+:root.dark-theme .dash-header {
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+}
+
+:root.dark-theme .stat-card,
+:root.dark-theme .course-card,
+:root.dark-theme .sidebar-card {
+    background: var(--color-bg-white);
+}
+
+:root.dark-theme .empty-state {
+    background: var(--color-bg-section);
+}
+
+:root.dark-theme .mentor-block,
+:root.dark-theme .support-link,
+:root.dark-theme .quick-links a {
+    background: var(--color-bg-section);
+}
+
+/* ====== АНИМАЦИЯ ПРОГРЕСС БАРА ====== */
+@keyframes progressLoad {
+    from { width: 0; }
 }
 
 .progressbar .bar {
-    display: block;
-    height: 100%;
-    background: var(--color-primary);
-    width: 0%;
-    transition: width .4s ease;
+    animation: progressLoad 1s ease-out forwards;
 }
-
-.course-progress-block {
-    margin-top: auto;
-}
-
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.querySelectorAll('.progressbar .bar').forEach(el=>{
-    const w = Number(el.dataset.w || 0);
-    el.style.width = Math.max(0, Math.min(100, w)) + '%';
+document.addEventListener('DOMContentLoaded', function() {
+    // Анимация прогресс-баров
+    document.querySelectorAll('.progressbar .bar').forEach(el => {
+        const width = Number(el.dataset.w || 0);
+        el.style.width = Math.max(0, Math.min(100, width)) + '%';
+    });
+    
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.stat-card, .course-card, .sidebar-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
+    });
+    
+    // Добавление иконок к статистике
+    const statIcons = ['📚', '🏆', '👀', '✅'];
+    document.querySelectorAll('.stat-card').forEach((card, index) => {
+        const icon = document.createElement('div');
+        icon.className = 'stat-icon';
+        icon.textContent = statIcons[index] || '📊';
+        icon.style.cssText = 'font-size: 2rem; margin-bottom: 0.5rem;';
+        card.querySelector('.stat-value').parentNode.insertBefore(icon, card.querySelector('.stat-value'));
+    });
 });
 </script>
 {% endblock %}

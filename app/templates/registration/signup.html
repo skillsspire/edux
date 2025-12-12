@@ -5,115 +5,494 @@
 
 {% block extra_css %}
 <style>
-/* Кастомизация reCAPTCHA */
-.grecaptcha-badge {
-    margin: 0 auto;
+.signup-section {
+  padding: 4rem 0;
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-bg-section) 0%, var(--color-bg-white) 100%);
+}
+
+.signup-container {
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.signup-card {
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.signup-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+.signup-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.signup-header::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 150px;
+  height: 150px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.signup-header::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  left: -30px;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+}
+
+.signup-header h1 {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.signup-subtitle {
+  font-size: 1rem;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
+
+.signup-body {
+  padding: 2.5rem 2rem;
+}
+
+.signup-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.signup-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+.signup-form .form-control {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  background: var(--color-bg-section);
+  color: var(--color-text-primary);
+  transition: all 0.3s ease;
+}
+
+.signup-form .form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-bg-white);
+  box-shadow: 0 0 0 4px rgba(1, 52, 157, 0.15);
+}
+
+.signup-form .form-control::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.password-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.form-errors {
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.form-errors i {
+  color: var(--color-error);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.captcha-container {
+  background: var(--color-bg-section);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  text-align: center;
+  border: 2px solid var(--color-border);
+}
+
+.captcha-container label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.captcha-container .grecaptcha-badge {
+  margin: 0 auto;
+  display: inline-block;
+}
+
+.captcha-note {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.captcha-note i {
+  color: var(--color-primary);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 1.1rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(1, 52, 157, 0.25);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+.submit-btn.is-loading {
+  background: var(--color-primary-dark);
+  cursor: not-allowed;
+}
+
+.submit-btn.is-loading span {
+  display: none;
+}
+
+.submit-btn.is-loading::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.signup-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.login-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.login-link:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.terms {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-top: 1.5rem;
+  line-height: 1.5;
+}
+
+.terms a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.terms a:hover {
+  text-decoration: underline;
+}
+
+.signup-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--color-bg-section);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(1, 52, 157, 0.1);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.feature-text {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.feature-text strong {
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .signup-section {
+    padding: 2rem 1rem;
+  }
+  
+  .signup-header {
+    padding: 2rem 1.5rem;
+  }
+  
+  .signup-body {
+    padding: 2rem 1.5rem;
+  }
+  
+  .signup-features {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .signup-header h1 {
+    font-size: 1.6rem;
+  }
+  
+  .signup-form .form-control {
+    padding: 0.9rem 1rem;
+  }
+  
+  .submit-btn {
+    padding: 1rem;
+    font-size: 1rem;
+  }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="section py-5">
-  <div class="container" style="max-width: 460px;">
-    <div class="card p-4 shadow-sm rounded">
-
-      <h1 class="mb-4 fw-bold text-center" style="font-size: 1.9rem;">
-        Регистрация
-      </h1>
-
-      {% if form.non_field_errors %}
-      <div class="alert alert-danger">
-        {% for error in form.non_field_errors %}
-          {{ error }}
-        {% endfor %}
+<section class="signup-section">
+  <div class="container signup-container">
+    <div class="signup-card">
+      <div class="signup-header">
+        <h1>Создайте аккаунт</h1>
+        <p class="signup-subtitle">Присоединяйтесь к сообществу SkillsSpire</p>
       </div>
-      {% endif %}
-
-      <form method="post" novalidate id="signup-form">
-        {% csrf_token %}
-
-        <div class="mb-3">
-          <label class="form-label">Имя пользователя</label>
-          {{ form.username|add_class:"form-control"|attr:"placeholder:Ваш логин" }}
-          {% for error in form.username.errors %}
-            <div class="text-danger small">{{ error }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          {{ form.email|add_class:"form-control"|attr:"placeholder:you@example.com" }}
-          {% for error in form.email.errors %}
-            <div class="text-danger small">{{ error }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Имя</label>
-          {{ form.first_name|add_class:"form-control"|attr:"placeholder:Иван" }}
-          {% for error in form.first_name.errors %}
-            <div class="text-danger small">{{ error }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Фамилия</label>
-          {{ form.last_name|add_class:"form-control"|attr:"placeholder:Иванов" }}
-          {% for error in form.last_name.errors %}
-            <div class="text-danger small">{{ error }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Пароль</label>
-          {{ form.password1|add_class:"form-control"|attr:"placeholder:Введите пароль" }}
-          {% for error in form.password1.errors %}
-            <div class="text-danger small">{{ error }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Подтверждение пароля</label>
-          {{ form.password2|add_class:"form-control"|attr:"placeholder:Повторите пароль" }}
-          {% for error in form.password2.errors %}
-            <div class="text-danger small">{{ error }}</div>
-          {% endfor %}
-        </div>
-
-        <!-- RE CAPTCHA ПОЛЕ -->
-        <div class="mb-4">
-          <label class="form-label d-block">Проверка безопасности</label>
-          {{ form.captcha }}
-          {% if form.captcha.errors %}
-            <div class="text-danger small mt-2">
-              {% for error in form.captcha.errors %}
-                {{ error }}
+      
+      <div class="signup-body">
+        {% if form.non_field_errors %}
+        <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+          <div class="alert-content">
+            <i>⚠️</i>
+            <div>
+              {% for error in form.non_field_errors %}
+                <p style="margin: 0;">{{ error }}</p>
               {% endfor %}
             </div>
-          {% endif %}
-          <p class="text-muted small mt-2">
-            Подтвердите, что вы не робот
-          </p>
+          </div>
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate class="signup-form" id="signup-form">
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Имя пользователя</label>
+            {{ form.username|add_class:"form-control"|attr:"placeholder:Например, alex_ivanov" }}
+            {% if form.username.errors %}
+              <div class="form-errors">
+                <i>⚠️</i>
+                <div>{% for error in form.username.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email|add_class:"form-control"|attr:"placeholder:you@example.com" }}
+            {% if form.email.errors %}
+              <div class="form-errors">
+                <i>⚠️</i>
+                <div>{% for error in form.email.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.first_name.id_for_label }}">Имя</label>
+            {{ form.first_name|add_class:"form-control"|attr:"placeholder:Иван" }}
+            {% if form.first_name.errors %}
+              <div class="form-errors">
+                <i>⚠️</i>
+                <div>{% for error in form.first_name.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.last_name.id_for_label }}">Фамилия</label>
+            {{ form.last_name|add_class:"form-control"|attr:"placeholder:Иванов" }}
+            {% if form.last_name.errors %}
+              <div class="form-errors">
+                <i>⚠️</i>
+                <div>{% for error in form.last_name.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.password1.id_for_label }}">Пароль</label>
+            {{ form.password1|add_class:"form-control"|attr:"placeholder:Не менее 8 символов" }}
+            <div class="password-hint">
+              Пароль должен содержать как минимум 8 символов, включая буквы и цифры.
+            </div>
+            {% if form.password1.errors %}
+              <div class="form-errors">
+                <i>⚠️</i>
+                <div>{% for error in form.password1.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.password2.id_for_label }}">Подтверждение пароля</label>
+            {{ form.password2|add_class:"form-control"|attr:"placeholder:Повторите пароль" }}
+            {% if form.password2.errors %}
+              <div class="form-errors">
+                <i>⚠️</i>
+                <div>{% for error in form.password2.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="captcha-container">
+            <label>Подтвердите, что вы не робот</label>
+            {{ form.captcha }}
+            {% if form.captcha.errors %}
+              <div class="form-errors" style="margin-top: 1rem;">
+                <i>⚠️</i>
+                <div>{% for error in form.captcha.errors %}{{ error }} {% endfor %}</div>
+              </div>
+            {% endif %}
+            <div class="captcha-note">
+              <i>🔒</i>
+              <span>Защита от спама и автоматических регистраций</span>
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submit-btn">
+            <i>🚀</i>
+            <span>Создать аккаунт</span>
+          </button>
+        </form>
+
+        <div class="signup-features">
+          <div class="feature-item">
+            <div class="feature-icon">🎓</div>
+            <div class="feature-text">
+              <strong>Бесплатный доступ</strong>
+              <span>К бесплатным курсам сразу после регистрации</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📚</div>
+            <div class="feature-text">
+              <strong>Прогресс обучения</strong>
+              <span>Отслеживайте свой прогресс в личном кабинете</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">👥</div>
+            <div class="feature-text">
+              <strong>Сообщество</strong>
+              <span>Присоединяйтесь к обсуждениям и проектам</span>
+            </div>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 mt-2" id="submit-btn">
-          Создать аккаунт
-        </button>
-      </form>
-
-      <div class="text-center mt-3">
-        Уже есть аккаунт?
-        <a href="{% url 'login' %}" class="fw-bold text-primary">Войти</a>
+        <div class="signup-footer">
+          <p>
+            Уже есть аккаунт?
+            <a href="{% url 'login' %}" class="login-link">
+              Войти <i>→</i>
+            </a>
+          </p>
+          
+          <div class="terms">
+            Нажимая «Создать аккаунт», вы соглашаетесь с 
+            <a href="/terms/">Условиями использования</a> и 
+            <a href="/privacy/">Политикой конфиденциальности</a>
+          </div>
+        </div>
       </div>
-
-      <div class="text-center mt-3">
-        <small class="text-muted">
-          Нажимая "Создать аккаунт", вы соглашаетесь с 
-          <a href="/terms/">Условиями использования</a> и 
-          <a href="/privacy/">Политикой конфиденциальности</a>
-        </small>
-      </div>
-
     </div>
   </div>
 </section>
@@ -121,25 +500,114 @@
 
 {% block extra_js %}
 <script>
-// Блокировка кнопки отправки, пока не пройдена капча
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('signup-form');
-    const submitBtn = document.getElementById('submit-btn');
+  const form = document.getElementById('signup-form');
+  const submitBtn = document.getElementById('submit-btn');
+  
+  // Валидация перед отправкой
+  form.addEventListener('submit', function(e) {
+    // Проверка капчи
+    const captchaResponse = document.querySelector('[name="g-recaptcha-response"]');
+    if (captchaResponse && !captchaResponse.value) {
+      e.preventDefault();
+      showToast('Пожалуйста, пройдите проверку безопасности', 'error');
+      
+      // Анимация капчи
+      const captchaContainer = document.querySelector('.captcha-container');
+      captchaContainer.style.animation = 'none';
+      setTimeout(() => {
+        captchaContainer.style.animation = 'shake 0.5s ease';
+      }, 10);
+      
+      return false;
+    }
     
-    form.addEventListener('submit', function(e) {
-        // Проверяем, прошла ли капча (django-recaptcha добавляет скрытое поле)
-        const captchaResponse = document.querySelector('[name="g-recaptcha-response"]');
-        if (captchaResponse && !captchaResponse.value) {
-            e.preventDefault();
-            alert('Пожалуйста, пройдите проверку reCAPTCHA');
-            return false;
-        }
-        
-        // Блокируем кнопку для предотвращения повторных отправок
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Обработка...';
-        return true;
-    });
+    // Блокировка кнопки
+    submitBtn.classList.add('is-loading');
+    submitBtn.disabled = true;
+    
+    return true;
+  });
+  
+  // Плавное появление формы
+  const signupCard = document.querySelector('.signup-card');
+  setTimeout(() => {
+    signupCard.style.opacity = '1';
+    signupCard.style.transform = 'translateY(0)';
+  }, 100);
+  
+  // Установка начальных стилей для анимации
+  signupCard.style.opacity = '0';
+  signupCard.style.transform = 'translateY(20px)';
+  signupCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  
+  // Анимация для ошибок капчи
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+  `;
+  document.head.appendChild(style);
 });
+
+// Функция для показа уведомлений
+function showToast(message, type = 'info') {
+  // Создаем элемент уведомления
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: ${type === 'error' ? 'var(--color-error)' : 'var(--color-primary)'};
+    color: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Удаляем через 4 секунды
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => {
+      document.body.removeChild(toast);
+    }, 300);
+  }, 4000);
+}
+
+// Добавляем стили для анимации уведомлений
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(toastStyles);
 </script>
 {% endblock %}

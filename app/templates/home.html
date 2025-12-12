@@ -16,6 +16,7 @@
   --color-bg-white: #FFFFFF;
   --color-bg-section: #F8FAFC;
   --color-border: #E5E7EB;
+  --color-light-bg: #f0f5ff;
 }
 
 /* Анимации появления */
@@ -36,145 +37,289 @@ section {
 
 /* --- HERO --- */
 .course-hero {
-  background: #01349D;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   padding: 5rem 0 4rem;
+  position: relative;
+  overflow: hidden;
+  color: white;
 }
+
+.course-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  transform: translate(30%, -30%);
+}
+
+.course-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -50px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 50%;
+}
+
+.course-hero .container {
+  position: relative;
+  z-index: 2;
+}
+
+.course-hero .course-badge {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .course-hero .course-title {
-  font-size: clamp(1.8rem, 4vw, 2.5rem);
-  margin-bottom: 1rem;
-  color: var(--color-primary-dark);
-  line-height: 1.3;
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-bottom: 1.5rem;
+  color: white;
+  line-height: 1.2;
+  font-weight: 700;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
+
 .course-hero .course-subtitle {
-  max-width: 600px;
-  margin: 0 auto 1.5rem;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-  font-size: clamp(1rem, 2vw, 1.1rem);
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-weight: 400;
 }
+
 .hero-search {
-  margin-top: 1.5rem;
+  margin-top: 2rem;
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
+
 .hero-search input {
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  min-width: 280px;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+  min-width: 300px;
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
 }
+
+.hero-search input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.hero-search input:focus {
+  outline: none;
+  border-color: white;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
 .hero-search button {
-  background: var(--color-primary);
-  color: #fff;
+  background: white;
+  color: var(--color-primary);
   border: none;
-  border-radius: 8px;
-  padding: 0.8rem 1.6rem;
+  border-radius: 10px;
+  padding: 1rem 2rem;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
   white-space: nowrap;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
+
 .hero-search button:hover {
-  background: var(--color-primary-light);
+  background: var(--color-light-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
+
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
 .hero-btn {
-  display: inline-block;
-  margin: 0.8rem 0.5rem;
-  padding: 0.9rem 1.8rem;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 1rem 2rem;
+  border-radius: 10px;
   text-decoration: none;
-  font-weight: 500;
-  transition: 0.3s;
+  font-weight: 600;
+  transition: all 0.3s ease;
   white-space: nowrap;
+  font-size: 1rem;
+  min-width: 180px;
 }
+
 .hero-btn-primary {
-  background: var(--color-primary);
-  color: #fff;
+  background: white;
+  color: var(--color-primary);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
+
 .hero-btn-primary:hover {
-  background: var(--color-primary-light);
+  background: var(--color-light-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
+
 .hero-btn-secondary {
-  background: #f1f3f5;
-  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
 .hero-btn-secondary:hover {
-  background: #e2e6ea;
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  border-color: white;
 }
 
 /* Бейдж */
 .course-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: rgba(1, 52, 157, 0.1);
   color: var(--color-primary);
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 50px;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 /* --- Преимущества --- */
 .features-section {
   background: var(--color-bg-section);
+  padding: 5rem 0;
 }
+
+.features-section h2 {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: var(--color-text-primary);
+  font-size: 2.2rem;
+}
+
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2.5rem;
   margin-top: 2rem;
 }
+
 .feature-card {
   background: #fff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
   text-align: center;
-  transition: transform .3s;
+  transition: transform .4s ease, box-shadow .4s ease;
+  border: 1px solid var(--color-border);
 }
+
 .feature-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
 }
+
 .feature-icon {
-  font-size: 2rem;
-  margin-bottom: .5rem;
+  font-size: 3rem;
+  margin-bottom: 1rem;
   color: var(--color-primary);
+  display: inline-block;
 }
 
 /* --- В цифрах --- */
 .stats-section {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   color: #fff;
   text-align: center;
+  padding: 5rem 0;
 }
+
+.stats-section h2 {
+  margin-bottom: 3rem;
+  font-size: 2.2rem;
+}
+
 .stats-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 3rem;
   margin-top: 2rem;
 }
+
+.stat {
+  padding: 1.5rem;
+}
+
 .stat-number {
-  font-size: clamp(2rem, 5vw, 2.5rem);
-  font-weight: 700;
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* --- Общие стили кнопок --- */
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 1.5rem;
-  padding: 0.8rem 1.8rem;
-  border-radius: 8px;
-  font-weight: 500;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-weight: 600;
   text-decoration: none;
   text-align: center;
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
 }
+
 .btn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* Варианты кнопок */
@@ -195,37 +340,55 @@ section {
 }
 
 .btn-corporate {
-  background: #007bff;
+  background: var(--color-primary);
   color: #fff;
 }
 .btn-corporate:hover {
-  background: #0056b3;
+  background: var(--color-primary-light);
 }
 
 /* --- Секции --- */
-.community-section {
-  background: #fff8f0;
-  text-align: center;
-}
-.recommend-section {
-  background: #eef6ff;
-  text-align: center;
-}
+.community-section,
+.recommend-section,
 .corporate-section {
-  background: #f1f3f5;
+  padding: 5rem 0;
   text-align: center;
 }
+
+.community-section {
+  background: var(--color-light-bg);
+}
+
+.recommend-section {
+  background: linear-gradient(135deg, #f8fafc, #f0f5ff);
+}
+
+.corporate-section {
+  background: var(--color-bg-section);
+}
+
 .corporate-section ul {
   list-style: none;
   padding: 0;
-  margin: 1rem 0;
+  margin: 2rem auto;
+  max-width: 500px;
+  text-align: left;
+}
+
+.corporate-section li {
+  padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* --- Партнёры --- */
 .partners-section {
   background: #fff;
   text-align: center;
+  padding: 5rem 0;
 }
+
 .partners-grid {
   display: flex;
   flex-wrap: wrap;
@@ -233,34 +396,154 @@ section {
   gap: 2rem;
   list-style: none;
   padding: 0;
+  margin-top: 2rem;
 }
+
 .partner-card {
   background: #fff;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: .3s;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  transition: .4s ease;
   max-width: 300px;
   text-align: center;
+  border: 1px solid var(--color-border);
 }
+
 .partner-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
 }
+
 .partner-card img {
   max-width: 100%;
   height: auto;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  max-height: 80px;
+  object-fit: contain;
 }
 
 /* --- Отзывы --- */
 .testimonials-section {
-  background: #f9fafb;
+  background: var(--color-bg-section);
+  padding: 5rem 0;
 }
+
 .testimonial-card {
   background: #fff;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border);
+}
+
+/* --- EMAIL-FIRST CTA --- */
+.email-cta-section {
+  background: linear-gradient(135deg, var(--color-light-bg), #fff);
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.email-cta-section h2 {
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.email-cta-section > .container {
+  max-width: 600px;
+}
+
+.email-cta-section form {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.email-cta-section input[type="email"] {
+  flex: 1;
+  min-width: 250px;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid var(--color-border);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.email-cta-section input[type="email"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(1, 52, 157, 0.1);
+}
+
+.email-cta-section button[type="submit"] {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.email-cta-section button[type="submit"]:hover {
+  background: var(--color-primary-light);
+  transform: translateY(-2px);
+}
+
+/* --- Популярные курсы --- */
+.courses-section {
+  padding: 5rem 0;
+}
+
+.courses-section h2 {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: var(--color-text-primary);
+  font-size: 2.2rem;
+}
+
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.course-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  transition: transform .4s ease, box-shadow .4s ease;
+  border: 1px solid var(--color-border);
+}
+
+.course-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.course-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.course-card-content {
+  padding: 1.5rem;
+}
+
+.course-card-content h3 {
+  margin-bottom: 0.75rem;
+  color: var(--color-text-primary);
+}
+
+.course-card-content p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
 }
 
 /* --- Контакты --- */
@@ -269,6 +552,7 @@ section {
   color: #ccc;
   text-align: center;
   font-size: .9rem;
+  padding: 3rem 0;
 }
 .contacts-section a {
   color: var(--color-primary-light);
@@ -293,12 +577,12 @@ section {
 }
 .popup {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   max-width: 500px;
   width: 90%;
   padding: 2rem;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   position: relative;
 }
 .popup h3 {
@@ -309,9 +593,10 @@ section {
   background: var(--color-primary);
   color: #fff;
   border: none;
-  padding: 0.7rem 1.5rem;
-  border-radius: 6px;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
 }
 .popup button:hover {
   background: var(--color-primary-light);
@@ -319,47 +604,83 @@ section {
 .popup-close {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   position: absolute;
-  top: 10px;
-  right: 15px;
+  top: 15px;
+  right: 20px;
   cursor: pointer;
   color: var(--color-text-secondary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.popup-close:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Медиа-запросы для мобильных */
 @media (max-width: 768px) {
   section {
-    padding: 2.5rem 0;
+    padding: 3rem 0;
   }
   
   .course-hero {
-    padding: 3rem 0 2.5rem;
+    padding: 3rem 1rem 2.5rem;
+  }
+  
+  .course-hero .course-title {
+    font-size: 2rem;
   }
   
   .hero-search {
     flex-direction: column;
     align-items: center;
+    gap: 1rem;
   }
   
   .hero-search input {
     width: 100%;
     max-width: 100%;
+    min-width: unset;
   }
   
   .hero-search button {
     width: 100%;
   }
   
-  .hero-btn {
-    display: block;
-    margin: 0.5rem auto;
-    width: 90%;
-    max-width: 280px;
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
   }
   
-  .features-grid {
+  .hero-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .features-grid,
+  .stats-grid,
+  .courses-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .email-cta-section form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .email-cta-section input[type="email"] {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .email-cta-section button[type="submit"] {
+    width: 100%;
   }
 }
 </style>
@@ -388,12 +709,12 @@ section {
       <button type="submit">Поиск</button>
     </form>
 
-    <div class="mt-3 fade-up">
+    <div class="hero-buttons fade-up">
       <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">
-        Начать обучение
+        🚀 Начать обучение
       </a>
       <a href="#courses" class="hero-btn hero-btn-secondary">
-        Смотреть все курсы
+        📚 Смотреть все курсы
       </a>
     </div>
   </div>
@@ -401,7 +722,7 @@ section {
 
 <!-- === Преимущества === -->
 <section class="features-section fade-up">
-  <div class="container text-center">
+  <div class="container">
     <h2>💡 Почему выбирают SkillsSpire</h2>
     <div class="features-grid">
       <div class="feature-card">
@@ -448,37 +769,34 @@ section {
 </section>
 
 <!-- === EMAIL-FIRST CTA === -->
-<section class="fade-up" style="background:#f8fafc; text-align:center;">
-  <div class="container" style="max-width:600px;">
+<section class="email-cta-section fade-up">
+  <div class="container">
     <h2>Получите бесплатные материалы</h2>
-    <p style="color:var(--color-text-secondary);">
+    <p>
       Оставьте email — мы отправим подборку полезных материалов по выбранному направлению.
     </p>
 
-    <form method="post" action="#" onsubmit="handleEmailSubmit(event)" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+    <form method="post" action="#" onsubmit="handleEmailSubmit(event)">
       {% csrf_token %}
-      <input type="email" name="email" required placeholder="Ваш email"
-        style="flex:1; min-width:200px; padding:12px 16px; border-radius:8px; border:1px solid var(--color-border);"
-        id="subscribe-email">
-      <button type="submit"
-        style="background:var(--color-primary); color:#fff; border:none; padding:12px 24px; border-radius:8px;">
+      <input type="email" name="email" required placeholder="Ваш email" id="subscribe-email">
+      <button type="submit">
         Получить
       </button>
     </form>
 
-    <p style="font-size:0.75rem; opacity:.7; margin-top:10px;">
+    <p style="font-size:0.8rem; opacity:.7; margin-top:1rem;">
       Без спама. Мы не передаём данные третьим лицам.
     </p>
   </div>
 </section>
 
 <!-- === Популярные курсы === -->
-<section id="courses" class="section courses-section fade-up">
-  <div class="container text-center">
-    <h2>Популярные курсы</h2>
-    <div class="courses-grid mt-4">
+<section id="courses" class="courses-section fade-up">
+  <div class="container">
+    <h2>🔥 Популярные курсы</h2>
+    <div class="courses-grid">
       {% for course in popular_courses %}
-        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link fade-up">
+        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
           <div class="course-card">
             <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" alt="{{ course.title }}">
             <div class="course-card-content">
@@ -488,7 +806,9 @@ section {
           </div>
         </a>
       {% empty %}
-        <p>Курсы пока не добавлены.</p>
+        <p style="text-align: center; grid-column: 1 / -1; color: var(--color-text-secondary);">
+          Курсы пока не добавлены. Скоро здесь появятся интересные программы!
+        </p>
       {% endfor %}
     </div>
   </div>
@@ -509,7 +829,7 @@ section {
     <h2>🧠 Не знаете, какой курс выбрать?</h2>
     <p><strong>Пройдите короткий тест (2 минуты)</strong> и получите:</p>
 
-    <ul style="list-style:none; padding:0; max-width:500px; margin:1rem auto; text-align:left;">
+    <ul>
       <li>📋 Подборку курсов под ваши цели</li>
       <li>🎁 Доступ к бесплатным материалам</li>
       <li>📧 Пояснения и рекомендации по email</li>
@@ -538,19 +858,24 @@ section {
 
 <!-- === Партнёры === -->
 <section class="partners-section fade-up">
-  <div class="container text-center">
-    <h2>Наши партнёры</h2>
+  <div class="container">
+    <h2>🤝 Наши партнёры</h2>
     <ul class="partners-grid">
-      <li><div class="partner-card"><img src="{% static 'img/partners/suitt.png' %}" alt="Сургутский университет ИТ и технологий"><p>Сургутский университет ИТ и технологий</p></div></li>
+      <li>
+        <div class="partner-card">
+          <img src="{% static 'img/partners/suitt.png' %}" alt="Сургутский университет ИТ и технологий">
+          <p><strong>Сургутский университет ИТ и технологий</strong></p>
+        </div>
+      </li>
     </ul>
   </div>
 </section>
 
 <!-- === Отзывы === -->
 <section class="testimonials-section fade-up">
-  <div class="container text-center">
-    <h2>Отзывы участников обучения</h2>
-    <div class="swiper testimonials-swiper mt-4">
+  <div class="container">
+    <h2>💬 Отзывы участников обучения</h2>
+    <div class="swiper testimonials-swiper">
       <div class="swiper-wrapper">
         {% for review in reviews %}
         <div class="swiper-slide">
@@ -573,7 +898,7 @@ section {
     <button class="popup-close" id="closePopup">&times;</button>
     <h3>Подбор курса</h3>
     <p>В разработке. Скоро вы сможете пройти короткий тест и получить рекомендации!</p>
-    <button id="closeBtn">Закрыть</button>
+    <button id="closeBtn" class="btn">Закрыть</button>
   </div>
 </div>
 {% endblock %}
@@ -584,13 +909,59 @@ section {
 document.addEventListener("DOMContentLoaded",()=>{
   const observer=new IntersectionObserver(e=>{e.forEach(i=>{if(i.isIntersecting)i.target.classList.add("visible")})},{threshold:.1});
   document.querySelectorAll(".fade-up").forEach(el=>observer.observe(el));
+  
+  // Инициализация свайпера для отзывов
   if(document.querySelector(".testimonials-swiper")){
-    new Swiper(".testimonials-swiper",{slidesPerView:1,spaceBetween:20,loop:true,autoplay:{delay:5000},navigation:{nextEl:".swiper-button-next",prevEl:".swiper-button-prev"},breakpoints:{768:{slidesPerView:2},1200:{slidesPerView:3}}});
+    new Swiper(".testimonials-swiper",{
+      slidesPerView:1,
+      spaceBetween:20,
+      loop: true,
+      autoplay:{
+        delay:5000,
+        disableOnInteraction: false
+      },
+      navigation:{
+        nextEl:".swiper-button-next",
+        prevEl:".swiper-button-prev"
+      },
+      breakpoints:{
+        768:{
+          slidesPerView:2
+        },
+        1200:{
+          slidesPerView:3
+        }
+      }
+    });
   }
+  
+  // Обработка popup
   const popup=document.getElementById("popupTest");
-  document.getElementById("openTest").addEventListener("click",e=>{e.preventDefault();popup.style.display="flex";});
-  document.getElementById("closePopup").addEventListener("click",()=>popup.style.display="none");
-  document.getElementById("closeBtn").addEventListener("click",()=>popup.style.display="none");
+  const openTestBtn = document.getElementById("openTest");
+  const closePopupBtn = document.getElementById("closePopup");
+  const closeBtn = document.getElementById("closeBtn");
+  
+  if(openTestBtn) {
+    openTestBtn.addEventListener("click",e=>{
+      e.preventDefault();
+      popup.style.display="flex";
+    });
+  }
+  
+  if(closePopupBtn) {
+    closePopupBtn.addEventListener("click",()=>popup.style.display="none");
+  }
+  
+  if(closeBtn) {
+    closeBtn.addEventListener("click",()=>popup.style.display="none");
+  }
+  
+  // Закрытие popup при клике вне его
+  popup.addEventListener("click",(e)=>{
+    if(e.target === popup){
+      popup.style.display="none";
+    }
+  });
 });
 
 // Функция для обработки email-подписки
@@ -609,7 +980,6 @@ function handleEmailSubmit(event) {
     return;
   }
   
-  // Сохраняем email в localStorage и показываем сообщение
   try {
     let subscribers = JSON.parse(localStorage.getItem('skillsspire_subscribers') || '[]');
     if (!subscribers.includes(email)) {
@@ -617,16 +987,8 @@ function handleEmailSubmit(event) {
       localStorage.setItem('skillsspire_subscribers', JSON.stringify(subscribers));
     }
     
-    // Показываем сообщение об успехе
     alert('Спасибо за подписку! Мы скоро свяжемся с вами.');
-    emailInput.value = ''; // Очищаем поле
-    
-    // Здесь можно позже добавить отправку на сервер
-    // fetch('/api/subscribe/', { 
-    //   method: 'POST', 
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: JSON.stringify({email: email}) 
-    // })
+    emailInput.value = '';
     
   } catch (e) {
     console.error('Ошибка сохранения email:', e);
