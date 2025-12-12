@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Настройки профиля — SkillsSpire{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            
+            <!-- Заголовок -->
+            <div class="mb-5">
+                <h1 class="h2 fw-bold mb-3">⚙️ Настройки профиля</h1>
+                <p class="text-muted">Управляйте информацией вашего аккаунта, безопасностью и настройками</p>
+            </div>
+
+            <!-- Сообщения -->
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Форма с вкладками -->
+            <div class="card shadow border-0">
+                <div class="card-body p-4">
+                    <ul class="nav nav-pills mb-4" id="settingsTabs">
+                        <li class="nav-item me-2">
+                            <button class="nav-link {% if active_tab == 'profile' %}active{% endif %}" 
+                                    data-bs-target="#profile" data-bs-toggle="tab">
+                                👤 Профиль
+                            </button>
+                        </li>
+                        <li class="nav-item me-2">
+                            <button class="nav-link {% if active_tab == 'security' %}active{% endif %}" 
+                                    data-bs-target="#security" data-bs-toggle="tab">
+                                🔒 Безопасность
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link {% if active_tab == 'notifications' %}active{% endif %}" 
+                                    data-bs-target="#notifications" data-bs-toggle="tab">
+                                🔔 Уведомления
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        
+                        <!-- Вкладка профиля -->
+                        <div class="tab-pane fade {% if active_tab == 'profile' %}show active{% endif %}" id="profile">
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_profile" value="1">
+                                
+                                <!-- Аватар -->
+                                <div class="mb-4 text-center">
+                                    <div class="avatar-upload mb-3 position-relative d-inline-block">
+                                        {% if user.avatar %}
+                                            <img src="{{ user.avatar.url }}" class="rounded-circle avatar-preview" 
+                                                 width="120" height="120" alt="Аватар" style="object-fit: cover;">
+                                        {% else %}
+                                            <div class="avatar-placeholder rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                                 style="width:120px; height:120px; background:#01349D; color:white; font-size:2.5rem;">
+                                                {{ user.first_name|first|default:user.email|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="position-absolute bottom-0 end-0 bg-primary rounded-circle p-2">
+                                            <i class="fas fa-camera text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div class="w-50 mx-auto">
+                                        <input type="file" name="avatar" class="form-control form-control-sm" accept="image/*">
+                                        <small class="text-muted">Макс. 2MB. JPG, PNG форматы.</small>
+                                    </div>
+                                </div>
+
+                                <!-- Основная информация -->
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Имя</label>
+                                        <input type="text" name="first_name" class="form-control" 
+                                               value="{{ user.first_name|default:'' }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Фамилия</label>
+                                        <input type="text" name="last_name" class="form-control" 
+                                               value="{{ user.last_name|default:'' }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold">Email</label>
+                                    <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                                    <small class="text-muted">Для смены email обратитесь в поддержку</small>
+                                </div>
+
+                                <!-- Дополнительная информация -->
+                                <h5 class="fw-semibold mb-3">Дополнительная информация</h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Телефон</label>
+                                        <input type="tel" name="phone" class="form-control" 
+                                               value="{{ user.profile.phone|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Компания</label>
+                                        <input type="text" name="company" class="form-control" 
+                                               value="{{ user.profile.company|default:'' }}">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Должность</label>
+                                        <input type="text" name="position" class="form-control" 
+                                               value="{{ user.profile.position|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Веб-сайт</label>
+                                        <input type="url" name="website" class="form-control" 
+                                               value="{{ user.profile.website|default:'' }}">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Страна</label>
+                                        <input type="text" name="country" class="form-control" 
+                                               value="{{ user.profile.country|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Город</label>
+                                        <input type="text" name="city" class="form-control" 
+                                               value="{{ user.profile.city|default:'' }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label">О себе</label>
+                                    <textarea name="bio" class="form-control" rows="3" 
+                                              placeholder="Расскажите о себе, своем опыте и интересах...">{{ user.profile.bio|default:'' }}</textarea>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                        ← Назад в кабинет
+                                    </a>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="fas fa-save me-2"></i>Сохранить изменения
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Вкладка безопасности -->
+                        <div class="tab-pane fade {% if active_tab == 'security' %}show active{% endif %}" id="security">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="change_password" value="1">
+                                
+                                <div class="mb-4">
+                                    <h5 class="fw-semibold mb-3">Смена пароля</h5>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Текущий пароль</label>
+                                        <input type="password" name="current_password" class="form-control" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Новый пароль</label>
+                                        <input type="password" name="new_password1" class="form-control" required>
+                                        <small class="text-muted">Минимум 8 символов</small>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Подтвердите новый пароль</label>
+                                        <input type="password" name="new_password2" class="form-control" required>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                            ← Назад в кабинет
+                                        </a>
+                                        <button type="submit" class="btn btn-primary px-4">
+                                            <i class="fas fa-key me-2"></i>Сменить пароль
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Безопасность аккаунта -->
+                                <div class="mt-5 pt-4 border-top">
+                                    <h5 class="fw-semibold mb-3">Безопасность аккаунта</h5>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Важно:</strong>
+                                        Для дополнительной безопасности включите двухфакторную аутентификацию.
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-outline-warning btn-sm" disabled>
+                                                <i class="fas fa-shield-alt me-1"></i>
+                                                Включить 2FA (Скоро)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Вкладка уведомлений -->
+                        <div class="tab-pane fade {% if active_tab == 'notifications' %}show active{% endif %}" id="notifications">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_notifications" value="1">
+                                
+                                <h5 class="fw-semibold mb-3">Email уведомления</h5>
+                                
+                                <div class="form-check form-switch mb-3 p-0">
+                                    <div class="d-flex align-items-center justify-content-between p-3 border rounded">
+                                        <div>
+                                            <label class="form-check-label fw-semibold" for="email_notifications">
+                                                📧 Все email уведомления
+                                            </label>
+                                            <p class="small text-muted mb-0">
+                                                Получайте обновления о курсах, уроках и анонсах
+                                            </p>
+                                        </div>
+                                        <input class="form-check-input m-0" type="checkbox" name="email_notifications" 
+                                               id="email_notifications" style="width: 50px; height: 26px;"
+                                               {% if user.profile.email_notifications|default:True %}checked{% endif %}>
+                                    </div>
+                                </div>
+
+                                <div class="form-check form-switch mb-3 p-0">
+                                    <div class="d-flex align-items-center justify-content-between p-3 border rounded">
+                                        <div>
+                                            <label class="form-check-label fw-semibold" for="course_updates">
+                                                🎓 Обновления курсов
+                                            </label>
+                                            <p class="small text-muted mb-0">
+                                                Новые уроки, материалы и анонсы в ваших курсах
+                                            </p>
+                                        </div>
+                                        <input class="form-check-input m-0" type="checkbox" name="course_updates" 
+                                               id="course_updates" style="width: 50px; height: 26px;"
+                                               {% if user.profile.course_updates|default:True %}checked{% endif %}>
+                                    </div>
+                                </div>
+
+                                <div class="form-check form-switch mb-3 p-0">
+                                    <div class="d-flex align-items-center justify-content-between p-3 border rounded">
+                                        <div>
+                                            <label class="form-check-label fw-semibold" for="newsletter">
+                                                📰 Рассылка и промоакции
+                                            </label>
+                                            <p class="small text-muted mb-0">
+                                                Специальные предложения, новые курсы и образовательный контент
+                                            </p>
+                                        </div>
+                                        <input class="form-check-input m-0" type="checkbox" name="newsletter" 
+                                               id="newsletter" style="width: 50px; height: 26px;"
+                                               {% if user.profile.newsletter|default:False %}checked{% endif %}>
+                                    </div>
+                                </div>
+
+                                <h5 class="fw-semibold mb-3 mt-4">Push уведомления</h5>
+                                
+                                <div class="form-check form-switch mb-3 p-0">
+                                    <div class="d-flex align-items-center justify-content-between p-3 border rounded">
+                                        <div>
+                                            <label class="form-check-label fw-semibold" for="push_reminders">
+                                                ⏰ Напоминания об обучении
+                                            </label>
+                                            <p class="small text-muted mb-0">
+                                                Напоминания о незавершенных уроках и курсах
+                                            </p>
+                                        </div>
+                                        <input class="form-check-input m-0" type="checkbox" name="push_reminders" 
+                                               id="push_reminders" style="width: 50px; height: 26px;"
+                                               {% if user.profile.push_reminders|default:True %}checked{% endif %}>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                        ← Назад в кабинет
+                                    </a>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="fas fa-save me-2"></i>Сохранить настройки
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Дополнительная информация -->
+            <div class="mt-4 text-center text-muted small">
+                <p>
+                    Нужна помощь? 
+                    <a href="mailto:support@skillsspire.com" class="text-decoration-none">
+                        support@skillsspire.com
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-color: #01349D;
+    --primary-light: #3b5cc5;
+}
+
+.avatar-upload {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.avatar-upload:hover {
+    transform: scale(1.05);
+}
+
+.avatar-preview {
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 4px 12px rgba(1, 52, 157, 0.15);
+}
+
+.nav-pills .nav-link {
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    margin-right: 8px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.border-top {
+    border-top: 1px solid #e5e7eb !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Предпросмотр аватара
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInput = document.querySelector('input[name="avatar"]');
+    const avatarPreview = document.querySelector('.avatar-preview, .avatar-placeholder');
+    
+    if (avatarInput && avatarPreview) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (avatarPreview.tagName === 'IMG') {
+                        avatarPreview.src = e.target.result;
+                    } else {
+                        // Заменяем placeholder на изображение
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'rounded-circle avatar-preview';
+                        img.style.width = '120px';
+                        img.style.height = '120px';
+                        img.style.objectFit = 'cover';
+                        img.style.border = '3px solid #01349D';
+                        avatarPreview.parentNode.replaceChild(img, avatarPreview);
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Проверка размера файла
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file && file.size > 2 * 1024 * 1024) { // 2MB
+                alert('Файл слишком большой! Максимальный размер: 2MB.');
+                this.value = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

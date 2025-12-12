@@ -40,26 +40,32 @@ section {
   padding: 5rem 0 4rem;
 }
 .course-hero .course-title {
-  font-size: 2.5rem;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
   margin-bottom: 1rem;
   color: var(--color-primary-dark);
+  line-height: 1.3;
 }
 .course-hero .course-subtitle {
   max-width: 600px;
   margin: 0 auto 1.5rem;
   color: var(--color-text-secondary);
+  line-height: 1.5;
+  font-size: clamp(1rem, 2vw, 1.1rem);
 }
 .hero-search {
   margin-top: 1.5rem;
   display: flex;
   justify-content: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 .hero-search input {
   padding: 0.8rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--color-border);
   min-width: 280px;
+  width: 100%;
+  max-width: 400px;
 }
 .hero-search button {
   background: var(--color-primary);
@@ -69,6 +75,7 @@ section {
   padding: 0.8rem 1.6rem;
   cursor: pointer;
   transition: background 0.3s ease;
+  white-space: nowrap;
 }
 .hero-search button:hover {
   background: var(--color-primary-light);
@@ -81,6 +88,7 @@ section {
   text-decoration: none;
   font-weight: 500;
   transition: 0.3s;
+  white-space: nowrap;
 }
 .hero-btn-primary {
   background: var(--color-primary);
@@ -95,6 +103,18 @@ section {
 }
 .hero-btn-secondary:hover {
   background: #e2e6ea;
+}
+
+/* Бейдж */
+.course-badge {
+  display: inline-block;
+  background: rgba(1, 52, 157, 0.1);
+  color: var(--color-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 }
 
 /* --- Преимущества --- */
@@ -138,7 +158,7 @@ section {
   margin-top: 2rem;
 }
 .stat-number {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 5vw, 2.5rem);
   font-weight: 700;
 }
 
@@ -220,9 +240,16 @@ section {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: .3s;
+  max-width: 300px;
+  text-align: center;
 }
 .partner-card:hover {
   transform: translateY(-4px);
+}
+.partner-card img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 0.5rem;
 }
 
 /* --- Отзывы --- */
@@ -297,6 +324,43 @@ section {
   top: 10px;
   right: 15px;
   cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+/* Медиа-запросы для мобильных */
+@media (max-width: 768px) {
+  section {
+    padding: 2.5rem 0;
+  }
+  
+  .course-hero {
+    padding: 3rem 0 2.5rem;
+  }
+  
+  .hero-search {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hero-search input {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .hero-search button {
+    width: 100%;
+  }
+  
+  .hero-btn {
+    display: block;
+    margin: 0.5rem auto;
+    width: 90%;
+    max-width: 280px;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 
@@ -305,12 +369,12 @@ section {
 
 {% block content %}
 <!-- === HERO === -->
-<section class="hero-section text-center fade-up">
+<section class="course-hero text-center fade-up">
   <div class="container">
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
 
     <h1 class="course-title">
-      Академическое онлайн-образование для карьерного роста
+      Академическое онлайн-образование<br>для карьерного роста
     </h1>
 
     <p class="course-subtitle">
@@ -353,10 +417,7 @@ section {
       <div class="feature-card">
         <div class="feature-icon">🎯</div>
         <h4>Практическая польза</h4>
-        <p>
-          Материалы построены так, чтобы знания можно было применять
-          уже во время обучения.
-        </p>
+        <p>Материалы построены так, чтобы знания можно было применять уже во время обучения.</p>
       </div>
     </div>
   </div>
@@ -391,14 +452,13 @@ section {
   <div class="container" style="max-width:600px;">
     <h2>Получите бесплатные материалы</h2>
     <p style="color:var(--color-text-secondary);">
-      Оставьте email — мы отправим подборку полезных материалов
-      по выбранному направлению.
+      Оставьте email — мы отправим подборку полезных материалов по выбранному направлению.
     </p>
 
-    <form method="post" action="#" onsubmit="handleEmailSubmit(event)" style="display:flex; gap:10px; justify-content:center;">
+    <form method="post" action="#" onsubmit="handleEmailSubmit(event)" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
       {% csrf_token %}
       <input type="email" name="email" required placeholder="Ваш email"
-        style="flex:1; padding:12px 16px; border-radius:8px; border:1px solid var(--color-border);"
+        style="flex:1; min-width:200px; padding:12px 16px; border-radius:8px; border:1px solid var(--color-border);"
         id="subscribe-email">
       <button type="submit"
         style="background:var(--color-primary); color:#fff; border:none; padding:12px 24px; border-radius:8px;">

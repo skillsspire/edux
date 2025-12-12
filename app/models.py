@@ -3,6 +3,8 @@ from typing import Optional
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
@@ -43,8 +45,6 @@ class InstructorProfile(TimestampedModel):
     bio = models.TextField("О себе", blank=True)
     avatar = models.ImageField("Аватар", upload_to="instructors/", blank=True, null=True)
     is_approved = models.BooleanField("Профиль подтверждён", default=True)
-
-    # 🧩 добавь обратно:
     experience = models.CharField("Опыт (лет)", max_length=100, blank=True, null=True)
 
     class Meta:
@@ -60,6 +60,55 @@ class InstructorProfile(TimestampedModel):
             return self.avatar.url if self.avatar else None
         except Exception:
             return None
+
+
+class UserProfile(TimestampedModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    phone = models.CharField("Телефон", max_length=20, blank=True)
+    city = models.CharField("Город", max_length=100, blank=True)
+    balance = models.DecimalField("Баланс", max_digits=10, decimal_places=2, default=0)
+    role = models.CharField("Роль", max_length=20, choices=[
+        ('student', "Студент"),
+        ('instructor', "Инструктор"),
+        ('manager', "Менеджер"),
+        ('admin', "Администратор")
+    ], default='student')
+    segment = models.CharField("Сегмент", max_length=50, blank=True)
+    last_activity = models.DateTimeField("Последняя активность", null=True, blank=True)
+    
+    # Дополнительные поля для профиля
+    bio = models.TextField("О себе", blank=True)
+    company = models.CharField("Компания", max_length=100, blank=True)
+    position = models.CharField("Должность", max_length=100, blank=True)
+    website = models.URLField("Веб-сайт", blank=True)
+    country = models.CharField("Страна", max_length=50, blank=True)
+    
+    # Настройки уведомлений
+    email_notifications = models.BooleanField("Email уведомления", default=True)
+    course_updates = models.BooleanField("Обновления курсов", default=True)
+    newsletter = models.BooleanField("Рассылка", default=False)
+    push_reminders = models.BooleanField("Напоминания", default=True)
+
+    class Meta:
+        verbose_name = "Профиль пользователя"
+        verbose_name_plural = "Профили пользователей"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Автоматическое создание профиля при создании пользователя"""
+    if created:
+        UserProfile.objects.get_or_create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Сохранение профиля при сохранении пользователя"""
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
 
 
 class Course(TimestampedModel):
@@ -533,28 +582,6 @@ class Interaction(TimestampedModel):
 
     def __str__(self):
         return f"{self.lead.name} - {self.type}"
-
-
-class UserProfile(TimestampedModel):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    phone = models.CharField("Телефон", max_length=20, blank=True)
-    city = models.CharField("Город", max_length=100, blank=True)
-    balance = models.DecimalField("Баланс", max_digits=10, decimal_places=2, default=0)
-    role = models.CharField("Роль", max_length=20, choices=[
-        ('student', "Студент"),
-        ('instructor', "Инструктор"),
-        ('manager', "Менеджер"),
-        ('admin', "Администратор")
-    ], default='student')
-    segment = models.CharField("Сегмент", max_length=50, blank=True)
-    last_activity = models.DateTimeField("Последняя активность", null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Профиль пользователя"
-        verbose_name_plural = "Профили пользователей"
-
-    def __str__(self):
-        return f"{self.user.username} - {self.role}"
 
 
 class Segment(TimestampedModel):

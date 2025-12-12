@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.auth import update_session_auth_hash
 from django.core.paginator import Paginator
 from django.db import DatabaseError, ProgrammingError
 from django.db.models import Q, Avg, Count
@@ -12,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import csrf_protect
+from django.forms import ModelForm
 
 import hmac
 import hashlib
@@ -34,6 +36,7 @@ from .models import (
     Wishlist,
     Article,
     Material,
+    UserProfile,
 )
 
 
@@ -669,7 +672,102 @@ def dashboard(request):
 
 @login_required
 def profile_settings(request):
-    return render(request, "users/profile_settings.html", {})
+    """Страница настроек профиля"""
+    user = request.user
+    
+    if request.method == 'POST':
+        # Определяем, какая форма отправлена
+        if 'update_profile' in request.POST:
+            # Обновление профиля
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            
+            if first_name:
+                user.first_name = first_name
+            if last_name:
+                user.last_name = last_name
+            
+            # Аватар
+            if 'avatar' in request.FILES:
+                user.avatar = request.FILES['avatar']
+            
+            # Дополнительные поля профиля
+            try:
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.phone = request.POST.get('phone', '').strip()
+                profile.bio = request.POST.get('bio', '').strip()
+                profile.company = request.POST.get('company', '').strip()
+                profile.position = request.POST.get('position', '').strip()
+                profile.website = request.POST.get('website', '').strip()
+                profile.country = request.POST.get('country', '').strip()
+                profile.city = request.POST.get('city', '').strip()
+                profile.save()
+            except Exception as e:
+                print(f"Ошибка сохранения профиля: {e}")
+            
+            user.save()
+            messages.success(request, '✅ Настройки профиля успешно обновлены!')
+            
+            # Определяем активную вкладку
+            active_tab = 'profile'
+        
+        elif 'change_password' in request.POST:
+            # Смена пароля
+            current_password = request.POST.get('current_password', '')
+            new_password1 = request.POST.get('new_password1', '')
+            new_password2 = request.POST.get('new_password2', '')
+            
+            if user.check_password(current_password):
+                if new_password1 == new_password2:
+                    if len(new_password1) >= 8:
+                        user.set_password(new_password1)
+                        user.save()
+                        # Обновляем сессию, чтобы пользователь не разлогинился
+                        update_session_auth_hash(request, user)
+                        messages.success(request, '🔐 Пароль успешно изменен!')
+                    else:
+                        messages.error(request, 'Пароль должен содержать минимум 8 символов')
+                else:
+                    messages.error(request, 'Новые пароли не совпадают')
+            else:
+                messages.error(request, 'Текущий пароль неверен')
+            
+            active_tab = 'security'
+            
+        elif 'update_notifications' in request.POST:
+            # Обновление настроек уведомлений
+            try:
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.email_notifications = 'email_notifications' in request.POST
+                profile.course_updates = 'course_updates' in request.POST
+                profile.newsletter = 'newsletter' in request.POST
+                profile.push_reminders = 'push_reminders' in request.POST
+                profile.save()
+                messages.success(request, '✅ Настройки уведомлений сохранены!')
+            except Exception as e:
+                print(f"Ошибка сохранения настроек уведомлений: {e}")
+            
+            active_tab = 'notifications'
+        
+        return redirect(f'{request.path}?tab={active_tab}')
+    
+    else:
+        # GET запрос
+        active_tab = request.GET.get('tab', 'profile')
+        
+        # Получаем профиль пользователя
+        try:
+            profile = UserProfile.objects.get(user=user)
+        except UserProfile.DoesNotExist:
+            profile = None
+        
+        context = {
+            'user': user,
+            'profile': profile,
+            'active_tab': active_tab,
+        }
+        
+        return render(request, "users/profile_settings.html", context)
 
 @login_required
 def add_review(request, slug):
