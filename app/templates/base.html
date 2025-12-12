@@ -8,58 +8,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SkillsSpire - Онлайн-курсы{% endblock %}</title>
 
+  <!-- Meta теги -->
   <meta property="og:title" content="{% block og_title %}SkillsSpire - Онлайн-курсы{% endblock %}">
   <meta property="og:description" content="{% block og_description %}Освойте востребованные навыки с лучшими экспертами. Практические курсы с гарантией результата.{% endblock %}">
   <meta property="og:image" content="{% block og_image %}{% static 'img/og-default.jpg' %}{% endblock %}">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
   <meta property="og:type" content="website">
 
+  <!-- Favicon -->
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicon/apple-touch-icon.png' %}">
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon/favicon-32x32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
   <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Preload критических ресурсов -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" as="style">
+  <link rel="preload" href="{% static 'css/main.css' %}" as="style">
+  <link rel="preload" href="{% static 'js/main.js' %}" as="script">
+  
+  <!-- Основные стили -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"></noscript>
+  
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="{% static 'css/main.css' %}?force={{ now|date:'U' }}">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v={{ STATIC_VERSION|default:'1.0' }}">
   
-  <!-- AI Widget CSS -->
-  <link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}">
+  <!-- AI Widget CSS (отложенная загрузка) -->
+  <link rel="preload" href="{% static 'ai-widget/ai-widget.css' %}" as="style">
+  <link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="{% static 'ai-widget/ai-widget.css' %}"></noscript>
   
+  <!-- Inline критический CSS (только самое необходимое) -->
   <style>
-    #ai-bubble{ z-index:1300; }
-    .mskt{ bottom:88px; }
-    @media (max-width:480px){ .mskt{ bottom:100px; } }
-    
-    /* Анимация махания для маскота */
-    @keyframes mskt-wave {
-      0%, 100% { transform: rotate(0deg) scale(1); }
-      25% { transform: rotate(-5deg) scale(1.05); }
-      50% { transform: rotate(5deg) scale(1.05); }
-      75% { transform: rotate(-3deg) scale(1.03); }
-    }
-
-    /* 🔹 Фикс для логотипа */
+    /* Минимальные стили для избежания сдвигов макета при загрузке */
     .nav-brand {
       display: flex;
       align-items: center;
-      gap: 0.5rem; /* расстояние между логотипом и текстом */
+      gap: 0.5rem;
       font-weight: 700;
       font-size: 1.25rem;
       color: var(--color-text, #000);
       text-decoration: none;
     }
-
     .nav-brand img {
       display: block;
       height: 40px;
       width: auto;
     }
-
     .nav-brand span {
       white-space: nowrap;
     }
+    /* Скрываем AI панель по умолчанию */
+    #ai-panel { display: none; }
   </style>
+  
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -69,7 +73,7 @@
 <nav class="main-nav">
   <div class="container nav-container">
     <a class="nav-brand" href="{% url 'home' %}">
-      <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire" width="40" height="40">
+      <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire" width="40" height="40" loading="eager">
     </a>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
       <span></span><span></span><span></span>
@@ -109,7 +113,11 @@
           <div class="nav-user dropdown">
             <button class="nav-user-btn" aria-haspopup="true" aria-expanded="false">
               {% if user.is_instructor and user.instructor_profile.avatar %}
-                <img src="{{ user.instructor_profile.avatar.url }}" alt="{{ user.get_full_name }}" width="32" height="32" style="border-radius:50%;object-fit:cover;">
+                <img src="{{ user.instructor_profile.avatar.url }}" 
+                     alt="{{ user.get_full_name }}" 
+                     width="32" height="32" 
+                     loading="lazy"
+                     style="border-radius:50%;object-fit:cover;">
               {% else %}
                 <div class="nav-user-avatar">{{ user.first_name|first|default:user.email|first|upper }}</div>
               {% endif %}
@@ -157,7 +165,7 @@
 <div class="messages-container">
   <div class="container">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">
+    <div class="alert alert-{{ message.tags }}" data-autohide="true">
       <div class="alert-content">
         {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill"></i>
         {% elif message.tags == 'error' %}<i class="bi bi-exclamation-circle-fill"></i>
@@ -181,7 +189,7 @@
     <div class="footer-grid">
       <div class="footer-col">
         <a class="footer-brand" href="{% url 'home' %}">
-          <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire">
+          <img src="{% static 'img/logo_skillsspire_light.png' %}" alt="SkillsSpire" width="40" height="40" loading="lazy">
         </a>
         <p>Платформа для онлайн-обучения с лучшими курсами от экспертов рынка.</p>
         <div class="footer-social">
@@ -224,86 +232,86 @@
       </div>
     </div>
 
-  <div class="footer-bottom">
-    <div class="footer-info">
-      <p>ТОО «SkillsSpire» — 240440040785, Казахстан, г. Астана</p>
-      <p>E-mail: <a href="mailto:support@skillsspire.com">support@skillsspire.com</a> | Тел: <a href="tel:+77012925568">+7 (701) 292-55-68</a></p>
-    </div>
-    <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
-    <div class="footer-payments">
-      <img src="{% static 'img/payments/visa.png' %}" alt="Visa">
-      <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard">
+    <div class="footer-bottom">
+      <div class="footer-info">
+        <p>ТОО «SkillsSpire» — 240440040785, Казахстан, г. Астана</p>
+        <p>E-mail: <a href="mailto:support@skillsspire.com">support@skillsspire.com</a> | Тел: <a href="tel:+77012925568">+7 (701) 292-55-68</a></p>
+      </div>
+      <p>&copy; 2025 SkillsSpire. Все права защищены.</p>
+      <div class="footer-payments">
+        <img src="{% static 'img/payments/visa.png' %}" alt="Visa" width="40" height="25" loading="lazy">
+        <img src="{% static 'img/payments/mastercard.png' %}" alt="MasterCard" width="40" height="25" loading="lazy">
+      </div>
     </div>
   </div>
 </footer>
 
 <!-- AI Widget HTML -->
-<div id="ai-bubble" class="ai-floating" title="ИИ помощник SkillsSpire"></div>
-<div id="ai-panel">
+<div id="ai-bubble" class="ai-floating" title="ИИ помощник SkillsSpire" aria-label="Открыть ИИ помощник"></div>
+<div id="ai-panel" aria-hidden="true">
   <div id="ai-header">
     <span>🤖 ИИ помощник SkillsSpire</span>
-    <button id="ai-close">✕</button>
+    <button id="ai-close" aria-label="Закрыть панель">✕</button>
   </div>
   <div id="ai-messages">
     <div class="ai-msg ai-bot">
       Привет! Я ваш помощник по курсам SkillsSpire. Чем могу помочь? 🎓
     </div>
   </div>
-  <div id="ai-status"></div>
+  <div id="ai-status" aria-live="polite"></div>
   <div id="ai-inputbar">
-    <textarea id="ai-text" placeholder="Задайте вопрос о курсах..." rows="1"></textarea>
-    <button id="ai-send">➤</button>
+    <textarea id="ai-text" placeholder="Задайте вопрос о курсах..." rows="1" aria-label="Вопрос для ИИ помощника"></textarea>
+    <button id="ai-send" aria-label="Отправить сообщение">➤</button>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
-<script defer src="{% static 'js/main.js' %}"></script>
+<!-- Preload второстепенных скриптов -->
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js" as="script">
+<link rel="preload" href="{% static 'ai-widget/ai-widget.js' %}" as="script">
 
-<!-- AI Widget JS -->
-<script src="{% static 'ai-widget/ai-widget.js' %}"></script>
+<!-- Загрузка скриптов с defer -->
+<script defer src="https://cdn.jsdelivr.net/npm/@srexi/purecounterjs/dist/purecounter_vanilla.js"></script>
+<script defer src="{% static 'js/main.js' %}?v={{ STATIC_VERSION|default:'1.0' }}"></script>
+<script defer src="{% static 'ai-widget/ai-widget.js' %}?v={{ STATIC_VERSION|default:'1.0' }}"></script>
 
+<!-- Inline JS для критической функциональности -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Интеграция маскота с ИИ-помощником
-  const mskt = document.querySelector('.mskt');
-  const msktImage = document.querySelector('.mskt-image');
-  const aiBubble = document.getElementById('ai-bubble');
+// Минимальный JS для работы навигации до загрузки main.js
+(function() {
+  'use strict';
   
-  if (msktImage && aiBubble) {
-    // Клик по маскоту открывает ИИ-помощник
-    msktImage.addEventListener('click', function() {
-      if (window.aiAssistant) {
-        window.aiAssistant.togglePanel();
-      } else {
-        const bubble = document.querySelector('.mskt-bubble');
-        if (bubble) {
-          bubble.textContent = 'Открываю помощника...';
-          setTimeout(() => {
-            aiBubble.click();
-            bubble.textContent = 'Нужна помощь?';
-          }, 500);
-        }
-      }
-    });
-    
-    // Анимация "махания"
-    msktImage.addEventListener('mouseenter', function() {
-      this.style.animation = 'mskt-wave 0.5s ease-in-out';
-    });
-    
-    msktImage.addEventListener('animationend', function() {
-      this.style.animation = 'mskt-idle 3.6s ease-in-out infinite';
+  // Закрытие алертов при клике
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('alert-close')) {
+      e.target.closest('.alert').style.display = 'none';
+    }
+  });
+  
+  // Базовая навигация мобильного меню
+  var navToggle = document.getElementById('navToggle');
+  var navMenu = document.getElementById('navMenu');
+  
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', function() {
+      navMenu.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', navMenu.classList.contains('open'));
     });
   }
   
-  if (aiBubble) {
-    aiBubble.addEventListener('click', function() {
-      if (msktImage) {
-        msktImage.style.animation = 'mskt-wave 0.5s ease-in-out';
-      }
+  // Переключение темы (базовая версия)
+  var themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function() {
+      var html = document.documentElement;
+      var current = html.getAttribute('data-theme') || 'light';
+      var next = current === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      themeToggle.textContent = next === 'dark' ? '🌞' : '🌙';
+      themeToggle.setAttribute('aria-label', next === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
     });
   }
-});
+})();
 </script>
 
 {% block extra_js %}{% endblock %}

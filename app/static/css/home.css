@@ -1,0 +1,596 @@
+/* === СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ === */
+/* Все специфичные стили из вашего шаблона переносим сюда */
+
+/* Анимации появления */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- HERO (главной страницы) --- */
+.course-hero {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  padding: 5rem 0 4rem;
+  position: relative;
+  overflow: hidden;
+  color: white;
+}
+
+.course-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  transform: translate(30%, -30%);
+}
+
+.course-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -50px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 50%;
+}
+
+.course-hero .container {
+  position: relative;
+  z-index: 2;
+}
+
+.course-hero .course-badge {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.course-hero .course-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-bottom: 1.5rem;
+  color: white;
+  line-height: 1.2;
+  font-weight: 700;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.course-hero .course-subtitle {
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-weight: 400;
+}
+
+.hero-search {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-search input {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+  min-width: 300px;
+  width: 100%;
+  max-width: 450px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.hero-search input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.hero-search input:focus {
+  outline: none;
+  border-color: white;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.hero-search button {
+  background: white;
+  color: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 1rem 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.hero-search button:hover {
+  background: var(--color-light-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-size: 1rem;
+  min-width: 180px;
+}
+
+.hero-btn-primary {
+  background: white;
+  color: var(--color-primary);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.hero-btn-primary:hover {
+  background: var(--color-light-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.hero-btn-secondary {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hero-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  border-color: white;
+}
+
+/* --- Преимущества (только главная) --- */
+.features-section {
+  background: var(--color-bg-section);
+  padding: 5rem 0;
+}
+
+.features-section h2 {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: var(--color-text-primary);
+  font-size: 2.2rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2.5rem;
+  margin-top: 2rem;
+}
+
+.feature-card {
+  background: #fff;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  transition: transform .4s ease, box-shadow .4s ease;
+  border: 1px solid var(--color-border);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--color-primary);
+  display: inline-block;
+}
+
+/* --- В цифрах (только главная) --- */
+.stats-section {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.stats-section h2 {
+  margin-bottom: 3rem;
+  font-size: 2.2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.stat {
+  padding: 1.5rem;
+}
+
+.stat-number {
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* --- Секции главной --- */
+.community-section,
+.recommend-section,
+.corporate-section {
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.community-section {
+  background: var(--color-light-bg);
+}
+
+.recommend-section {
+  background: linear-gradient(135deg, #f8fafc, #f0f5ff);
+}
+
+.corporate-section {
+  background: var(--color-bg-section);
+}
+
+.corporate-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 2rem auto;
+  max-width: 500px;
+  text-align: left;
+}
+
+.corporate-section li {
+  padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --- Партнёры (только главная) --- */
+.partners-section {
+  background: #fff;
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.partners-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  list-style: none;
+  padding: 0;
+  margin-top: 2rem;
+}
+
+.partner-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  transition: .4s ease;
+  max-width: 300px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+}
+
+.partner-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.partner-card img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1rem;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+/* --- Отзывы (только главная) --- */
+.testimonials-section {
+  background: var(--color-bg-section);
+  padding: 5rem 0;
+}
+
+.testimonial-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border);
+}
+
+/* --- EMAIL-FIRST CTA (только главная) --- */
+.email-cta-section {
+  background: linear-gradient(135deg, var(--color-light-bg), #fff);
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.email-cta-section h2 {
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.email-cta-section > .container {
+  max-width: 600px;
+}
+
+.email-cta-section form {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.email-cta-section input[type="email"] {
+  flex: 1;
+  min-width: 250px;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid var(--color-border);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.email-cta-section input[type="email"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(1, 52, 157, 0.1);
+}
+
+.email-cta-section button[type="submit"] {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.email-cta-section button[type="submit"]:hover {
+  background: var(--color-primary-light);
+  transform: translateY(-2px);
+}
+
+/* --- Популярные курсы (только главная) --- */
+.courses-section {
+  padding: 5rem 0;
+}
+
+.courses-section h2 {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: var(--color-text-primary);
+  font-size: 2.2rem;
+}
+
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.course-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  transition: transform .4s ease, box-shadow .4s ease;
+  border: 1px solid var(--color-border);
+}
+
+.course-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.course-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.course-card-content {
+  padding: 1.5rem;
+}
+
+.course-card-content h3 {
+  margin-bottom: 0.75rem;
+  color: var(--color-text-primary);
+}
+
+.course-card-content p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* --- Контакты (только главная) --- */
+.contacts-section {
+  background: #222;
+  color: #ccc;
+  text-align: center;
+  font-size: .9rem;
+  padding: 3rem 0;
+}
+.contacts-section a {
+  color: var(--color-primary-light);
+  text-decoration: none;
+}
+.contacts-section hr {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 1rem auto;
+  width: 80%;
+}
+
+/* --- Popup (только главная) --- */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.popup {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+.popup h3 {
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+.popup button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.popup button:hover {
+  background: var(--color-primary-light);
+}
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.popup-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Медиа-запросы для мобильных (только для стилей главной) */
+@media (max-width: 768px) {
+  .course-hero {
+    padding: 3rem 1rem 2.5rem;
+  }
+  
+  .course-hero .course-title {
+    font-size: 2rem;
+  }
+  
+  .hero-search {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .hero-search input {
+    width: 100%;
+    max-width: 100%;
+    min-width: unset;
+  }
+  
+  .hero-search button {
+    width: 100%;
+  }
+  
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hero-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .features-grid,
+  .stats-grid,
+  .courses-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .email-cta-section form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .email-cta-section input[type="email"] {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .email-cta-section button[type="submit"] {
+    width: 100%;
+  }
+}
