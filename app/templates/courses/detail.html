@@ -75,7 +75,7 @@
       </ul>
     </div>
     <div class="about-img">
-      <img src="{{ course.display_image_url|default:static('img/default.jpg') }}" alt="{{ course.title }}">
+      <img src="{{ course.display_image_url|default:'/static/img/default.jpg' }}" alt="{{ course.title }}">
     </div>
   </div>
 </section>
@@ -115,7 +115,7 @@
 
     {% if teacher_profile %}
       <div class="instructor-card">
-        <img src="{{ teacher_profile.display_avatar_url|default:static('img/avatar-placeholder.svg') }}" alt="Инструктор">
+        <img src="{{ teacher_profile.display_avatar_url|default:'/static/img/avatar-placeholder.svg' }}" alt="Инструктор">
         <h3>{{ teacher_profile.user.get_full_name }}</h3>
         <p class="text-secondary">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
         <p>{{ teacher_profile.bio|truncatewords:35 }}</p>

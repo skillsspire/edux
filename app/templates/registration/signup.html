@@ -3,6 +3,15 @@
 
 {% block title %}Регистрация — SkillsSpire{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Кастомизация reCAPTCHA */
+.grecaptcha-badge {
+    margin: 0 auto;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <section class="section py-5">
   <div class="container" style="max-width: 460px;">
@@ -20,7 +29,7 @@
       </div>
       {% endif %}
 
-      <form method="post" novalidate>
+      <form method="post" novalidate id="signup-form">
         {% csrf_token %}
 
         <div class="mb-3">
@@ -42,11 +51,17 @@
         <div class="mb-3">
           <label class="form-label">Имя</label>
           {{ form.first_name|add_class:"form-control"|attr:"placeholder:Иван" }}
+          {% for error in form.first_name.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
         </div>
 
         <div class="mb-3">
           <label class="form-label">Фамилия</label>
           {{ form.last_name|add_class:"form-control"|attr:"placeholder:Иванов" }}
+          {% for error in form.last_name.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
         </div>
 
         <div class="mb-3">
@@ -60,9 +75,28 @@
         <div class="mb-3">
           <label class="form-label">Подтверждение пароля</label>
           {{ form.password2|add_class:"form-control"|attr:"placeholder:Повторите пароль" }}
+          {% for error in form.password2.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 mt-2">
+        <!-- RE CAPTCHA ПОЛЕ -->
+        <div class="mb-4">
+          <label class="form-label d-block">Проверка безопасности</label>
+          {{ form.captcha }}
+          {% if form.captcha.errors %}
+            <div class="text-danger small mt-2">
+              {% for error in form.captcha.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <p class="text-muted small mt-2">
+            Подтвердите, что вы не робот
+          </p>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-2" id="submit-btn">
           Создать аккаунт
         </button>
       </form>
@@ -72,7 +106,40 @@
         <a href="{% url 'login' %}" class="fw-bold text-primary">Войти</a>
       </div>
 
+      <div class="text-center mt-3">
+        <small class="text-muted">
+          Нажимая "Создать аккаунт", вы соглашаетесь с 
+          <a href="/terms/">Условиями использования</a> и 
+          <a href="/privacy/">Политикой конфиденциальности</a>
+        </small>
+      </div>
+
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Блокировка кнопки отправки, пока не пройдена капча
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('signup-form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    form.addEventListener('submit', function(e) {
+        // Проверяем, прошла ли капча (django-recaptcha добавляет скрытое поле)
+        const captchaResponse = document.querySelector('[name="g-recaptcha-response"]');
+        if (captchaResponse && !captchaResponse.value) {
+            e.preventDefault();
+            alert('Пожалуйста, пройдите проверку reCAPTCHA');
+            return false;
+        }
+        
+        // Блокируем кнопку для предотвращения повторных отправок
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Обработка...';
+        return true;
+    });
+});
+</script>
 {% endblock %}

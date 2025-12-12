@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_protect
 
 import hmac
 import hashlib
@@ -163,9 +164,12 @@ def kaspi_webhook(request):
 
 # ---------- auth/basic pages ----------
 
+@csrf_protect
 def signup(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
+        
+        # django-recaptcha автоматически проверяет капчу в form.is_valid()
         if form.is_valid():
             user = form.save()
             auth_user = authenticate(
@@ -179,9 +183,15 @@ def signup(request):
                 return redirect("home")
             messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
             return redirect("login")
-        messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
+        else:
+            # Если форма невалидна (включая ошибку капчи)
+            if 'captcha' in form.errors:
+                messages.error(request, "Пожалуйста, пройдите проверку reCAPTCHA.")
+            else:
+                messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         form = CustomUserCreationForm()
+    
     return render(request, "registration/signup.html", {"form": form})
 
 
@@ -276,6 +286,7 @@ def home(request):
 
     return render(request, "home.html", context)
 
+
 @login_required
 def toggle_wishlist(request, slug):
     course = get_object_or_404(Course, slug=slug)
@@ -295,6 +306,7 @@ def toggle_wishlist(request, slug):
 
     messages.success(request, message)
     return redirect("course_detail", slug=slug)
+
 
 # ---------- catalog ----------
 
