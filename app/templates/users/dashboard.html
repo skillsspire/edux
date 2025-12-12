@@ -204,11 +204,13 @@
                     <a href="mailto:support@skillsspire.com" class="support-link">
                         📩 Написать на почту
                     </a>
-                    <a href="https://t.me/skillsspire_support" target="_blank" class="support-link">
+                    {% if telegram_support %}
+                    <a href="{{ telegram_support }}" target="_blank" class="support-link">
                         💬 Telegram-чат
                     </a>
-                    <a href="{% url 'faq' %}" class="support-link">
-                        ❓ Частые вопросы
+                    {% endif %}
+                    <a href="/help/" class="support-link">
+                        ❓ Справочный центр
                     </a>
                 </div>
             </div>
@@ -235,12 +237,14 @@
                             <span>Материалы</span>
                         </a>
                     </li>
+                    {% if certificates_url %}
                     <li>
-                        <a href="{% url 'certificates' %}">
+                        <a href="{{ certificates_url }}">
                             <span>🏆</span>
                             <span>Мои сертификаты</span>
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
 

@@ -3,149 +3,1122 @@
 
 {% block title %}{{ course.title }} — SkillsSpire{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ====== HERO СЕКЦИЯ ====== */
+.course-hero-section {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  padding: 5rem 0 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.course-hero-section::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+}
+
+.course-hero-section::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 50%;
+}
+
+.course-hero-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 2;
+}
+
+.course-hero-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 4rem;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .course-hero-content {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+/* ЛЕВАЯ КОЛОНКА */
+.course-hero-left .course-category {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.course-hero-left h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+}
+
+.course-hero-left .hero-description {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  opacity: 0.95;
+  margin-bottom: 2rem;
+}
+
+.course-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.feature-icon {
+  font-size: 1.5rem;
+  opacity: 0.9;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-hero {
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  min-width: 180px;
+}
+
+.btn-hero-primary {
+  background: white;
+  color: var(--color-primary);
+  border: none;
+}
+
+.btn-hero-primary:hover {
+  background: #f0f5ff;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-hero-outline {
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-hero-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+  transform: translateY(-3px);
+}
+
+/* ПРАВАЯ КОЛОНКА */
+.course-enrollment-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  color: var(--color-text-primary);
+  position: sticky;
+  top: 2rem;
+}
+
+.price-display {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.price-label {
+  font-size: 0.9rem;
+  color: var(--color-text-tertiary);
+  margin-bottom: 0.5rem;
+}
+
+.price-amount {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.price-amount.free {
+  color: var(--color-success);
+}
+
+.price-note {
+  font-size: 0.9rem;
+  color: var(--color-text-tertiary);
+}
+
+.enrollment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.btn-enroll {
+  padding: 1.1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btn-enroll-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+}
+
+.btn-enroll-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(1, 52, 157, 0.3);
+}
+
+.btn-wishlist {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-border);
+  padding: 0.9rem;
+}
+
+.btn-wishlist:hover {
+  border-color: var(--color-accent-pink);
+  color: var(--color-accent-pink);
+}
+
+/* ====== О КУРСЕ ====== */
+.course-about-section {
+  padding: 5rem 0;
+  background: var(--color-bg-section);
+}
+
+.course-about-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+@media (max-width: 992px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  
+  .about-image {
+    order: -1;
+  }
+}
+
+.about-content h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-primary);
+}
+
+.about-content .description {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  margin-bottom: 2rem;
+}
+
+.course-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.stat-number {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--color-text-tertiary);
+}
+
+.about-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  object-fit: cover;
+  max-height: 400px;
+}
+
+/* ====== ПРОГРАММА КУРСА ====== */
+.program-section {
+  padding: 5rem 0;
+  background: white;
+}
+
+.program-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.program-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.program-header h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: var(--color-text-primary);
+}
+
+.program-header p {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.lessons-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.module-card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.module-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.module-header {
+  padding: 1.5rem 2rem;
+  background: var(--color-bg-section);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.module-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.module-number {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.module-name h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.module-meta {
+  color: var(--color-text-tertiary);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.module-toggle {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  transition: transform 0.3s ease;
+}
+
+.module-card.open .module-toggle {
+  transform: rotate(180deg);
+}
+
+.module-content {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.module-card.open .module-content {
+  max-height: 2000px;
+}
+
+.lessons-list {
+  padding: 1.5rem 2rem;
+}
+
+.lesson-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lesson-item:last-child {
+  border-bottom: none;
+}
+
+.lesson-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.lesson-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(1, 52, 157, 0.1);
+  color: var(--color-primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.lesson-title h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.lesson-duration {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.25rem;
+}
+
+.btn-lesson {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-lesson-primary {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+}
+
+.btn-lesson-primary:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+}
+
+/* ====== ИНСТРУКТОР ====== */
+.instructor-section {
+  padding: 5rem 0;
+  background: linear-gradient(135deg, var(--color-bg-section) 0%, var(--color-bg-white) 100%);
+}
+
+.instructor-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.instructor-card {
+  background: white;
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.instructor-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.instructor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.instructor-name {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.instructor-role {
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.instructor-bio {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.instructor-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.instructor-stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  display: block;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ====== ОТЗЫВЫ ====== */
+.reviews-section {
+  padding: 5rem 0;
+  background: white;
+}
+
+.reviews-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.reviews-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.reviews-header h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: var(--color-text-primary);
+}
+
+.reviews-header p {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.review-card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.review-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.reviewer-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--color-bg-section);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.reviewer-info h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text-primary);
+}
+
+.reviewer-info .date {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.rating-stars {
+  color: #FFD700;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.review-text {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.reviews-actions {
+  text-align: center;
+}
+
+.btn-reviews {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.btn-reviews:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(1, 52, 157, 0.2);
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 768px) {
+  .course-hero-section {
+    padding: 3rem 0;
+  }
+  
+  .course-hero-container,
+  .course-about-container,
+  .program-container,
+  .instructor-container,
+  .reviews-container {
+    padding: 0 1.5rem;
+  }
+  
+  .course-hero-content {
+    gap: 2rem;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+  }
+  
+  .btn-hero {
+    width: 100%;
+  }
+  
+  .course-features-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .about-grid {
+    gap: 2rem;
+  }
+  
+  .module-header {
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .lessons-list {
+    padding: 1rem 1.5rem;
+  }
+  
+  .instructor-card {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-hero-left h1 {
+    font-size: 1.8rem;
+  }
+  
+  .course-hero-left .hero-description {
+    font-size: 1.1rem;
+  }
+  
+  .course-enrollment-card {
+    padding: 1.5rem;
+  }
+  
+  .price-amount {
+    font-size: 2.5rem;
+  }
+  
+  .module-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .lesson-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .btn-lesson {
+    width: 100%;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 
-<section class="course-hero modern-hero">
-  <div class="container hero-inner">
-    <div class="hero-left">
-      <span class="course-badge">{{ course.category.name }}</span>
-      <h1>{{ course.title }}</h1>
-      <p>{{ course.short_description }}</p>
-
-      <ul class="hero-features">
-        <li>🎓 Сертификат</li>
-        <li>♾️ Бессрочный доступ</li>
-        <li>📱 Удобно на телефоне</li>
-        <li>💾 Материалы</li>
-      </ul>
-
-      <div class="hero-actions">
-        {% if has_access %}
-          <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-lg">
-            Начать обучение
-          </a>
-        {% else %}
-          <form action="{% url 'enroll_course' course.slug %}" method="post">
-            {% csrf_token %}
-            <button class="btn btn-primary btn-lg">Записаться бесплатно</button>
-          </form>
-        {% endif %}
-
-        <a href="#program" class="btn btn-outline btn-lg">Программа курса</a>
-      </div>
-    </div>
-
-    <div class="hero-right">
-      <div class="course-price-card">
-        <p class="new-price">Бесплатно</p>
-
-        {% if has_access %}
-          <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-full">
-            Перейти к обучению
-          </a>
-        {% else %}
-          <form action="{% url 'enroll_course' course.slug %}" method="post">
-            {% csrf_token %}
-            <button class="btn btn-primary btn-full">Записаться</button>
-          </form>
-        {% endif %}
-
-        <a href="{% url 'toggle_wishlist' course.slug %}" class="btn btn-outline btn-full mt-2">
-          {% if is_in_wishlist %}
-            <i class="bi bi-heart-fill"></i> Удалить из избранного
+<!-- ====== HERO СЕКЦИЯ ====== -->
+<section class="course-hero-section">
+  <div class="course-hero-container">
+    <div class="course-hero-content">
+      <!-- Левая колонка -->
+      <div class="course-hero-left">
+        <div class="course-category">
+          {{ course.category.name|default:"Курс" }}
+        </div>
+        
+        <h1>{{ course.title }}</h1>
+        
+        <p class="hero-description">
+          {{ course.short_description|default:"Практический курс от экспертов" }}
+        </p>
+        
+        <div class="course-features-grid">
+          <div class="feature-item">
+            <span class="feature-icon">🎓</span>
+            <span>Сертификат по окончании</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">♾️</span>
+            <span>Бессрочный доступ</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📱</span>
+            <span>Удобно на телефоне</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">💾</span>
+            <span>Материалы для скачивания</span>
+          </div>
+        </div>
+        
+        <div class="hero-actions">
+          {% if has_access %}
+            <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn-hero btn-hero-primary">
+              🚀 Продолжить обучение
+            </a>
           {% else %}
-            <i class="bi bi-heart"></i> В избранное
+            <form action="{% url 'enroll_course' course.slug %}" method="post" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-hero btn-hero-primary">
+                📝 Записаться на курс
+              </button>
+            </form>
           {% endif %}
-        </a>
+          
+          <a href="#program" class="btn-hero btn-hero-outline">
+            📋 Программа курса
+          </a>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
-
-
-<section class="section course-about">
-  <div class="container about-grid">
-    <div class="about-text">
-      <h2>О курсе</h2>
-      <p>{{ course.description|safe|default:"Описание скоро появится." }}</p>
-      <ul>
-        <li>📘 {{ lessons|length }} уроков</li>
-        <li>♾️ Доступ навсегда</li>
-        <li>🎓 Сертификат по окончании</li>
-      </ul>
-    </div>
-    <div class="about-img">
-      <img src="{{ course.display_image_url|default:'/static/img/default.jpg' }}" alt="{{ course.title }}">
-    </div>
-  </div>
-</section>
-
-
-<section id="program" class="section program-section">
-  <div class="container">
-    <h2 class="text-center mb-3">Программа курса</h2>
-
-    {% if lessons %}
-      <div class="lessons-list">
-        {% for lesson in lessons %}
-          <div class="lesson-item">
-            <div class="lesson-info">
-              <h3>{{ lesson.title }}</h3>
-              {% if lesson.duration_minutes %}
-                <span class="lesson-duration">{{ lesson.duration_minutes }} мин</span>
+      
+      <!-- Правая колонка -->
+      <div class="course-hero-right">
+        <div class="course-enrollment-card">
+          <div class="price-display">
+            <div class="price-label">Стоимость курса</div>
+            <div class="price-amount free">Бесплатно</div>
+            <div class="price-note">Без скрытых платежей</div>
+          </div>
+          
+          <div class="enrollment-actions">
+            {% if has_access %}
+              <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn-enroll btn-enroll-primary">
+                🎯 Перейти к урокам
+              </a>
+            {% else %}
+              <form action="{% url 'enroll_course' course.slug %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-enroll btn-enroll-primary">
+                  ✅ Записаться бесплатно
+                </button>
+              </form>
+            {% endif %}
+            
+            <a href="{% url 'toggle_wishlist' course.slug %}" class="btn-wishlist btn-enroll">
+              {% if is_in_wishlist %}
+                ❤️ Удалить из избранного
+              {% else %}
+                🤍 Добавить в избранное
               {% endif %}
-            </div>
-
-            <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-outline">
-              ▶ Смотреть
             </a>
           </div>
-        {% endfor %}
+        </div>
       </div>
-    {% else %}
-      <p class="text-center text-muted">Программа появится скоро.</p>
-    {% endif %}
+    </div>
   </div>
 </section>
 
-
-<section class="section instructor-section">
-  <div class="container text-center">
-    <h2>Инструктор</h2>
-
-    {% if teacher_profile %}
-      <div class="instructor-card">
-        <img src="{{ teacher_profile.display_avatar_url|default:'/static/img/avatar-placeholder.svg' }}" alt="Инструктор">
-        <h3>{{ teacher_profile.user.get_full_name }}</h3>
-        <p class="text-secondary">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
-        <p>{{ teacher_profile.bio|truncatewords:35 }}</p>
-      </div>
-    {% else %}
-      <p>Информация появится позже.</p>
-    {% endif %}
-  </div>
-</section>
-
-
-<section class="testimonials-section">
-  <div class="container">
-    <h2 class="text-center mb-3">Отзывы студентов</h2>
-
-    {% if reviews %}
-      <div class="testimonials-grid">
-        {% for review in reviews %}
-          <div class="testimonial-card">
-            <p>“{{ review.comment|truncatewords:35 }}”</p>
-            <p class="text-sm text-secondary">
-              — {{ review.name|default:"Аноним" }}, {{ review.created_at|date:"d M Y" }}
-            </p>
+<!-- ====== О КУРСЕ ====== -->
+<section class="course-about-section">
+  <div class="course-about-container">
+    <div class="about-grid">
+      <div class="about-content">
+        <h2>О чём этот курс?</h2>
+        
+        <div class="description">
+          {{ course.description|safe|default:"<p>Это практический курс, созданный экспертами индустрии. Вы получите не только теорию, но и реальные навыки, которые сможете применять сразу после обучения.</p>" }}
+        </div>
+        
+        <div class="course-stats">
+          <div class="stat-item">
+            <div class="stat-number">{{ lessons|length }}</div>
+            <div class="stat-label">Уроков</div>
           </div>
+          <div class="stat-item">
+            <div class="stat-number">♾️</div>
+            <div class="stat-label">Доступ навсегда</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">24/7</div>
+            <div class="stat-label">Поддержка</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">🎓</div>
+            <div class="stat-label">Сертификат</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="about-image">
+        <img src="{{ course.display_image_url|default:'/static/img/courses/default.jpg' }}" 
+             alt="{{ course.title }}"
+             onerror="this.src='/static/img/courses/default.jpg'">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== ПРОГРАММА КУРСА ====== -->
+<section id="program" class="program-section">
+  <div class="program-container">
+    <div class="program-header">
+      <h2>Программа курса</h2>
+      <p>Пошаговый план обучения с практическими заданиями</p>
+    </div>
+    
+    {% if lessons %}
+      <div class="lessons-accordion">
+        {% for module in modules %}
+        <div class="module-card {% if forloop.first %}open{% endif %}" id="module-{{ forloop.counter }}">
+          <div class="module-header" onclick="toggleModule(this)">
+            <div class="module-title">
+              <div class="module-number">{{ forloop.counter }}</div>
+              <div class="module-name">
+                <h3>{{ module.title|default:"Модуль "|add:forloop.counter }}</h3>
+                <div class="module-meta">
+                  {{ module.lessons.count }} уроков • {{ module.total_duration }} минут
+                </div>
+              </div>
+            </div>
+            <div class="module-toggle">▼</div>
+          </div>
+          
+          <div class="module-content">
+            <div class="lessons-list">
+              {% for lesson in module.lessons.all %}
+              <div class="lesson-item">
+                <div class="lesson-info">
+                  <div class="lesson-icon">
+                    {% if lesson.lesson_type == 'video' %}📹
+                    {% elif lesson.lesson_type == 'text' %}📝
+                    {% elif lesson.lesson_type == 'quiz' %}❓
+                    {% else %}📚{% endif %}
+                  </div>
+                  <div class="lesson-title">
+                    <h4>{{ lesson.title }}</h4>
+                    {% if lesson.duration_minutes %}
+                      <div class="lesson-duration">{{ lesson.duration_minutes }} минут</div>
+                    {% endif %}
+                  </div>
+                </div>
+                
+                {% if has_access %}
+                  <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn-lesson btn-lesson-primary">
+                    {% if lesson.completed %}👀 Повторить{% else %}▶️ Смотреть{% endif %}
+                  </a>
+                {% else %}
+                  <span class="btn-lesson" style="background: var(--color-border); color: var(--color-text-tertiary); padding: 0.6rem 1.2rem; border-radius: 8px;">
+                    🔒 Доступ после записи
+                  </span>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-center text-muted">Отзывов пока нет.</p>
+      <div class="empty-state" style="text-align: center; padding: 3rem 0;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+        <h3 style="margin-bottom: 1rem;">Программа скоро появится</h3>
+        <p style="color: var(--color-text-secondary); max-width: 400px; margin: 0 auto;">
+          Раздел наполняется материалами. Уже скоро вы сможете приступить к обучению.
+        </p>
+      </div>
     {% endif %}
   </div>
 </section>
+
+<!-- ====== ИНСТРУКТОР ====== -->
+<section class="instructor-section">
+  <div class="instructor-container">
+    <div class="instructor-card">
+      <div class="instructor-avatar">
+        {% if teacher_profile and teacher_profile.avatar %}
+          <img src="{{ teacher_profile.avatar.url }}" alt="{{ teacher_profile.user.get_full_name }}">
+        {% else %}
+          <span>{{ teacher_profile.user.first_name|first|default:"E" }}</span>
+        {% endif %}
+      </div>
+      
+      <div class="instructor-name">
+        {{ teacher_profile.user.get_full_name|default:"Эксперт SkillsSpire" }}
+      </div>
+      
+      <div class="instructor-role">
+        {{ teacher_profile.specialization|default:"Senior Эксперт" }}
+      </div>
+      
+      <div class="instructor-bio">
+        {{ teacher_profile.bio|default:"Опытный специалист с многолетней практикой в индустрии. Помог сотням студентов освоить новые навыки и достичь карьерных целей."|truncatewords:50 }}
+      </div>
+      
+      <div class="instructor-stats">
+        <div class="instructor-stat">
+          <span class="stat-value">{{ teacher_profile.years_experience|default:"5+" }}</span>
+          <span class="stat-label">лет опыта</span>
+        </div>
+        <div class="instructor-stat">
+          <span class="stat-value">{{ teacher_profile.students_taught|default:"200+" }}</span>
+          <span class="stat-label">студентов</span>
+        </div>
+        <div class="instructor-stat">
+          <span class="stat-value">{{ teacher_profile.courses_count|default:"10+" }}</span>
+          <span class="stat-label">курсов</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== ОТЗЫВЫ ====== -->
+<section class="reviews-section">
+  <div class="reviews-container">
+    <div class="reviews-header">
+      <h2>Отзывы студентов</h2>
+      <p>Что говорят те, кто уже прошёл этот курс</p>
+    </div>
+    
+    {% if reviews %}
+      <div class="reviews-grid">
+        {% for review in reviews|slice:":6" %}
+        <div class="review-card">
+          <div class="review-header">
+            <div class="reviewer-avatar">
+              {{ review.user.first_name|first|default:review.name|first|default:"A" }}
+            </div>
+            <div class="reviewer-info">
+              <h4>{{ review.name|default:"Аноним" }}</h4>
+              <div class="date">{{ review.created_at|date:"d M Y" }}</div>
+            </div>
+          </div>
+          
+          <div class="rating-stars">
+            {% with ''|center:review.rating as range %}
+              {% for _ in range %}★{% endfor %}
+            {% endwith %}
+          </div>
+          
+          <div class="review-text">
+            "{{ review.comment|truncatewords:30|default:"Отличный курс, рекомендую!" }}"
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state" style="text-align: center; padding: 3rem 0;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">💬</div>
+        <h3 style="margin-bottom: 1rem;">Отзывов пока нет</h3>
+        <p style="color: var(--color-text-secondary); max-width: 400px; margin: 0 auto;">
+          Будьте первым, кто поделится своим мнением после прохождения курса.
+        </p>
+      </div>
+    {% endif %}
+    
+    {% if reviews|length > 0 %}
+      <div class="reviews-actions">
+        <a href="{% url 'course_reviews' course.slug %}" class="btn-reviews">
+          👁️ Смотреть все отзывы
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+function toggleModule(header) {
+  const card = header.closest('.module-card');
+  card.classList.toggle('open');
+}
+
+// Автоматическое открытие первого модуля
+document.addEventListener('DOMContentLoaded', function() {
+  const firstModule = document.querySelector('.module-card');
+  if (firstModule) {
+    firstModule.classList.add('open');
+  }
+  
+  // Плавная прокрутка к модулям
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (href.startsWith('#') && href.length > 1) {
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+          // Открываем модуль, если кликнули на него
+          if (href.startsWith('#module-')) {
+            const moduleCard = target.closest('.module-card');
+            if (moduleCard && !moduleCard.classList.contains('open')) {
+              moduleCard.classList.add('open');
+            }
+          }
+        }
+      }
+    });
+  });
+});
+</script>
 
 {% endblock %}
