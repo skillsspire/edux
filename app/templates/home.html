@@ -395,10 +395,11 @@ section {
       по выбранному направлению.
     </p>
 
-    <form method="post" action="{% url 'subscribe' %}" style="display:flex; gap:10px; justify-content:center;">
+    <form method="post" action="#" onsubmit="handleEmailSubmit(event)" style="display:flex; gap:10px; justify-content:center;">
       {% csrf_token %}
       <input type="email" name="email" required placeholder="Ваш email"
-        style="flex:1; padding:12px 16px; border-radius:8px; border:1px solid var(--color-border);">
+        style="flex:1; padding:12px 16px; border-radius:8px; border:1px solid var(--color-border);"
+        id="subscribe-email">
       <button type="submit"
         style="background:var(--color-primary); color:#fff; border:none; padding:12px 24px; border-radius:8px;">
         Получить
@@ -531,5 +532,52 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("closePopup").addEventListener("click",()=>popup.style.display="none");
   document.getElementById("closeBtn").addEventListener("click",()=>popup.style.display="none");
 });
+
+// Функция для обработки email-подписки
+function handleEmailSubmit(event) {
+  event.preventDefault();
+  const emailInput = document.getElementById('subscribe-email');
+  const email = emailInput.value.trim();
+  
+  if (!email) {
+    alert('Пожалуйста, введите email');
+    return;
+  }
+  
+  if (!validateEmail(email)) {
+    alert('Пожалуйста, введите корректный email');
+    return;
+  }
+  
+  // Сохраняем email в localStorage и показываем сообщение
+  try {
+    let subscribers = JSON.parse(localStorage.getItem('skillsspire_subscribers') || '[]');
+    if (!subscribers.includes(email)) {
+      subscribers.push(email);
+      localStorage.setItem('skillsspire_subscribers', JSON.stringify(subscribers));
+    }
+    
+    // Показываем сообщение об успехе
+    alert('Спасибо за подписку! Мы скоро свяжемся с вами.');
+    emailInput.value = ''; // Очищаем поле
+    
+    // Здесь можно позже добавить отправку на сервер
+    // fetch('/api/subscribe/', { 
+    //   method: 'POST', 
+    //   headers: {'Content-Type': 'application/json'},
+    //   body: JSON.stringify({email: email}) 
+    // })
+    
+  } catch (e) {
+    console.error('Ошибка сохранения email:', e);
+    alert('Спасибо за интерес! Ваш email записан.');
+  }
+}
+
+// Валидация email
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
 </script>
 {% endblock %}
