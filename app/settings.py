@@ -3,289 +3,283 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 
+# Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Загружаем .env
+# Load environment variables
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# ФИКС: добавляем значения по умолчанию для локальной разработки
-RECAPTCHA_PUBLIC_KEY = os.environ.get("RECAPTCHA_PUBLIC_KEY", "fake-public-key")
-RECAPTCHA_PRIVATE_KEY = os.environ.get("RECAPTCHA_PRIVATE_KEY", "fake-private-key")
+# Supabase configuration
+SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID', 'pyttzlcuxyfkhrwggrwi')
+SUPABASE_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co"
+SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "insecure-secret")
-DEBUG = os.environ.get("DEBUG", "False") == "True"
+# Security
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-123')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-if DEBUG:
-    ALLOWED_HOSTS = ["*"]
-else:
-    ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'skillsspire.com',
+    'www.skillsspire.com',
+    '.onrender.com',
+]
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://www.skillsspire.com",
-    "https://skillsspire.com",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    'https://*.skillsspire.com',
+    'https://*.onrender.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
 ]
 
-RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-if RENDER_EXTERNAL_HOSTNAME:
-    if RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-    origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
-    if origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(origin)
+# Security settings
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SECURE_SSL_REDIRECT = False
 
-KASPI_WEBHOOK_SECRET = os.environ.get("KASPI_WEBHOOK_SECRET", "dev-secret")
-KASPI_PAYMENT_URL = os.environ.get("KASPI_PAYMENT_URL", "https://pay.kaspi.kz/pay/fhljzakr")
-KASPI_SECRET = os.environ.get("KASPI_SECRET", "dev-secret")
-
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
-SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True") == "True"
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_DOMAIN = None
-SESSION_COOKIE_DOMAIN = None
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
-SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0"))
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = False
-SECURE_REFERRER_POLICY = "same-origin"
-
-DJANGO_APPS = [
-    "jazzmin",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "django.contrib.humanize",
+# Application definition
+INSTALLED_APPS = [
+    # Django
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.humanize',
+    
+    # Third party
+    'jazzmin',
+    'ckeditor',
+    'ckeditor_uploader',
+    'widget_tweaks',
+    'storages',
+    'phonenumber_field',
+    'django_recaptcha',
+    'corsheaders',
+    
+    # Supabase Auth (если устанавливали)
+    # 'supabase_auth',
+    
+    # Local
+    'app.apps.CoreConfig',
 ]
-
-THIRD_PARTY_APPS = [
-    "phonenumber_field",
-    "ckeditor",
-    "widget_tweaks",
-    "storages",
-    "django_recaptcha",
-]
-
-LOCAL_APPS = [
-    "app.apps.CoreConfig",
-]
-
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = "app.urls"
+ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates", BASE_DIR / "app" / "templates"],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-                "django.template.context_processors.media",
-                "app.context.kaspi",
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = "app.wsgi.application"
+WSGI_APPLICATION = 'app.wsgi.application'
 
-USE_PGBOUNCER = os.environ.get("DB_PGBOUNCER", "False") == "True"
-CONN_MAX_AGE_VALUE = 0 if USE_PGBOUNCER else 600
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Database
+# Используем Supabase PostgreSQL
+DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
-    db_cfg = dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=CONN_MAX_AGE_VALUE,
-        ssl_require=True,
-    )
-    db_cfg["CONN_HEALTH_CHECKS"] = True
-    DATABASES = {"default": db_cfg}
-else:
+    # Supabase подключение
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True
+        )
+    }
+    
+    # Если нужно настроить Supabase auth, раскомментируйте:
+    # DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+    # DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
+else:
+    # Локальная разработка
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
-REDIS_URL = os.getenv("REDIS_URL")
-if REDIS_URL:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
-        }
-    }
-    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+# Supabase Auth - если используете библиотеку
+# AUTH_USER_MODEL = 'supabase_auth.SupabaseUser'
+AUTH_USER_MODEL = 'auth.User'  # Пока оставляем стандартную
 
+# Supabase settings для будущей интеграции
+SUPABASE_CONFIG = {
+    'PROJECT_URL': SUPABASE_URL,
+    'ANON_KEY': SUPABASE_ANON_KEY,
+    'SERVICE_ROLE_KEY': SUPABASE_SERVICE_ROLE_KEY,
+    'JWT_SECRET': os.environ.get('SUPABASE_JWT_SECRET'),
+}
+
+# CORS для Supabase
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    SUPABASE_URL,
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
-AUTHENTICATION_BACKENDS = [
-    "app.backends.EmailOrUsernameBackend",
-    "django.contrib.auth.backends.ModelBackend",
-]
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
-LOGIN_URL = "/login/"
 
-LANGUAGE_CODE = "ru"
-TIME_ZONE = "Europe/Moscow"
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'app.backends.EmailOrUsernameBackend',
+]
+
+# Internationalization
+LANGUAGE_CODE = 'ru-ru'
+TIME_ZONE = 'Asia/Almaty'
 USE_I18N = True
 USE_TZ = True
-LANGUAGES = [
-    ("en", "English"),
-    ("ru", "Русский"),
-    ("kz", "Қазақша"),
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'app' / 'static',
 ]
-LOCALE_PATHS = [BASE_DIR / "locale"]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-WHITENOISE_AUTOREFRESH = DEBUG
-WHITENOISE_MAX_AGE = 60 if DEBUG else 60 * 60 * 24 * 365
-
+# Media files
 if DEBUG:
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = BASE_DIR / "media"
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 else:
-    SUPABASE_PROJECT_ID = "pyttzlcuxyfkhrwggrwi"
-    SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "media")
-
-    MEDIA_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET_NAME}/"
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
-    AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
-    AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
-    AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET_NAME
-    AWS_S3_ENDPOINT_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/s3"
-
-    AWS_S3_REGION_NAME = "us-east-1"
-    AWS_S3_ADDRESSING_STYLE = "path"
+    # Используем Supabase Storage для медиафайлов
+    SUPABASE_BUCKET = 'media'
+    MEDIA_URL = f'{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/'
+    
+    AWS_ACCESS_KEY_ID = os.environ.get('SUPABASE_ACCESS_KEY')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('SUPABASE_SECRET_KEY')
+    AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET
+    AWS_S3_ENDPOINT_URL = f'{SUPABASE_URL}/storage/v1/s3'
+    AWS_S3_REGION_NAME = 'us-east-1'
+    AWS_S3_ADDRESSING_STYLE = 'path'
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
+    
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT") or 587)
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False") == "True"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "SkillsSpire <noreply@skillsspire.com>")
-SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
-EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-PHONENUMBER_DEFAULT_REGION = "KZ"
-PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@skillsspire.com')
 
-SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
+# reCAPTCHA
+RECAPTCHA_PUBLIC_KEY = os.environ.get('RECAPTCHA_PUBLIC_KEY', 'test-key')
+RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY', 'test-key')
+RECAPTCHA_REQUIRED_SCORE = 0.85
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": LOG_LEVEL},
-    "loggers": {
-        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
-        "django.db.backends": {"handlers": ["console"], "level": os.getenv("DB_LOG_LEVEL", "WARNING")},
+# CKEditor
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
     },
 }
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
+# Jazzmin Admin
 JAZZMIN_SETTINGS = {
     "site_title": "SkillsSpire Admin",
     "site_header": "SkillsSpire",
-    "welcome_sign": "Добро пожаловать в панель управления SkillsSpire",
     "site_brand": "SkillsSpire",
-    "site_logo": "app/static/img/logo_skillsspire.png",
-    "copyright": "© 2025 SkillsSpire",
-    "theme": "cosmo",
-    "show_ui_builder": True,
-    "custom_css": "css/admin_custom.css" if DEBUG else None,
+    "site_logo": "img/logo_skillsspire.png",
+    "login_logo": None,
+    "login_logo_dark": None,
+    "site_logo_classes": "img-circle",
+    "site_icon": None,
+    "welcome_sign": "Добро пожаловать в панель управления SkillsSpire",
+    "copyright": "SkillsSpire © 2025",
+    "search_model": ["app.UserProfile", "app.Course"],
+    "user_avatar": None,
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
     "hide_models": [],
-    "order_with_respect_to": [
-        "app.Course", "app.Module", "app.Lesson",
-        "app.Enrollment", "app.Payment", "app.Review",
-        "auth.User", "auth.Group",
-    ],
+    "order_with_respect_to": ["app", "auth"],
     "icons": {
-        "auth.User": "fas fa-user",
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
         "auth.Group": "fas fa-users",
-        "app.Category": "fas fa-folder-tree",
-        "app.Course": "fas fa-graduation-cap",
-        "app.Module": "fas fa-layer-group",
-        "app.Lesson": "fas fa-play-circle",
-        "app.LessonProgress": "fas fa-tasks",
-        "app.Enrollment": "fas fa-user-graduate",
-        "app.Payment": "fas fa-credit-card",
-        "app.InstructorProfile": "fas fa-chalkboard-teacher",
-        "app.Review": "fas fa-star",
-        "app.Wishlist": "fas fa-heart",
-        "app.ContactMessage": "fas fa-envelope",
-        "app.Article": "fas fa-newspaper",
-        "app.Material": "fas fa-book",
-        "app.Quiz": "fas fa-question-circle",
-        "app.Question": "fas fa-question",
-        "app.Answer": "fas fa-check-circle",
-        "app.Assignment": "fas fa-tasks",
-        "app.Submission": "fas fa-file-upload",
-        "app.Certificate": "fas fa-certificate",
-        "app.Lead": "fas fa-user-plus",
-        "app.Interaction": "fas fa-comments",
         "app.UserProfile": "fas fa-user-circle",
-        "app.Segment": "fas fa-users",
-        "app.SupportTicket": "fas fa-ticket-alt",
-        "app.FAQ": "fas fa-question-circle",
-        "app.Subscription": "fas fa-calendar-alt",
-        "app.Plan": "fas fa-cube",
-        "app.Refund": "fas fa-undo",
-        "app.Mailing": "fas fa-envelope-open-text",
+        "app.Course": "fas fa-graduation-cap",
+        "app.Category": "fas fa-folder",
+        "app.Lesson": "fas fa-book",
+        "app.Module": "fas fa-layer-group",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
     "related_modal_active": False,
+    "custom_css": None,
+    "custom_js": None,
     "use_google_fonts_cdn": True,
+    "show_ui_builder": False,
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
 }
 
 JAZZMIN_UI_TWEAKS = {
@@ -320,4 +314,69 @@ JAZZMIN_UI_TWEAKS = {
     },
 }
 
-SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
+# Login/Logout URLs
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+
+# Session settings
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Phone number field
+PHONENUMBER_DEFAULT_REGION = 'KZ'
+PHONENUMBER_DEFAULT_FORMAT = 'INTERNATIONAL'
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'app': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Kaspi Pay
+KASPI_PAYMENT_URL = os.environ.get('KASPI_PAYMENT_URL', 'https://pay.kaspi.kz/pay/fhljzakr')
+KASPI_SECRET = os.environ.get('KASPI_SECRET', '')
+KASPI_WEBHOOK_SECRET = os.environ.get('KASPI_WEBHOOK_SECRET', '')
+
+# Supabase Auth - если решите использовать библиотеку
+# Для этого нужно установить: pip install django-supabase-auth
+if SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY:
+    # Временная настройка для интеграции Supabase
+    # Пока оставляем стандартную аутентификацию Django
+    pass
+
+# Supabase realtime - если нужно
+SUPABASE_REALTIME_URL = f"wss://{SUPABASE_PROJECT_ID}.supabase.co/realtime/v1"

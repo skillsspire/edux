@@ -711,8 +711,28 @@ def dashboard(request):
 
 @login_required
 def profile_settings(request):
-    """Страница настроек профиля"""
+    """Страница настроек профиля - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
     user = request.user
+    
+    # Всегда используем get_or_create для профиля
+    profile, created = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={
+            'phone': '',
+            'city': '',
+            'balance': 0,
+            'role': 'student',
+            'bio': '',
+            'company': '',
+            'position': '',
+            'website': '',
+            'country': '',
+            'email_notifications': True,
+            'course_updates': True,
+            'newsletter': False,
+            'push_reminders': True,
+        }
+    )
     
     if request.method == 'POST':
         # Определяем, какая форма отправлена
@@ -731,18 +751,14 @@ def profile_settings(request):
                 user.avatar = request.FILES['avatar']
             
             # Дополнительные поля профиля
-            try:
-                profile, created = UserProfile.objects.get_or_create(user=user)
-                profile.phone = request.POST.get('phone', '').strip()
-                profile.bio = request.POST.get('bio', '').strip()
-                profile.company = request.POST.get('company', '').strip()
-                profile.position = request.POST.get('position', '').strip()
-                profile.website = request.POST.get('website', '').strip()
-                profile.country = request.POST.get('country', '').strip()
-                profile.city = request.POST.get('city', '').strip()
-                profile.save()
-            except Exception as e:
-                print(f"Ошибка сохранения профиля: {e}")
+            profile.phone = request.POST.get('phone', '').strip()
+            profile.bio = request.POST.get('bio', '').strip()
+            profile.company = request.POST.get('company', '').strip()
+            profile.position = request.POST.get('position', '').strip()
+            profile.website = request.POST.get('website', '').strip()
+            profile.country = request.POST.get('country', '').strip()
+            profile.city = request.POST.get('city', '').strip()
+            profile.save()
             
             user.save()
             messages.success(request, '✅ Настройки профиля успешно обновлены!')
@@ -775,16 +791,12 @@ def profile_settings(request):
             
         elif 'update_notifications' in request.POST:
             # Обновление настроек уведомлений
-            try:
-                profile, created = UserProfile.objects.get_or_create(user=user)
-                profile.email_notifications = 'email_notifications' in request.POST
-                profile.course_updates = 'course_updates' in request.POST
-                profile.newsletter = 'newsletter' in request.POST
-                profile.push_reminders = 'push_reminders' in request.POST
-                profile.save()
-                messages.success(request, '✅ Настройки уведомлений сохранены!')
-            except Exception as e:
-                print(f"Ошибка сохранения настроек уведомлений: {e}")
+            profile.email_notifications = 'email_notifications' in request.POST
+            profile.course_updates = 'course_updates' in request.POST
+            profile.newsletter = 'newsletter' in request.POST
+            profile.push_reminders = 'push_reminders' in request.POST
+            profile.save()
+            messages.success(request, '✅ Настройки уведомлений сохранены!')
             
             active_tab = 'notifications'
         
@@ -793,12 +805,6 @@ def profile_settings(request):
     else:
         # GET запрос
         active_tab = request.GET.get('tab', 'profile')
-        
-        # Получаем профиль пользователя
-        try:
-            profile = UserProfile.objects.get(user=user)
-        except UserProfile.DoesNotExist:
-            profile = None
         
         context = {
             'user': user,
@@ -834,8 +840,6 @@ def add_review(request, slug):
 
     return render(request, "courses/add_review.html", {"course": course, "form": form})
 
-
-# ---------- static pages ----------
 
 # ---------- static pages ----------
 
