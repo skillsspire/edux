@@ -50,7 +50,7 @@
             <div class="courses-grid">
                 {% for e in enrollments %}
                 {% with c=e.course %}
-                {% with p=progress_map|get_item:c.id|default:0 %}
+                {% with p=e.progress|default:0 %}
                 <div class="course-card">
 
                     <!-- Картинка курса -->
@@ -71,18 +71,17 @@
                                     Обучение
                                 {% endif %}
                             </span>
-                            <span class="course-instructor">
-                                {% if c.instructor %}
-                                    {{ c.instructor.get_full_name|default:c.instructor.username }}
-                                {% else %}
-                                    SkillsSpire
-                                {% endif %}
-                            </span>
+                            {% if not e.completed %}
+                            <span class="course-status badge bg-warning">В процессе</span>
+                            {% else %}
+                            <span class="course-status badge bg-success">Завершен</span>
+                            {% endif %}
                         </div>
 
                         <h3 class="course-card-title">{{ c.title }}</h3>
                         <p class="course-card-text">{{ c.short_description|default:c.description|truncatechars:100 }}</p>
 
+                        {% if not e.completed %}
                         <div class="course-progress-block">
                             <div class="progress-info">
                                 <span class="progress-percent">{{ p }}% завершено</span>
@@ -96,11 +95,16 @@
                                 <span class="bar" data-w="{{ p }}"></span>
                             </div>
                         </div>
+                        {% else %}
+                        <div class="course-completed">
+                            <span class="badge bg-success">✅ Курс завершен</span>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="course-card-footer">
                         <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
-                            {% if p >= 100 %}
+                            {% if e.completed %}
                                 📜 Просмотреть курс
                             {% elif p > 0 %}
                                 ➡️ Продолжить обучение
@@ -125,6 +129,25 @@
                 </a>
             </div>
             {% endif %}
+
+            <!-- Недавние активности (если есть) -->
+            {% if recent_activities %}
+            <div class="section-header mt-5">
+                <h2 class="h4 fw-bold">Недавняя активность</h2>
+            </div>
+            <div class="activity-list">
+                {% for activity in recent_activities %}
+                <div class="activity-item">
+                    <div class="activity-icon">{{ activity.icon }}</div>
+                    <div class="activity-content">
+                        <div class="activity-text">{{ activity.text }}</div>
+                        <div class="activity-time">{{ activity.time|timesince }} назад</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
         </div>
 
         <!-- =============== ПРАВАЯ КОЛОНКА =============== -->
@@ -143,6 +166,19 @@
                 <h4 class="profile-name">{{ user.get_full_name|default:user.username }}</h4>
                 <p class="profile-email">{{ user.email }}</p>
 
+                <div class="profile-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Дата регистрации:</span>
+                        <span class="meta-value">{{ user.date_joined|date:"d.m.Y" }}</span>
+                    </div>
+                    {% if profile %}
+                    <div class="meta-item">
+                        <span class="meta-label">Роль:</span>
+                        <span class="meta-value">{{ profile.get_role_display }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
                 <div class="profile-actions">
                     <a href="{% url 'profile_settings' %}" class="btn btn-outline btn-full">
                         ⚙️ Настройки профиля
@@ -150,40 +186,38 @@
                 </div>
             </div>
 
-            <!-- Статистика прогресса -->
+            <!-- Быстрый прогресс -->
             <div class="sidebar-card">
-                <h4 class="sidebar-title">📊 Статистика обучения</h4>
-
-                <ul class="progress-list">
-                    <li>
+                <h4 class="sidebar-title">🚀 Ваш прогресс</h4>
+                
+                {% if overall_progress > 0 %}
+                <div class="overall-progress">
+                    <div class="progress-header">
+                        <span>Общий прогресс</span>
+                        <strong>{{ overall_progress }}%</strong>
+                    </div>
+                    <div class="progressbar large">
+                        <span class="bar" data-w="{{ overall_progress }}"></span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <span class="stat-icon">📚</span>
+                        <div>
+                            <div class="stat-number">{{ total_courses }}</div>
+                            <div class="stat-label">Курсов</div>
+                        </div>
+                    </div>
+                    <div class="quick-stat">
                         <span class="stat-icon">✅</span>
-                        <div class="stat-info">
-                            <span class="stat-label">Завершённые курсы</span>
+                        <div>
+                            <div class="stat-number">{{ completed_lessons }}</div>
+                            <div class="stat-label">Уроков</div>
                         </div>
-                        <strong>{{ completed_courses }}</strong>
-                    </li>
-                    <li>
-                        <span class="stat-icon">📖</span>
-                        <div class="stat-info">
-                            <span class="stat-label">Пройденные уроки</span>
-                        </div>
-                        <strong>{{ completed_lessons }}</strong>
-                    </li>
-                    <li>
-                        <span class="stat-icon">🔥</span>
-                        <div class="stat-info">
-                            <span class="stat-label">Активные курсы</span>
-                        </div>
-                        <strong>{{ total_courses }}</strong>
-                    </li>
-                    <li>
-                        <span class="stat-icon">⏱️</span>
-                        <div class="stat-info">
-                            <span class="stat-label">Часов обучения</span>
-                        </div>
-                        <strong>{{ total_hours|default:"0" }}</strong>
-                    </li>
-                </ul>
+                    </div>
+                </div>
             </div>
 
             <!-- Поддержка -->
@@ -204,13 +238,11 @@
                     <a href="mailto:support@skillsspire.com" class="support-link">
                         📩 Написать на почту
                     </a>
-                    {% if telegram_support %}
-                    <a href="{{ telegram_support }}" target="_blank" class="support-link">
-                        💬 Telegram-чат
+                    <a href="/faq/" class="support-link">
+                        ❓ Частые вопросы
                     </a>
-                    {% endif %}
-                    <a href="/help/" class="support-link">
-                        ❓ Справочный центр
+                    <a href="/contact/" class="support-link">
+                        📞 Связаться с нами
                     </a>
                 </div>
             </div>
@@ -237,14 +269,12 @@
                             <span>Материалы</span>
                         </a>
                     </li>
-                    {% if certificates_url %}
                     <li>
-                        <a href="{{ certificates_url }}">
-                            <span>🏆</span>
-                            <span>Мои сертификаты</span>
+                        <a href="{% url 'my_courses' %}">
+                            <span>📋</span>
+                            <span>Мои курсы</span>
                         </a>
                     </li>
-                    {% endif %}
                 </ul>
             </div>
 
@@ -256,7 +286,7 @@
 
 {% block extra_css %}
 <style>
-/* ====== ЛЕЙАУТ ====== */
+/* ====== ОСНОВНОЙ ЛЕЙАУТ ДАШБОРДА ====== */
 .dashboard-container {
     max-width: 1400px;
 }
@@ -281,7 +311,7 @@
     }
 }
 
-/* ====== ЗАГОЛОВОК ====== */
+/* ====== ЗАГОЛОВОК ДАШБОРДА ====== */
 .dash-header {
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
     color: white;
@@ -350,20 +380,156 @@
     font-size: 0.95rem;
 }
 
-/* ====== СЕКЦИИ ====== */
-.section-header {
+/* ====== ПРАВАЯ КОЛОНКА ====== */
+.dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebar-card {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ====== ПРОФИЛЬ В САЙДБАРЕ ====== */
+.profile-card {
+    text-align: center;
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 1.25rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.profile-email {
+    color: var(--color-text-secondary);
     margin-bottom: 1.5rem;
+}
+
+.profile-meta {
+    background: var(--color-bg-section);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.meta-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.meta-item:not(:last-child) {
+    border-bottom: 1px solid var(--color-border);
+}
+
+.meta-label {
+    color: var(--color-text-secondary);
+}
+
+.meta-value {
+    font-weight: 600;
+}
+
+/* ====== БЫСТРЫЙ ПРОГРЕСС ====== */
+.overall-progress {
+    margin-bottom: 1.5rem;
+}
+
+.progress-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
 }
 
-.section-header h2 {
+.progressbar.large {
+    height: 12px;
+}
+
+.progressbar {
+    width: 100%;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progressbar .bar {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    width: 0%;
+    transition: width 0.6s ease;
+}
+
+.quick-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.quick-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--color-bg-section);
+    border-radius: var(--radius-md);
+}
+
+.quick-stat .stat-icon {
+    font-size: 1.5rem;
+}
+
+.quick-stat .stat-number {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--color-text-primary);
+    color: var(--color-primary);
+}
+
+.quick-stat .stat-label {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
 }
 
 /* ====== КАРТОЧКИ КУРСОВ ====== */
@@ -456,31 +622,14 @@
     color: var(--color-text-tertiary);
 }
 
-.progressbar {
-    width: 100%;
-    height: 8px;
-    background: var(--color-border);
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.progressbar .bar {
-    display: block;
-    height: 100%;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
-    width: 0%;
-    transition: width 0.6s ease;
+.course-completed {
+    margin-top: 1rem;
+    text-align: center;
 }
 
 .course-card-footer {
     padding: 1.5rem;
     padding-top: 0;
-}
-
-.btn-full {
-    width: 100%;
-    padding: 0.9rem;
-    font-weight: 600;
 }
 
 /* ====== ПУСТОЕ СОСТОЯНИЕ ====== */
@@ -504,110 +653,49 @@
     color: var(--color-text-primary);
 }
 
-/* ====== ПРАВАЯ КОЛОНКА ====== */
-.dashboard-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.sidebar-card {
+/* ====== АКТИВНОСТЬ ====== */
+.activity-list {
     background: var(--color-bg-white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 1.75rem;
-    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
 }
 
-.sidebar-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 1.25rem;
-    color: var(--color-text-primary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* ====== ПРОФИЛЬ ====== */
-.profile-card {
-    text-align: center;
-}
-
-.profile-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    margin: 0 auto 1.25rem;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    font-weight: 700;
-}
-
-.profile-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.profile-name {
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.profile-email {
-    color: var(--color-text-secondary);
-    margin-bottom: 1.5rem;
-}
-
-.profile-actions {
-    margin-top: 1rem;
-}
-
-/* ====== СТАТИСТИКА В СТОРОНЕ ====== */
-.progress-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.progress-list li {
+.activity-item {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 0.85rem 0;
+    padding: 0.75rem 0;
     border-bottom: 1px solid var(--color-border);
 }
 
-.progress-list li:last-child {
+.activity-item:last-child {
     border-bottom: none;
 }
 
-.stat-icon {
+.activity-icon {
     font-size: 1.2rem;
-    width: 30px;
-    text-align: center;
+    width: 40px;
+    height: 40px;
+    background: var(--color-bg-section);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.stat-info {
+.activity-content {
     flex: 1;
 }
 
-.stat-label {
-    display: block;
-    font-size: 0.95rem;
-    color: var(--color-text-secondary);
+.activity-text {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
 }
 
-.progress-list strong {
-    font-size: 1.1rem;
-    color: var(--color-primary);
+.activity-time {
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
 }
 
 /* ====== ПОДДЕРЖКА ====== */
@@ -707,41 +795,6 @@
     font-size: 1.2rem;
 }
 
-/* ====== КНОПКИ ====== */
-.btn {
-    display: inline-block;
-    padding: 0.8rem 1.5rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-    color: white;
-    border: none;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(1, 52, 157, 0.25);
-}
-
-.btn-outline {
-    background: transparent;
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-}
-
-.btn-outline:hover {
-    background: var(--color-primary);
-    color: white;
-}
-
 /* ====== ТЕМНАЯ ТЕМА ====== */
 :root.dark-theme .dash-header {
     background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
@@ -753,10 +806,10 @@
     background: var(--color-bg-white);
 }
 
-:root.dark-theme .empty-state {
-    background: var(--color-bg-section);
-}
-
+:root.dark-theme .empty-state,
+:root.dark-theme .activity-list,
+:root.dark-theme .profile-meta,
+:root.dark-theme .quick-stat,
 :root.dark-theme .mentor-block,
 :root.dark-theme .support-link,
 :root.dark-theme .quick-links a {
@@ -794,16 +847,6 @@ document.addEventListener('DOMContentLoaded', function() {
             card.style.opacity = '1';
             card.style.transform = 'translateY(0)';
         }, 100 + (index * 100));
-    });
-    
-    // Добавление иконок к статистике
-    const statIcons = ['📚', '🏆', '👀', '✅'];
-    document.querySelectorAll('.stat-card').forEach((card, index) => {
-        const icon = document.createElement('div');
-        icon.className = 'stat-icon';
-        icon.textContent = statIcons[index] || '📊';
-        icon.style.cssText = 'font-size: 2rem; margin-bottom: 0.5rem;';
-        card.querySelector('.stat-value').parentNode.insertBefore(icon, card.querySelector('.stat-value'));
     });
 });
 </script>

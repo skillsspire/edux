@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
@@ -18,6 +19,10 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 # Security
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-123')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+# Для дебага на Render временно включаем DEBUG
+if 'RENDER' in os.environ:
+    DEBUG = True  # Временно для отладки
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -50,6 +55,9 @@ if not DEBUG:
 else:
     SECURE_SSL_REDIRECT = False
 
+# Static version для кэширования
+STATIC_VERSION = os.environ.get('STATIC_VERSION', '1.0')
+
 # Application definition
 INSTALLED_APPS = [
     # Django
@@ -70,9 +78,6 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'django_recaptcha',
     'corsheaders',
-    
-    # Supabase Auth (если устанавливали)
-    # 'supabase_auth',
     
     # Local
     'app.apps.CoreConfig',
@@ -104,6 +109,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
+                # Custom context processors
+                'app.context_processors.site_settings',
             ],
         },
     },
@@ -124,10 +131,6 @@ if DATABASE_URL:
             ssl_require=True
         )
     }
-    
-    # Если нужно настроить Supabase auth, раскомментируйте:
-    # DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
-    # DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 else:
     # Локальная разработка
     DATABASES = {
@@ -137,11 +140,7 @@ else:
         }
     }
 
-# Supabase Auth - если используете библиотеку
-# AUTH_USER_MODEL = 'supabase_auth.SupabaseUser'
-AUTH_USER_MODEL = 'auth.User'  # Пока оставляем стандартную
-
-# Supabase settings для будущей интеграции
+# Supabase settings
 SUPABASE_CONFIG = {
     'PROJECT_URL': SUPABASE_URL,
     'ANON_KEY': SUPABASE_ANON_KEY,
@@ -192,7 +191,15 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'app' / 'static',
 ]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Настройки WhiteNoise
+if 'RENDER' in os.environ:
+    # На Render используем WhiteNoise
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    WHITENOISE_MANIFEST_STRICT = False  # Не падать если файл не найден
+else:
+    # Локально
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Media files
 if DEBUG:
@@ -343,24 +350,25 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG' if 'RENDER' in os.environ else 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
+            'formatter': 'simple',
+            'stream': sys.stdout,
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'WARNING',
+        'level': 'DEBUG' if 'RENDER' in os.environ else 'WARNING',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'level': 'DEBUG' if 'RENDER' in os.environ else 'INFO',
             'propagate': False,
         },
         'app': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if 'RENDER' in os.environ else 'INFO',
             'propagate': False,
         },
     },
@@ -371,12 +379,5 @@ KASPI_PAYMENT_URL = os.environ.get('KASPI_PAYMENT_URL', 'https://pay.kaspi.kz/pa
 KASPI_SECRET = os.environ.get('KASPI_SECRET', '')
 KASPI_WEBHOOK_SECRET = os.environ.get('KASPI_WEBHOOK_SECRET', '')
 
-# Supabase Auth - если решите использовать библиотеку
-# Для этого нужно установить: pip install django-supabase-auth
-if SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY:
-    # Временная настройка для интеграции Supabase
-    # Пока оставляем стандартную аутентификацию Django
-    pass
-
-# Supabase realtime - если нужно
+# Supabase realtime
 SUPABASE_REALTIME_URL = f"wss://{SUPABASE_PROJECT_ID}.supabase.co/realtime/v1"

@@ -4,59 +4,713 @@
 {% block title %}{{ article.title|default:"Статья" }} — SkillsSpire{% endblock %}
 
 {% block content %}
-<div class="container py-5" style="max-width: 900px;">
+<div class="article-detail-wrapper">
 
-  <!-- Назад -->
-  <a href="{% url 'articles_list' %}" class="text-decoration-none d-inline-block mb-3">
-    ← Ко всем статьям
-  </a>
-
-  <!-- Обложка -->
-  <div class="mb-4">
-    {% if article.image %}
-      <img src="{{ article.image.url }}" alt="{{ article.title }}" class="img-fluid rounded w-100">
-    {% else %}
-      <img src="{% static 'img/articles/default_article.png' %}" alt="{{ article.title|default:'Статья' }}" class="img-fluid rounded w-100">
-    {% endif %}
-  </div>
-
-  <!-- Заголовок -->
-  <h1 class="mb-3">{{ article.title|default:"Статья" }}</h1>
-
-  {% if article.published_at %}
-    <p class="text-muted small">
-      {{ article.published_at|date:"d E Y" }}
-    </p>
-  {% endif %}
-
-  <!-- Контент -->
-  <div class="article-content fs-5 lh-lg mt-4">
-    {{ article.body|default:"Контент появится позже."|safe }}
-  </div>
-
-  <!-- Похожие статьи -->
-  {% if latest %}
-    <hr class="my-5">
-    <h3 class="mb-4">Похожие статьи</h3>
-    <div class="row g-4">
-      {% for a in latest %}
-        <div class="col-md-6 col-lg-3">
-          <a class="text-decoration-none" href="{% url 'article_detail' a.slug %}">
-            <div class="card h-100 shadow-sm border-0 hover-shadow">
-              {% if a.image %}
-                <img src="{{ a.image.url }}" class="card-img-top" alt="{{ a.title }}">
-              {% else %}
-                <img src="{% static 'img/articles/default_article.png' %}" class="card-img-top" alt="{{ a.title|default:'Статья' }}">
-              {% endif %}
-              <div class="card-body">
-                <h6 class="card-title mb-0 text-dark">{{ a.title }}</h6>
-              </div>
-            </div>
-          </a>
+    <!-- Хлебные крошки -->
+    <nav class="article-breadcrumbs">
+        <div class="container">
+            <a href="{% url 'home' %}">Главная</a>
+            <span>→</span>
+            <a href="{% url 'articles_list' %}">Статьи</a>
+            <span>→</span>
+            <span class="current">{{ article.title|truncatechars:30 }}</span>
         </div>
-      {% endfor %}
-    </div>
-  {% endif %}
+    </nav>
+
+    <!-- Основной контент статьи -->
+    <article class="article-detail">
+        <div class="container">
+            <div class="article-header">
+                <!-- Мета-информация -->
+                <div class="article-meta">
+                    {% if article.category %}
+                    <span class="article-category">{{ article.category.name }}</span>
+                    {% endif %}
+                    
+                    <div class="meta-stats">
+                        <span class="publish-date">
+                            <i class="bi bi-calendar3"></i>
+                            {{ article.published_at|date:"d.m.Y"|default:article.created_at|date:"d.m.Y" }}
+                        </span>
+                        <span class="reading-time">
+                            <i class="bi bi-clock"></i>
+                            ⏱️ 5 мин чтения
+                        </span>
+                        <span class="views-count">
+                            <i class="bi bi-eye"></i>
+                            {{ article.view_count|default:"0" }} просмотров
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Заголовок -->
+                <h1 class="article-title">{{ article.title|default:"Статья" }}</h1>
+
+                <!-- Краткое описание -->
+                {% if article.excerpt %}
+                <div class="article-excerpt">
+                    <p>{{ article.excerpt }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Автор -->
+                <div class="article-author">
+                    <div class="author-avatar">
+                        <span>SS</span>
+                    </div>
+                    <div class="author-info">
+                        <div class="author-name">SkillsSpire Team</div>
+                        <div class="author-bio">Эксперты в IT-образовании и карьерном развитии</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="article-content">
+                {{ article.body|default:"Контент появится позже."|safe }}
+            </div>
+
+            <!-- Теги -->
+            {% if article.seo_keywords %}
+            <div class="article-tags">
+                {% for tag in article.seo_keywords.split|slice:":5" %}
+                <span class="tag">{{ tag|lower }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Поделиться -->
+            <div class="article-share">
+                <span>Поделиться:</span>
+                <div class="share-buttons">
+                    <a href="#" class="share-btn" title="Поделиться в Telegram">
+                        <i class="bi bi-telegram"></i>
+                    </a>
+                    <a href="#" class="share-btn" title="Поделиться в WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                    </a>
+                    <a href="#" class="share-btn" title="Поделиться в VK">
+                        <i class="bi bi-chat-dots"></i>
+                    </a>
+                    <a href="#" class="share-btn" title="Скопировать ссылку">
+                        <i class="bi bi-link-45deg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Похожие статьи -->
+    {% if latest %}
+    <section class="related-articles">
+        <div class="container">
+            <h2 class="section-title">📚 Читайте также</h2>
+            <div class="related-grid">
+                {% for a in latest|slice:":4" %}
+                <a href="{% url 'article_detail' a.slug %}" class="related-card">
+                    <div class="related-content">
+                        {% if a.category %}
+                        <span class="related-category">{{ a.category.name }}</span>
+                        {% endif %}
+                        <h3 class="related-title">{{ a.title|truncatechars:60 }}</h3>
+                        <p class="related-date">{{ a.published_at|date:"d.m.Y"|default:a.created_at|date:"d.m.Y" }}</p>
+                        <span class="related-link">Читать →</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Призыв к действию -->
+    <section class="article-cta">
+        <div class="container">
+            <div class="cta-card">
+                <h2>🚀 Готовы к следующему шагу?</h2>
+                <p>Начните обучение на наших курсах и получите востребованные навыки уже сегодня</p>
+                <div class="cta-buttons">
+                    <a href="{% url 'courses_list' %}" class="btn btn-primary">Смотреть курсы</a>
+                    <a href="{% url 'contact' %}" class="btn btn-outline">Задать вопрос</a>
+                </div>
+            </div>
+        </div>
+    </section>
 
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ====== ОСНОВНОЙ КОНТЕЙНЕР ====== */
+.article-detail-wrapper {
+    padding-bottom: 4rem;
+}
+
+/* ====== ХЛЕБНЫЕ КРОШКИ ====== */
+.article-breadcrumbs {
+    padding: 1.5rem 0;
+    background: var(--color-bg-section);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.article-breadcrumbs .container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.article-breadcrumbs a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.article-breadcrumbs a:hover {
+    color: var(--color-primary);
+}
+
+.article-breadcrumbs span {
+    color: var(--color-text-tertiary);
+}
+
+.article-breadcrumbs .current {
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+/* ====== ЗАГОЛОВОК СТАТЬИ ====== */
+.article-header {
+    max-width: 800px;
+    margin: 0 auto 3rem;
+    padding-top: 3rem;
+}
+
+.article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.article-category {
+    background: rgba(1, 52, 157, 0.1);
+    color: var(--color-primary);
+    padding: 0.5rem 1.2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.meta-stats {
+    display: flex;
+    gap: 1.5rem;
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+}
+
+.meta-stats i {
+    margin-right: 0.4rem;
+    opacity: 0.7;
+}
+
+.article-title {
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    color: var(--color-text-primary);
+}
+
+.article-excerpt {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    border-left: 4px solid var(--color-primary);
+}
+
+.article-author {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--color-bg-section);
+    border-radius: 12px;
+}
+
+.author-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.author-info {
+    flex: 1;
+}
+
+.author-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-text-primary);
+}
+
+.author-bio {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+}
+
+/* ====== ОСНОВНОЙ КОНТЕНТ ====== */
+.article-content {
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.8;
+    font-size: 1.1rem;
+    color: var(--color-text-primary);
+}
+
+/* Стилизация контента CKEditor */
+.article-content h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1.5rem;
+    color: var(--color-text-primary);
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.article-content h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2rem 0 1rem;
+    color: var(--color-text-primary);
+}
+
+.article-content p {
+    margin-bottom: 1.5rem;
+    line-height: 1.8;
+}
+
+.article-content ul,
+.article-content ol {
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+}
+
+.article-content li {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.article-content blockquote {
+    border-left: 4px solid var(--color-primary);
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: var(--color-text-secondary);
+    font-size: 1.2rem;
+}
+
+.article-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+}
+
+.article-content th,
+.article-content td {
+    border: 1px solid var(--color-border);
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.article-content th {
+    background: var(--color-bg-section);
+    font-weight: 600;
+}
+
+.article-content code {
+    background: var(--color-bg-section);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.article-content pre {
+    background: var(--color-bg-section);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+/* ====== ТЕГИ ====== */
+.article-tags {
+    max-width: 700px;
+    margin: 3rem auto 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.tag {
+    background: var(--color-bg-section);
+    color: var(--color-text-secondary);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* ====== КНОПКИ ПОДЕЛИТЬСЯ ====== */
+.article-share {
+    max-width: 700px;
+    margin: 3rem auto 0;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.article-share span {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+}
+
+.share-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.share-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--color-bg-section);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 1.2rem;
+}
+
+.share-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* ====== ПОХОЖИЕ СТАТЬИ ====== */
+.related-articles {
+    padding: 4rem 0;
+    background: var(--color-bg-section);
+    margin-top: 4rem;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--color-text-primary);
+    text-align: center;
+}
+
+.related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.related-card {
+    background: var(--color-bg-white);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    border: 1px solid var(--color-border);
+}
+
+.related-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary-light);
+}
+
+.related-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.related-category {
+    background: rgba(1, 52, 157, 0.08);
+    color: var(--color-primary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    align-self: flex-start;
+}
+
+.related-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+    color: var(--color-text-primary);
+    flex: 1;
+}
+
+.related-date {
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.related-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.related-card:hover .related-link {
+    transform: translateX(5px);
+}
+
+/* ====== ПРИЗЫВ К ДЕЙСТВИЮ ====== */
+.article-cta {
+    padding: 4rem 0;
+}
+
+.cta-card {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 3rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    border-radius: 20px;
+    color: white;
+}
+
+.cta-card h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.cta-card p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cta-buttons .btn {
+    padding: 0.9rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.cta-buttons .btn-primary {
+    background: white;
+    color: var(--color-primary);
+}
+
+.cta-buttons .btn-primary:hover {
+    background: var(--color-bg-section);
+    transform: translateY(-2px);
+}
+
+.cta-buttons .btn-outline {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.cta-buttons .btn-outline:hover {
+    background: white;
+    color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 768px) {
+    .article-header {
+        padding-top: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .article-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .meta-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .article-title {
+        font-size: 1.8rem;
+    }
+    
+    .article-excerpt {
+        font-size: 1.1rem;
+        padding-left: 0.75rem;
+        margin-left: 0.25rem;
+    }
+    
+    .article-content {
+        font-size: 1rem;
+    }
+    
+    .article-content h2 {
+        font-size: 1.5rem;
+    }
+    
+    .article-content h3 {
+        font-size: 1.3rem;
+    }
+    
+    .related-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .cta-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .cta-card h2 {
+        font-size: 1.6rem;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .cta-buttons .btn {
+        width: 100%;
+        margin-bottom: 0.75rem;
+    }
+}
+
+/* ====== ТЕМНАЯ ТЕМА ====== */
+:root.dark-theme .article-breadcrumbs {
+    background: var(--color-bg-section);
+    border-color: var(--color-border);
+}
+
+:root.dark-theme .article-author {
+    background: var(--color-bg-section);
+}
+
+:root.dark-theme .related-card {
+    background: var(--color-bg-white);
+    border-color: var(--color-border);
+}
+
+:root.dark-theme .article-content th {
+    background: var(--color-bg-section);
+}
+
+:root.dark-theme .article-content code,
+:root.dark-theme .article-content pre {
+    background: var(--color-bg-section);
+}
+
+:root.dark-theme .article-share .share-btn {
+    background: var(--color-bg-section);
+}
+
+:root.dark-theme .article-tags .tag {
+    background: var(--color-bg-section);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Копирование ссылки
+    const copyBtn = document.querySelector('.share-btn i.bi-link-45deg');
+    if (copyBtn) {
+        copyBtn.closest('.share-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = window.location.href;
+            
+            navigator.clipboard.writeText(url).then(() => {
+                const originalTitle = this.getAttribute('title');
+                this.setAttribute('title', 'Ссылка скопирована!');
+                
+                setTimeout(() => {
+                    this.setAttribute('title', originalTitle);
+                }, 2000);
+            });
+        });
+    }
+    
+    // Подсветка кода (если есть)
+    document.querySelectorAll('pre code').forEach((block) => {
+        block.classList.add('language-none');
+    });
+    
+    // Плавная прокрутка для якорей
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href.startsWith('#') && href.length > 1) {
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

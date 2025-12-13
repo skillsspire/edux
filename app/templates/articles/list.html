@@ -1,228 +1,597 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Все статьи — SkillsSpire{% endblock %}
+{% block title %}Статьи — SkillsSpire{% endblock %}
 
 {% block content %}
 
+<!-- Герой секция -->
 <section class="articles-hero">
-  <div class="container">
-    <h1>Полезные статьи</h1>
-    <p>Лучшие материалы по аналитике, финансам, IT и карьерному росту</p>
-  </div>
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">📚 База знаний</h1>
+            <p class="hero-subtitle">Экспертные статьи, руководства и исследования для вашего роста в IT, аналитике и финансах</p>
+            
+            <!-- Быстрые фильтры -->
+            <div class="hero-filters">
+                <a href="#" class="filter-btn active">Все статьи</a>
+                <a href="#" class="filter-btn">Программирование</a>
+                <a href="#" class="filter-btn">Аналитика</a>
+                <a href="#" class="filter-btn">Карьера</a>
+                <a href="#" class="filter-btn">Обучение</a>
+            </div>
+        </div>
+    </div>
 </section>
 
-<section class="articles-section">
-  <div class="container">
-
-    {% if articles %}
-
-      <!-- FEATURED -->
-      {% with first=articles.0 %}
-      <a href="{% url 'article_detail' first.slug %}" class="featured-modern">
-        <div class="fm-content">
-
-          {% if first.category %}
-            <span class="fm-badge">{{ first.category.name }}</span>
-          {% endif %}
-
-          <h2 class="fm-title">{{ first.title }}</h2>
-
-          <p class="fm-excerpt">{{ first.excerpt|truncatewords:40 }}</p>
-
-          <span class="fm-read">Читать статью →</span>
+<!-- Основной контент -->
+<section class="articles-main">
+    <div class="container">
+        
+        <!-- Главная статья (если есть статьи) -->
+        {% if articles %}
+            {% with first=articles.0 %}
+            <div class="featured-article">
+                <a href="{% url 'article_detail' first.slug %}" class="featured-link">
+                    <div class="featured-content">
+                        <div class="featured-meta">
+                            {% if first.category %}
+                            <span class="category-badge">{{ first.category.name }}</span>
+                            {% endif %}
+                            <span class="reading-time">⏱️ 5 мин чтения</span>
+                        </div>
+                        
+                        <h2 class="featured-title">{{ first.title }}</h2>
+                        
+                        <p class="featured-excerpt">{{ first.excerpt|truncatewords:50 }}</p>
+                        
+                        <div class="featured-footer">
+                            <div class="author-info">
+                                <span class="author-name">Автор: SkillsSpire</span>
+                                <span class="publish-date">{{ first.published_at|date:"d.m.Y"|default:first.created_at|date:"d.m.Y" }}</span>
+                            </div>
+                            <span class="read-more">Читать →</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endwith %}
+            
+            <!-- Сетка статей -->
+            <div class="articles-grid">
+                {% for article in articles|slice:"1:" %}
+                <article class="article-card">
+                    <a href="{% url 'article_detail' article.slug %}" class="article-link">
+                        <div class="article-content">
+                            <div class="article-meta">
+                                {% if article.category %}
+                                <span class="category-tag">{{ article.category.name }}</span>
+                                {% endif %}
+                                <span class="article-date">{{ article.published_at|date:"d.m.Y"|default:article.created_at|date:"d.m.Y" }}</span>
+                            </div>
+                            
+                            <h3 class="article-title">{{ article.title }}</h3>
+                            
+                            <p class="article-excerpt">{{ article.excerpt|truncatewords:30|default:"Читайте полную версию статьи..." }}</p>
+                            
+                            <div class="article-footer">
+                                <span class="stats">
+                                    <span class="views">👁️ {{ article.view_count|default:"0" }} просмотров</span>
+                                </span>
+                                <span class="read-time">→</span>
+                            </div>
+                        </div>
+                    </a>
+                </article>
+                {% endfor %}
+            </div>
+            
+        {% else %}
+            <!-- Состояние "нет статей" -->
+            <div class="empty-state">
+                <div class="empty-icon">📝</div>
+                <h3>Скоро здесь появятся статьи</h3>
+                <p>Наша команда готовит полезные материалы для вас</p>
+                <a href="{% url 'home' %}" class="btn btn-primary">Вернуться на главную</a>
+            </div>
+        {% endif %}
+        
+        <!-- Пагинация (если нужно) -->
+        {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="pagination-prev">← Назад</a>
+            {% endif %}
+            
+            <span class="pagination-current">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="pagination-next">Далее →</a>
+            {% endif %}
         </div>
+        {% endif %}
+        
+    </div>
+</section>
 
-        <div class="fm-bg"></div>
-      </a>
-      {% endwith %}
-
-      <!-- GRID -->
-      <div class="articles-modern-grid">
-        {% for article in articles|slice:"1:" %}
-        <a href="{% url 'article_detail' article.slug %}" class="article-modern-card">
-
-          {% if article.category %}
-            <span class="am-badge">{{ article.category.name }}</span>
-          {% endif %}
-
-          <h3 class="am-title">{{ article.title }}</h3>
-
-          <p class="am-date">
-            <i class="bi bi-calendar3"></i>
-            {{ article.published_at|date:"d M Y" }}
-          </p>
-
-          <p class="am-excerpt">{{ article.excerpt|truncatewords:22 }}</p>
-
-          <span class="am-read">Читать →</span>
-
-        </a>
-        {% endfor %}
-      </div>
-
-    {% else %}
-      <div class="empty-box">
-        <i class="bi bi-file-text"></i>
-        <h3>Статьи скоро появятся</h3>
-        <p>Мы уже работаем над новым контентом!</p>
-      </div>
-    {% endif %}
-
-  </div>
+<!-- Рассылка -->
+<section class="articles-newsletter">
+    <div class="container">
+        <div class="newsletter-card">
+            <h3>💌 Получайте лучшие статьи первыми</h3>
+            <p>Подпишитесь на рассылку и получайте новые материалы прямо на почту</p>
+            <form class="newsletter-form">
+                <input type="email" placeholder="Ваш email" class="newsletter-input">
+                <button type="submit" class="newsletter-btn">Подписаться</button>
+            </form>
+        </div>
+    </div>
 </section>
 
 {% endblock %}
 
-
 {% block extra_css %}
 <style>
-
-/* HERO */
+/* ====== ГЕРОЙ СТРАНИЦЫ ====== */
 .articles-hero {
-  padding: 4rem 0 3rem;
-  text-align: center;
-}
-.articles-hero h1 {
-  font-size: 2.4rem;
-  font-weight: 800;
-  margin-bottom: .75rem;
-}
-.articles-hero p {
-  font-size: 1.15rem;
-  color: var(--color-text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: white;
+    padding: 4rem 0 3rem;
+    text-align: center;
 }
 
-/* FEATURED ARTICLE */
-.featured-modern {
-  display: flex;
-  position: relative;
-  padding: 2.6rem;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
-  color: #fff;
-  margin-bottom: 3rem;
-  overflow: hidden;
-  text-decoration: none;
-  box-shadow: var(--shadow-lg);
-}
-.fm-content {
-  position: relative;
-  z-index: 2;
-  max-width: 580px;
-}
-.fm-badge {
-  background: rgba(255,255,255,.2);
-  padding: .4rem .9rem;
-  font-size: .85rem;
-  border-radius: 999px;
-  display: inline-block;
-  margin-bottom: 1rem;
-  backdrop-filter: blur(4px);
-}
-.fm-title {
-  font-size: 1.9rem;
-  font-weight: 800;
-  margin-bottom: .75rem;
-}
-.fm-excerpt {
-  font-size: 1.1rem;
-  opacity: .9;
-  margin-bottom: 1.2rem;
-}
-.fm-read {
-  font-weight: 600;
-  font-size: 1.05rem;
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-/* Decorative ellipse */
-.fm-bg {
-  position: absolute;
-  right: -40px;
-  top: -40px;
-  width: 260px;
-  height: 260px;
-  background: rgba(255,255,255,.12);
-  filter: blur(25px);
-  border-radius: 50%;
-  z-index: 1;
+.hero-title {
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+    line-height: 1.2;
 }
 
-/* GRID */
-.articles-modern-grid {
-  display: grid;
-  gap: 28px;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+.hero-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+    line-height: 1.6;
 }
 
-/* CARD */
-.article-modern-card {
-  display: block;
-  padding: 1.7rem 1.9rem;
-  border-radius: 18px;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  text-decoration: none;
-  color: inherit;
-  transition: all .25s ease;
-}
-.article-modern-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
+.hero-filters {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
 }
 
-.am-badge {
-  background: rgba(1,52,157,.08);
-  color: var(--color-primary);
-  padding: .35rem .8rem;
-  border-radius: 999px;
-  font-size: .8rem;
-  font-weight: 600;
-  display: inline-block;
-  margin-bottom: .7rem;
+.filter-btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.am-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: .5rem;
+.filter-btn:hover,
+.filter-btn.active {
+    background: white;
+    color: var(--color-primary);
+    transform: translateY(-2px);
 }
 
-.am-date {
-  font-size: .85rem;
-  color: var(--color-text-tertiary);
-  margin-bottom: .8rem;
+/* ====== ГЛАВНАЯ СТАТЬЯ ====== */
+.articles-main {
+    padding: 3rem 0;
 }
 
-.am-excerpt {
-  font-size: .95rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 1rem;
-  line-height: 1.45;
+.featured-article {
+    margin-bottom: 4rem;
+    padding-bottom: 3rem;
+    border-bottom: 2px solid var(--color-border);
 }
 
-.am-read {
-  color: var(--color-primary);
-  font-weight: 600;
+.featured-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease;
 }
 
-/* EMPTY STATE */
-.empty-box {
-  text-align: center;
-  padding: 4rem 0;
-}
-.empty-box i {
-  font-size: 3rem;
-  color: var(--color-border);
-  margin-bottom: 1rem;
-}
-.empty-box h3 {
-  font-weight: 700;
-  margin-bottom: .5rem;
+.featured-link:hover {
+    transform: translateX(10px);
 }
 
+.featured-content {
+    max-width: 800px;
+}
+
+.featured-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.category-badge {
+    background: rgba(1, 52, 157, 0.1);
+    color: var(--color-primary);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.reading-time {
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+}
+
+.featured-title {
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+}
+
+.featured-excerpt {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    margin-bottom: 2rem;
+}
+
+.featured-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.author-name {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.publish-date {
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+}
+
+.read-more {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.featured-link:hover .read-more {
+    transform: translateX(5px);
+}
+
+/* ====== СЕТКА СТАТЕЙ ====== */
+.articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.article-card {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.article-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary-light);
+}
+
+.article-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: var(--color-primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.article-card:hover::before {
+    opacity: 1;
+}
+
+.article-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.article-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.article-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.category-tag {
+    background: rgba(1, 52, 157, 0.08);
+    color: var(--color-primary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.article-date {
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
+}
+
+.article-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+    flex: 1;
+}
+
+.article-excerpt {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.article-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.views {
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.read-time {
+    color: var(--color-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    transition: transform 0.3s ease;
+}
+
+.article-link:hover .read-time {
+    transform: translateX(5px);
+}
+
+/* ====== СОСТОЯНИЕ "НЕТ СТАТЕЙ" ====== */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--color-bg-section);
+    border-radius: 20px;
+    margin: 2rem 0;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+}
+
+.empty-state p {
+    color: var(--color-text-secondary);
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+/* ====== ПАГИНАЦИЯ ====== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.pagination-prev,
+.pagination-next {
+    padding: 0.8rem 1.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.pagination-prev:hover,
+.pagination-next:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+.pagination-current {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+/* ====== РАССЫЛКА ====== */
+.articles-newsletter {
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #f0f5ff 100%);
+    margin-top: 2rem;
+}
+
+.newsletter-card {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.newsletter-card h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+}
+
+.newsletter-card p {
+    color: var(--color-text-secondary);
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+.newsletter-form {
+    display: flex;
+    gap: 1rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.newsletter-input {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    border: 2px solid var(--color-border);
+    border-radius: 50px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.newsletter-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(1, 52, 157, 0.1);
+}
+
+.newsletter-btn {
+    padding: 1rem 2rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.newsletter-btn:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-2px);
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 768px) {
+    .hero-filters {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .filter-btn {
+        flex-shrink: 0;
+    }
+    
+    .featured-title {
+        font-size: 1.6rem;
+    }
+    
+    .featured-excerpt {
+        font-size: 1.1rem;
+    }
+    
+    .articles-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .newsletter-form {
+        flex-direction: column;
+    }
+    
+    .newsletter-input,
+    .newsletter-btn {
+        width: 100%;
+    }
+}
+
+/* ====== ТЕМНАЯ ТЕМА ====== */
+:root.dark-theme .articles-hero {
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, #001f80 100%);
+}
+
+:root.dark-theme .article-card,
+:root.dark-theme .newsletter-card {
+    background: var(--color-bg-white);
+    border-color: var(--color-border);
+}
+
+:root.dark-theme .articles-newsletter {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+}
+
+:root.dark-theme .empty-state {
+    background: var(--color-bg-section);
+}
+
+:root.dark-theme .category-badge,
+:root.dark-theme .category-tag {
+    background: rgba(1, 52, 157, 0.2);
+}
 </style>
 {% endblock %}
