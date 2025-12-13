@@ -375,13 +375,16 @@ def articles_list(request):
     
     # Преобразуем в словари с изображениями
     articles = []
-    for article in qs[:50]:
+    for article in qs:
         articles.append({
             "article": article,
             "image_url": f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
             "title": article.title,
             "slug": article.slug,
             "excerpt": getattr(article, "excerpt", "")[:100],
+            "published_at": getattr(article, "published_at", None),  # Добавить
+            "created_at": getattr(article, "created_at", None),      # Добавить
+            "category": getattr(article, "category", None),          # Добавить если нужно
         })
         
     return render(request, "articles/list.html", {"articles": articles})

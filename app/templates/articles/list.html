@@ -48,7 +48,7 @@
                         <div class="featured-footer">
                             <div class="author-info">
                                 <span class="author-name">Автор: SkillsSpire</span>
-                                <span class="publish-date">{{ first.published_at|date:"d.m.Y"|default:first.created_at|date:"d.m.Y" }}</span>
+                                <span class="publish-date">{{ first.article.published_at|date:"d.m.Y"|default:first.article.created_at|date:"d.m.Y" }}</span>
                             </div>
                             <span class="read-more">Читать →</span>
                         </div>

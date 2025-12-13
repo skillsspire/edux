@@ -18,13 +18,126 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
 </noscript>
 
-<!-- Критический inline CSS для предотвращения сдвигов -->
+<!-- Критический inline CSS для hero-секции -->
 <style>
-  /* Минимальные стили для LCP (самого большого контента) */
+  /* Исправленный hero-блок */
   .course-hero {
-    min-height: 400px;
+    padding: 3.5rem 1rem 2.5rem;
     background: linear-gradient(135deg, #01349D, #002b7a);
     color: white;
+    text-align: center;
+  }
+  
+  .course-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+  }
+  
+  .course-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.15;
+    max-width: 900px;
+    margin: 0 auto 1rem;
+    font-weight: 800;
+  }
+  
+  .course-subtitle {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    max-width: 760px;
+    margin: 0 auto 2rem;
+    opacity: 0.95;
+  }
+  
+  .course-subtitle strong {
+    font-weight: 700;
+    color: #fff;
+  }
+  
+  .hero-search {
+    margin: 1.5rem auto 0;
+    max-width: 540px;
+    display: flex;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .hero-search input {
+    flex: 1;
+    padding: 14px 16px;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #111827;
+  }
+  
+  .hero-search input:focus {
+    outline: 2px solid #01349D;
+    outline-offset: 2px;
+  }
+  
+  .hero-search button {
+    padding: 14px 24px;
+    border: none;
+    background: #F6AD55;
+    color: #0B1020;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1rem;
+    min-width: 100px;
+  }
+  
+  .hero-search button:hover {
+    background: #ED8936;
+  }
+  
+  .hero-buttons {
+    margin-top: 2rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .hero-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+  }
+  
+  .hero-btn-primary {
+    background: white;
+    color: #01349D;
+  }
+  
+  .hero-btn-primary:hover {
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+  }
+  
+  .hero-btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .hero-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
   }
   
   /* Предотвращение сдвигов изображений */
@@ -32,11 +145,19 @@
     aspect-ratio: 16/9;
     width: 100%;
     height: auto;
+    object-fit: cover;
   }
   
-  /* Базовые стили для предотвращения FOUC */
+  /* Анимация появления */
   .fade-up {
     opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
   }
 </style>
 {% endblock %}
@@ -48,11 +169,11 @@
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
 
     <h1 class="course-title">
-      Академическое онлайн-образование<br>для карьерного роста
+      Академическое онлайн-образование для карьерного роста
     </h1>
 
     <p class="course-subtitle">
-      <strong>Начните обучение бесплатно — без привязки карты.</strong><br>
+      <strong>Начните обучение бесплатно — без привязки карты.</strong>
       Курсы от практиков и преподавателей с академическим опытом.
       Сертификаты об окончании обучения — для резюме и LinkedIn.
     </p>
@@ -62,7 +183,7 @@
       <button type="submit">Поиск</button>
     </form>
 
-    <div class="hero-buttons fade-up">
+    <div class="hero-buttons">
       <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">
         🚀 Начать обучение
       </a>
@@ -137,7 +258,7 @@
       </button>
     </form>
 
-    <p style="font-size:0.8rem; opacity:.7; margin-top:1rem;">
+    <p style="font-size:0.85rem; opacity:.7; margin-top:1rem;">
       Без спама. Мы не передаём данные третьим лицам.
     </p>
   </div>
@@ -146,7 +267,11 @@
 <!-- === Популярные курсы === -->
 <section id="courses" class="courses-section fade-up">
   <div class="container">
-    <h2>🔥 Популярные курсы</h2>
+    <div class="section-header">
+      <h2>🔥 Популярные курсы</h2>
+      <a href="{% url 'courses_list' %}" class="btn-view-all">Все курсы →</a>
+    </div>
+    
     <div class="courses-grid">
       {% for course in popular_courses %}
         <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
@@ -159,13 +284,20 @@
             <div class="course-card-content">
               <h3>{{ course.title }}</h3>
               <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
+              <div class="course-meta">
+                <span class="course-duration">⏱️ {{ course.duration|default:"8 недель" }}</span>
+                <span class="course-level">{{ course.level|default:"Начальный" }}</span>
+              </div>
             </div>
           </div>
         </a>
       {% empty %}
-        <p style="text-align: center; grid-column: 1 / -1; color: var(--color-text-secondary);">
-          Курсы пока не добавлены. Скоро здесь появятся интересные программы!
-        </p>
+        <div class="no-courses" style="text-align: center; grid-column: 1 / -1; padding: 3rem 1rem;">
+          <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin-bottom: 1rem;">
+            Курсы пока не добавлены. Скоро здесь появятся интересные программы!
+          </p>
+          <a href="{% url 'courses_list' %}" class="btn btn-primary">Посмотреть все направления</a>
+        </div>
       {% endfor %}
     </div>
   </div>
@@ -175,7 +307,7 @@
 <section class="community-section fade-up">
   <div class="container">
     <h2>👥 Сообщество и поддержка студентов</h2>
-    <p>Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.</p>
+    <p style="max-width: 700px; margin: 0 auto 1.5rem;">Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.</p>
     <a href="{% url 'signup' %}" class="btn btn-community">Присоединиться к комьюнити</a>
   </div>
 </section>
@@ -184,13 +316,31 @@
 <section class="recommend-section fade-up">
   <div class="container">
     <h2>🧠 Не знаете, какой курс выбрать?</h2>
-    <p><strong>Пройдите короткий тест (2 минуты)</strong> и получите:</p>
+    <p style="max-width: 700px; margin: 0 auto 1.5rem;"><strong>Пройдите короткий тест (2 минуты)</strong> и получите:</p>
 
-    <ul>
-      <li>📋 Подборку курсов под ваши цели</li>
-      <li>🎁 Доступ к бесплатным материалам</li>
-      <li>📧 Пояснения и рекомендации по email</li>
-    </ul>
+    <div class="recommend-list">
+      <div class="recommend-item">
+        <span>📋</span>
+        <div>
+          <strong>Подборку курсов под ваши цели</strong>
+          <p>Персональные рекомендации на основе ваших интересов</p>
+        </div>
+      </div>
+      <div class="recommend-item">
+        <span>🎁</span>
+        <div>
+          <strong>Доступ к бесплатным материалам</strong>
+          <p>Полезные ресурсы для старта обучения</p>
+        </div>
+      </div>
+      <div class="recommend-item">
+        <span>📧</span>
+        <div>
+          <strong>Пояснения и рекомендации по email</strong>
+          <p>Детальный разбор ваших потребностей</p>
+        </div>
+      </div>
+    </div>
 
     <a href="#" id="openTest" class="btn btn-recommend">
       🎯 Пройти тест и получить подборку
@@ -202,13 +352,27 @@
 <section class="corporate-section fade-up">
   <div class="container">
     <h2>🏢 Обучение для компаний</h2>
-    <p>SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
-    <ul>
-      <li>✅ Программы под задачи компании</li>
-      <li>✅ Онлайн-обучение сотрудников</li>
-      <li>✅ Отчёты и аналитика прогресса</li>
-      <li>✅ Сопровождение на всех этапах</li>
-    </ul>
+    <p style="max-width: 700px; margin: 0 auto 1.5rem;">SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
+    
+    <div class="corporate-features">
+      <div class="corp-feature">
+        <span>✅</span>
+        <p>Программы под задачи компании</p>
+      </div>
+      <div class="corp-feature">
+        <span>✅</span>
+        <p>Онлайн-обучение сотрудников</p>
+      </div>
+      <div class="corp-feature">
+        <span>✅</span>
+        <p>Отчёты и аналитика прогресса</p>
+      </div>
+      <div class="corp-feature">
+        <span>✅</span>
+        <p>Сопровождение на всех этапах</p>
+      </div>
+    </div>
+    
     <a href="/contact/" class="btn btn-corporate">📞 Оставить заявку</a>
   </div>
 </section>
@@ -217,18 +381,17 @@
 <section class="partners-section fade-up">
   <div class="container">
     <h2>🤝 Наши партнёры</h2>
-    <ul class="partners-grid">
-      <li>
-        <div class="partner-card">
-          <img src="{% static 'img/partners/suitt.png' %}" 
-               alt="Сургутский университет ИТ и технологий"
-               loading="lazy"
-               width="200"
-               height="60">
-          <p><strong>Сургутский университет ИТ и технологий</strong></p>
-        </div>
-      </li>
-    </ul>
+    <div class="partners-grid">
+      <div class="partner-card">
+        <img src="{% static 'img/partners/suitt.png' %}" 
+             alt="Сургутский университет ИТ и технологий"
+             loading="lazy"
+             width="200"
+             height="60">
+        <p><strong>Сургутский университет ИТ и технологий</strong></p>
+        <p class="partner-tagline">Академическое партнёрство</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -241,8 +404,21 @@
         {% for review in reviews %}
         <div class="swiper-slide">
           <div class="testimonial-card">
+            <div class="testimonial-avatar">
+              {% if review.user.first_name %}
+                {{ review.user.first_name|first }}{{ review.user.last_name|default:""|first }}
+              {% else %}
+                {{ review.user.username|first }}
+              {% endif %}
+            </div>
             <h4>{% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Аноним{% endif %}</h4>
-            <blockquote>"{{ review.comment|default:"Отличный курс!" }}"</blockquote>
+            <blockquote>"{{ review.comment|default:"Отличный курс!"|truncatechars:150 }}"</blockquote>
+          </div>
+        </div>
+        {% empty %}
+        <div class="swiper-slide">
+          <div class="testimonial-card">
+            <p>Отзывы скоро появятся. Будьте первым!</p>
           </div>
         </div>
         {% endfor %}
@@ -272,4 +448,186 @@
 <!-- Загрузка скриптов с defer -->
 <script defer src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script defer src="{% static 'js/home.js' %}?v={{ STATIC_VERSION|default:'1.0' }}"></script>
+
+<script>
+  // Анимация появления элементов при скролле
+  document.addEventListener('DOMContentLoaded', function() {
+    const fadeElements = document.querySelectorAll('.fade-up');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    });
+    
+    fadeElements.forEach(el => observer.observe(el));
+    
+    // Popup для теста
+    const openTestBtn = document.getElementById('openTest');
+    const popupTest = document.getElementById('popupTest');
+    const closePopupBtn = document.getElementById('closePopup');
+    const closeBtn = document.getElementById('closeBtn');
+    
+    if (openTestBtn && popupTest) {
+      openTestBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        popupTest.style.display = 'flex';
+      });
+      
+      function closePopup() {
+        popupTest.style.display = 'none';
+      }
+      
+      if (closePopupBtn) closePopupBtn.addEventListener('click', closePopup);
+      if (closeBtn) closeBtn.addEventListener('click', closePopup);
+      
+      popupTest.addEventListener('click', function(e) {
+        if (e.target === popupTest) {
+          closePopup();
+        }
+      });
+    }
+    
+    // Форма подписки
+    const emailForm = document.getElementById('email-subscribe-form');
+    if (emailForm) {
+      emailForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const emailInput = this.querySelector('input[type="email"]');
+        if (emailInput && emailInput.value) {
+          alert('Спасибо за подписку! На ' + emailInput.value + ' скоро придут полезные материалы.');
+          emailInput.value = '';
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  /* Дополнительные стили для улучшенного дизайна */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .btn-view-all {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--color-primary);
+    transition: all 0.2s ease;
+  }
+  
+  .btn-view-all:hover {
+    background: var(--color-primary);
+    color: white;
+  }
+  
+  .course-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+  }
+  
+  .course-level {
+    background: var(--color-bg-section);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  
+  .recommend-list {
+    max-width: 600px;
+    margin: 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .recommend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-bg-section);
+    border-radius: 8px;
+  }
+  
+  .recommend-item span {
+    font-size: 1.5rem;
+  }
+  
+  .corporate-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  
+  .corp-feature {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--color-bg-section);
+    border-radius: 8px;
+  }
+  
+  .testimonial-avatar {
+    width: 50px;
+    height: 50px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin: 0 auto 1rem;
+  }
+  
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+  
+  .popup {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+  }
+  
+  .popup-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+</style>
 {% endblock %}
