@@ -21,8 +21,6 @@ import json
 import os
 from typing import Optional
 
-from supabase import create_client, Client
-
 from .forms import ContactForm, CustomUserCreationForm, ReviewForm
 from .models import (
     Category,
@@ -69,12 +67,8 @@ def first_nonempty(*vals):
 
 def _get_course_image_data(course):
     """Возвращает данные курса с изображением в виде словаря"""
-    thumb_name = getattr(getattr(course, "thumbnail", None), "name", None)
-    image_name = getattr(getattr(course, "image", None), "name", None)
-    image_url = public_storage_url(first_nonempty(thumb_name, image_name))
-    
-    if not image_url:
-        image_url = f"{settings.STATIC_URL}img/courses/course-placeholder.jpg"
+    # Упрощенная версия - используем статичные изображения
+    image_url = f"{settings.STATIC_URL}img/courses/course-placeholder.jpg"
     
     return {
         "course": course,
@@ -83,42 +77,36 @@ def _get_course_image_data(course):
         "slug": course.slug,
         "category": course.category,
         "price": course.price,
-        "short_description": getattr(course, "short_description", ""),
-        "average_rating": getattr(course, "average_rating", "4.8"),
-        "reviews_count": getattr(course, "reviews_count", 0),
-        "is_popular": getattr(course, "is_popular", False),
-        "has_certificate": getattr(course, "has_certificate", False),
+        "short_description": getattr(course, "short_description", "")[:100],
+        "average_rating": "4.8",
+        "reviews_count": 0,
+        "is_popular": False,
+        "has_certificate": False,
     }
 
 def _get_article_image_data(article):
-    """Возвращает данные статьи с изображением в виде словаря"""
-    if hasattr(article, "image") and article.image:
-        image_url = article.image.url
-    else:
-        image_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
+    """Упрощенная версия - используем статичные изображения"""
+    image_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
     
     return {
         "article": article,
         "image_url": image_url,
         "title": article.title,
         "slug": article.slug,
-        "excerpt": getattr(article, "excerpt", ""),
+        "excerpt": getattr(article, "excerpt", "")[:100],
         "created_at": getattr(article, "created_at", None),
     }
 
 def _get_material_image_data(material):
-    """Возвращает данные материала с изображением в виде словаря"""
-    if hasattr(material, "image") and material.image:
-        image_url = material.image.url
-    else:
-        image_url = f"{settings.STATIC_URL}img/materials/material-placeholder.jpg"
+    """Упрощенная версия - используем статичные изображения"""
+    image_url = f"{settings.STATIC_URL}img/materials/material-placeholder.jpg"
     
     return {
         "material": material,
         "image_url": image_url,
         "title": material.title,
         "slug": material.slug,
-        "description": getattr(material, "description", ""),
+        "description": getattr(material, "description", "")[:100],
     }
 
 
@@ -199,75 +187,69 @@ def signup(request):
 
 
 def home(request):
-    # --- Курсы и категории ---
-    featured_courses_qs = Course.objects.filter(is_featured=True).select_related("category")[:6]
-    popular_courses_qs = (
-        Course.objects.select_related("category")
-        .prefetch_related("reviews")
-        .annotate(num_students=Count("students", distinct=True))
-        .order_by("-num_students")[:6]
-    )
-
-    # Преобразуем в словари с изображениями
-    featured_courses = [_get_course_image_data(course) for course in featured_courses_qs]
-    popular_courses = [_get_course_image_data(course) for course in popular_courses_qs]
-
+    """Упрощенная версия главной страницы для быстрого деплоя"""
+    # --- Курсы и категории (упрощено) ---
+    featured_courses = []
+    popular_courses = []
+    categories = []
+    
     try:
+        featured_courses_qs = Course.objects.filter(is_featured=True).select_related("category")[:6]
+        for course in featured_courses_qs:
+            featured_courses.append({
+                "course": course,
+                "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+                "title": course.title,
+                "slug": course.slug,
+                "price": course.price,
+            })
+            
+        popular_courses_qs = Course.objects.all()[:6]
+        for course in popular_courses_qs:
+            popular_courses.append({
+                "course": course,
+                "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+                "title": course.title,
+                "slug": course.slug,
+                "price": course.price,
+            })
+            
         categories = Category.objects.filter(is_active=True)[:8]
-    except Exception:
-        categories = Category.objects.all()[:8]
+    except Exception as e:
+        print(f"Ошибка загрузки данных: {e}")
+        # Продолжаем с пустыми данными
 
-    # --- Отзывы (гибрид Django ORM + Supabase) ---
+    # --- Отзывы (упрощено) ---
     reviews = []
     try:
-        local_reviews = (
-            Review.objects.filter(is_active=True)
-            .select_related("user", "course")
-            .order_by("-created_at")[:10]
-        )
-        if local_reviews.exists():
-            reviews = local_reviews
-        else:
-            raise ValueError("Local reviews empty")
+        local_reviews = Review.objects.filter(is_active=True)[:5]
+        reviews = list(local_reviews.values('rating', 'comment')[:5])
     except Exception:
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_KEY")
-        if url and key:
-            try:
-                supabase: Client = create_client(url, key)
-                response = (
-                    supabase.table("reviews")
-                    .select("*")
-                    .order("created_at", desc=True)
-                    .limit(10)
-                    .execute()
-                )
-                reviews = response.data or []
-            except Exception as e:
-                print("⚠️ Ошибка загрузки отзывов из Supabase:", e)
-                reviews = []
-        else:
-            reviews = []
+        reviews = []
 
-    # --- Статьи ---
-    latest_articles_qs = Article.objects.all()
-    if _has_field(Article, "status"):
-        latest_articles_qs = latest_articles_qs.filter(status="published")
-    if _has_field(Article, "published_at"):
-        latest_articles_qs = latest_articles_qs.order_by("-published_at")
-    elif _has_field(Article, "created_at"):
-        latest_articles_qs = latest_articles_qs.order_by("-created_at")
-    latest_articles_qs = latest_articles_qs[:3]
-    latest_articles = [_get_article_image_data(a) for a in latest_articles_qs]
-
-    # --- Материалы ---
-    latest_materials_qs = Material.objects.all()
-    if _has_field(Material, "is_public"):
-        latest_materials_qs = latest_materials_qs.filter(is_public=True)
-    if _has_field(Material, "created_at"):
-        latest_materials_qs = latest_materials_qs.order_by("-created_at")
-    latest_materials_qs = latest_materials_qs[:3]
-    latest_materials = [_get_material_image_data(m) for m in latest_materials_qs]
+    # --- Статьи (упрощено) ---
+    latest_articles = []
+    try:
+        latest_articles_qs = Article.objects.all()
+        if _has_field(Article, "status"):
+            latest_articles_qs = latest_articles_qs.filter(status="published")
+        latest_articles_qs = latest_articles_qs[:3]
+        
+        for article in latest_articles_qs:
+            latest_articles.append({
+                "title": article.title,
+                "slug": article.slug,
+                "excerpt": getattr(article, "excerpt", "")[:150],
+                "image_url": f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
+            })
+    except Exception:
+        # Если нет статей, создаем заглушку
+        latest_articles = [{
+            "title": "Добро пожаловать на SkillsSpire",
+            "slug": "welcome",
+            "excerpt": "Мы рады приветствовать вас на нашей образовательной платформе",
+            "image_url": f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
+        }]
 
     # --- FAQ ---
     faqs = [
@@ -283,7 +265,7 @@ def home(request):
         "categories": categories,
         "reviews": reviews,
         "latest_articles": latest_articles,
-        "latest_materials": latest_materials,
+        "latest_materials": [],
         "faqs": faqs,
     }
 
@@ -314,11 +296,7 @@ def toggle_wishlist(request, slug):
 # ---------- catalog ----------
 
 def courses_list(request):
-    courses_qs = (
-        Course.objects.select_related("category")
-        .prefetch_related("students", "reviews")
-        .annotate(avg_rating=Avg("reviews__rating"))
-    )
+    courses_qs = Course.objects.select_related("category")
 
     search_query = request.GET.get("q", "").strip()
     sort_by = request.GET.get("sort", "newest")
@@ -341,11 +319,9 @@ def courses_list(request):
         courses_qs = courses_qs.filter(price__gt=0)
 
     if sort_by == "popular":
-        courses_qs = courses_qs.annotate(
-            students_count=Count("students", distinct=True)
-        ).order_by("-students_count", "-created_at")
+        courses_qs = courses_qs.order_by("-created_at")
     elif sort_by == "rating":
-        courses_qs = courses_qs.order_by("-avg_rating", "-created_at")
+        courses_qs = courses_qs.order_by("-created_at")
     elif sort_by == "price_low":
         courses_qs = courses_qs.order_by("price", "-created_at")
     elif sort_by == "price_high":
@@ -358,7 +334,15 @@ def courses_list(request):
     page_obj = paginator.get_page(page_number)
 
     # Преобразуем в словари с изображениями
-    courses_with_images = [_get_course_image_data(course) for course in page_obj]
+    courses_with_images = []
+    for course in page_obj:
+        courses_with_images.append({
+            "course": course,
+            "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+            "title": course.title,
+            "slug": course.slug,
+            "price": course.price,
+        })
 
     try:
         categories = Category.objects.filter(is_active=True)
@@ -380,6 +364,7 @@ def articles_list(request):
     # безопасный фильтр по статусу
     if _has_field(Article, "status"):
         qs = qs.filter(status="published")
+    
     # безопасная сортировка
     if _has_field(Article, "published_at"):
         qs = qs.order_by("-published_at")
@@ -389,7 +374,15 @@ def articles_list(request):
         qs = qs.order_by("-id")
     
     # Преобразуем в словари с изображениями
-    articles = [_get_article_image_data(article) for article in qs[:50]]
+    articles = []
+    for article in qs[:50]:
+        articles.append({
+            "article": article,
+            "image_url": f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
+            "title": article.title,
+            "slug": article.slug,
+            "excerpt": getattr(article, "excerpt", "")[:100],
+        })
         
     return render(request, "articles/list.html", {"articles": articles})
 
@@ -401,20 +394,29 @@ def article_detail(request, slug):
         flt["status"] = "published"
 
     article_obj = get_object_or_404(Article, **flt)
-    article = _get_article_image_data(article_obj)
+    article = {
+        "article": article_obj,
+        "image_url": f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
+        "title": article_obj.title,
+        "slug": article_obj.slug,
+        "body": getattr(article_obj, "body", ""),
+        "created_at": getattr(article_obj, "created_at", None),
+    }
 
     latest_qs = Article.objects.exclude(pk=article_obj.pk)
     if _has_field(Article, "status"):
         latest_qs = latest_qs.filter(status="published")
-    if _has_field(Article, "published_at"):
-        latest_qs = latest_qs.order_by("-published_at")
-    elif _has_field(Article, "created_at"):
-        latest_qs = latest_qs.order_by("-created_at")
-    else:
-        latest_qs = latest_qs.order_by("-id")
+    latest_qs = latest_qs.order_by("-created_at")[:4]
 
     # Преобразуем в словари с изображениями
-    latest_articles = [_get_article_image_data(article) for article in latest_qs[:4]]
+    latest_articles = []
+    for article in latest_qs:
+        latest_articles.append({
+            "article": article,
+            "image_url": f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
+            "title": article.title,
+            "slug": article.slug,
+        })
 
     return render(request, "articles/detail.html", {
         "article": article, 
@@ -426,13 +428,18 @@ def materials_list(request):
     qs = Material.objects.all()
     if _has_field(Material, "is_public"):
         qs = qs.filter(is_public=True)
-    if _has_field(Material, "created_at"):
-        qs = qs.order_by("-created_at")
-    else:
-        qs = qs.order_by("-id")
+    qs = qs.order_by("-created_at")[:50]
     
     # Преобразуем в словари с изображениями
-    materials = [_get_material_image_data(material) for material in qs[:50]]
+    materials = []
+    for material in qs:
+        materials.append({
+            "material": material,
+            "image_url": f"{settings.STATIC_URL}img/materials/material-placeholder.jpg",
+            "title": material.title,
+            "slug": material.slug,
+            "description": getattr(material, "description", "")[:100],
+        })
         
     return render(request, "materials/list.html", {"materials": materials})
 
@@ -441,11 +448,19 @@ def materials_list(request):
 
 def course_detail(request, slug):
     course_obj = get_object_or_404(
-        Course.objects.select_related("category", "instructor").prefetch_related("students", "reviews"),
+        Course.objects.select_related("category", "instructor"),
         slug=slug
     )
     
-    course_data = _get_course_image_data(course_obj)
+    course_data = {
+        "course": course_obj,
+        "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+        "title": course_obj.title,
+        "slug": course_obj.slug,
+        "category": course_obj.category,
+        "price": course_obj.price,
+        "short_description": getattr(course_obj, "short_description", ""),
+    }
 
     # доступ
     has_access = True
@@ -469,10 +484,18 @@ def course_detail(request, slug):
     )
     
     # Преобразуем в словари с изображениями
-    related_courses = [_get_course_image_data(course) for course in related_courses_qs]
+    related_courses = []
+    for course in related_courses_qs:
+        related_courses.append({
+            "course": course,
+            "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+            "title": course.title,
+            "slug": course.slug,
+            "price": course.price,
+        })
 
     # отзывы
-    reviews = Review.objects.filter(course=course_obj, is_active=True).select_related("user")[:10]
+    reviews = Review.objects.filter(course=course_obj, is_active=True)[:10]
 
     # преподаватель
     teacher_user = getattr(course_obj, "instructor", None)
@@ -485,7 +508,7 @@ def course_detail(request, slug):
 
     return render(request, "courses/detail.html", {
         "course": course_data,
-        "course_obj": course_obj,  # сохраняем оригинальный объект для совместимости
+        "course_obj": course_obj,
         "lessons": lessons,
         "related_courses": related_courses,
         "reviews": reviews,
@@ -498,8 +521,13 @@ def course_detail(request, slug):
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
-    course_obj = get_object_or_404(Course.objects.prefetch_related("students"), slug=course_slug)
-    course_data = _get_course_image_data(course_obj)
+    course_obj = get_object_or_404(Course, slug=course_slug)
+    course_data = {
+        "course": course_obj,
+        "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+        "title": course_obj.title,
+        "slug": course_obj.slug,
+    }
 
     try:
         lesson = get_object_or_404(
@@ -615,9 +643,13 @@ def my_courses(request):
     # Преобразуем в словари с изображениями
     courses_with_images = []
     for enrollment in enrollments:
-        course_data = _get_course_image_data(enrollment.course)
-        course_data["enrollment"] = enrollment
-        courses_with_images.append(course_data)
+        courses_with_images.append({
+            "course": enrollment.course,
+            "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+            "title": enrollment.course.title,
+            "slug": enrollment.course.slug,
+            "enrollment": enrollment,
+        })
         
     in_progress = [c for c in courses_with_images if not c["enrollment"].completed]
     completed = [c for c in courses_with_images if c["enrollment"].completed]
@@ -632,10 +664,17 @@ def my_courses(request):
 def dashboard(request):
     user = request.user
 
-    my_courses_qs = Course.objects.filter(students__id=user.id).select_related("category")
+    my_courses_qs = Course.objects.filter(students__id=user.id)
     
     # Преобразуем в словари с изображениями
-    my_courses = [_get_course_image_data(course) for course in my_courses_qs]
+    my_courses = []
+    for course in my_courses_qs:
+        my_courses.append({
+            "course": course,
+            "image_url": f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
+            "title": course.title,
+            "slug": course.slug,
+        })
         
     total_courses = len(my_courses)
     recent_courses = sorted(my_courses, key=lambda x: x["course"].created_at, reverse=True)[:5]
@@ -651,7 +690,7 @@ def dashboard(request):
 
     # lessons progress
     try:
-        progress_qs = LessonProgress.objects.filter(user=user).select_related("lesson")
+        progress_qs = LessonProgress.objects.filter(user=user)
         total_lessons = progress_qs.count()
         completed_lessons = progress_qs.filter(is_completed=True).count()
     except Exception:
@@ -771,7 +810,7 @@ def profile_settings(request):
 
 @login_required
 def add_review(request, slug):
-    course = get_object_or_404(Course.objects.prefetch_related("students"), slug=slug)
+    course = get_object_or_404(Course, slug=slug)
 
     if not course.students.filter(id=request.user.id).exists():
         messages.error(request, "Только студенты курса могут оставлять отзывы")
@@ -795,6 +834,8 @@ def add_review(request, slug):
 
     return render(request, "courses/add_review.html", {"course": course, "form": form})
 
+
+# ---------- static pages ----------
 
 # ---------- static pages ----------
 
