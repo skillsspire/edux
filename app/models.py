@@ -1,4 +1,5 @@
 from decimal import Decimal
+import logging
 from typing import Optional
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
+logger = logging.getLogger(__name__)
 User = settings.AUTH_USER_MODEL
 
 
@@ -98,17 +100,53 @@ class UserProfile(TimestampedModel):
 
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    """Автоматическое создание профиля при создании пользователя"""
-    if created:
-        UserProfile.objects.get_or_create(user=instance)
-
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    """Сохранение профиля при сохранении пользователя"""
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
+def handle_user_profile(sender, instance, created, **kwargs):
+    """
+    Универсальный обработчик профиля пользователя.
+    Создает профиль при регистрации и сохраняет при обновлении.
+    """
+    try:
+        logger.debug(f"handle_user_profile called for user {instance.id if instance.id else 'new'}, created={created}")
+        
+        if created:
+            # Создание профиля для нового пользователя
+            try:
+                # Проверяем, существует ли профиль (на всякий случай)
+                profile_exists = UserProfile.objects.filter(user=instance).exists()
+                if not profile_exists:
+                    profile = UserProfile.objects.create(user=instance)
+                    logger.info(f"Profile created for new user: {instance.username}")
+                else:
+                    logger.info(f"Profile already exists for new user: {instance.username}")
+            except Exception as create_error:
+                logger.error(f"Failed to create profile for {instance.username if hasattr(instance, 'username') else 'unknown'}: {str(create_error)}")
+                # Не падаем, продолжаем работу
+                
+        else:
+            # Обновление профиля существующего пользователя
+            try:
+                # Проверяем безопасно через try-except
+                if hasattr(instance, 'profile'):
+                    instance.profile.save()
+                    logger.debug(f"Profile saved for {instance.username}")
+                else:
+                    # Если нет атрибута profile, но пользователь существует
+                    try:
+                        profile, created = UserProfile.objects.get_or_create(user=instance)
+                        if created:
+                            logger.info(f"Created missing profile for existing user: {instance.username}")
+                    except Exception:
+                        logger.warning(f"Could not get or create profile for {instance.username}")
+                        
+            except Exception as update_error:
+                logger.error(f"Failed to save profile for {instance.username}: {str(update_error)}")
+                # Продолжаем работу несмотря на ошибку
+                
+    except Exception as e:
+        # Глобальная обработка ошибок - НИКОГДА не падаем в сигналах!
+        username = instance.username if hasattr(instance, 'username') else 'unknown'
+        logger.critical(f"CRITICAL ERROR in handle_user_profile for user {username}: {str(e)}", exc_info=True)
+        # Не поднимаем исключение - сайт должен продолжать работать
 
 
 class Course(TimestampedModel):
