@@ -6,34 +6,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="SkillsSpire - образовательная платформа нового поколения">
   
+  <!-- JS detection - ДОЛЖЕН БЫТЬ ПЕРВЫМ ПОСЛЕ META -->
+  <script>document.documentElement.classList.add('js-enabled');</script>
+  
   <title>{% block title %}SkillsSpire - Онлайн образование{% endblock %}</title>
 
-  <!-- Fonts -->
+  <!-- Preload critical resources -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
+  <link rel="preload" href="{% static 'css/main.css' %}" as="style">
+  <link rel="preload" href="{% static 'js/main.js' %}" as="script">
+
+  <!-- Fonts (load asynchronously) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  </noscript>
+
+  <!-- Font Awesome (deferred) -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </noscript>
   
   <!-- Main CSS -->
-  <link rel="stylesheet" href="{% static 'css/main.css' %}?v={{ STATIC_VERSION|default:'1.0' }}">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=1.0">
   
   <!-- Favicon -->
-  <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
-  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  <link rel="icon" href="{% static 'img/favicon.ico' %}?v=2" type="image/x-icon">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}?v=2">
   
   {% block extra_css %}{% endblock %}
   
-  <!-- Critical CSS -->
+  <!-- Critical inline CSS (minimal) -->
   <style>
-    /* Only essential styles for initial render */
+    /* Critical: prevent layout shifts */
+    html {
+      scroll-behavior: smooth;
+    }
+    
     body {
       margin: 0;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-      background: #ffffff;
-      color: #0B1020;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -43,23 +59,34 @@
       flex: 1;
     }
     
-    .loading {
-      opacity: 0.7;
-      pointer-events: none;
+    /* Skip link hidden by default */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #01349D;
+      color: white;
+      padding: 8px;
+      text-decoration: none;
+      z-index: 10000;
     }
     
-    /* Simple preloader */
-    .preloader {
+    .skip-link:focus {
+      top: 0;
+    }
+    
+    /* Simple preloader styles */
+    #preloader {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       background: white;
+      z-index: 9999;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
     }
     
     .preloader-spinner {
@@ -79,8 +106,8 @@
 </head>
 <body>
   <!-- Preloader -->
-  <div class="preloader" id="preloader">
-    <div class="preloader-spinner"></div>
+  <div id="preloader" role="alert" aria-label="Загрузка страницы">
+    <div class="preloader-spinner" aria-hidden="true"></div>
   </div>
 
   <!-- Skip link for accessibility -->
@@ -90,7 +117,7 @@
   <nav class="main-nav" role="navigation" aria-label="Основная навигация">
     <div class="container nav-container">
       <!-- Logo -->
-      <a href="{% url 'home' %}" class="nav-brand">
+      <a href="{% url 'home' %}" class="nav-brand" aria-label="SkillsSpire - переход на главную">
         <span style="font-size: 1.5rem; font-weight: 800; color: #01349D;">SkillsSpire</span>
       </a>
 
@@ -117,13 +144,13 @@
             {% if user.is_authenticated %}
               <!-- User dropdown -->
               <div class="nav-user">
-                <button class="nav-user-btn" aria-label="Меню пользователя">
-                  <div class="nav-user-avatar">
+                <button class="nav-user-btn" aria-label="Меню пользователя" aria-expanded="false">
+                  <div class="nav-user-avatar" aria-hidden="true">
                     {{ user.first_name|first|default:user.username|first|upper }}
                   </div>
                   <span class="nav-user-name">{{ user.first_name|default:user.username|truncatechars:10 }}</span>
                 </button>
-                <div class="dropdown-menu">
+                <div class="dropdown-menu" aria-hidden="true">
                   <h6>Мой аккаунт</h6>
                   <a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> Дашборд</a>
                   <a href="{% url 'my_courses' %}"><i class="fas fa-book-open"></i> Мои курсы</a>
@@ -161,21 +188,21 @@
 
   <!-- Messages -->
   {% if messages %}
-  <div class="messages-container container">
+  <div class="messages-container container" aria-live="polite">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">
+    <div class="alert alert-{{ message.tags }}" data-autohide="true">
       <div class="alert-content">
         {% if message.tags == 'success' %}
-          <i class="fas fa-check-circle"></i>
+          <i class="fas fa-check-circle" aria-hidden="true"></i>
         {% elif message.tags == 'error' %}
-          <i class="fas fa-exclamation-circle"></i>
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
         {% elif message.tags == 'warning' %}
-          <i class="fas fa-exclamation-triangle"></i>
+          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
         {% else %}
-          <i class="fas fa-info-circle"></i>
+          <i class="fas fa-info-circle" aria-hidden="true"></i>
         {% endif %}
         <span>{{ message }}</span>
-        <button class="alert-close" aria-label="Закрыть">&times;</button>
+        <button class="alert-close" aria-label="Закрыть уведомление">&times;</button>
       </div>
     </div>
     {% endfor %}
@@ -259,31 +286,28 @@
     </div>
   </footer>
 
-  <!-- JavaScript -->
+  <!-- Critical inline JavaScript -->
   <script>
-    // Remove preloader when page loads
-    window.addEventListener('load', function() {
+    // Минимальный JS для базовой функциональности до загрузки main.js
+    (function() {
+      'use strict';
+      
+      // Быстро скрываем прелоадер
       var preloader = document.getElementById('preloader');
       if (preloader) {
+        preloader.style.opacity = '0';
+        preloader.style.transition = 'opacity 0.3s ease';
         setTimeout(function() {
-          preloader.style.opacity = '0';
-          setTimeout(function() {
-            if (preloader.parentNode) {
-              preloader.parentNode.removeChild(preloader);
-            }
-          }, 300);
+          preloader.style.display = 'none';
         }, 300);
       }
-    });
-
-    // Simple alert close functionality
-    document.addEventListener('DOMContentLoaded', function() {
-      // Close alerts
-      var closeButtons = document.querySelectorAll('.alert-close');
-      for (var i = 0; i < closeButtons.length; i++) {
-        closeButtons[i].addEventListener('click', function() {
-          var alert = this.closest('.alert');
+      
+      // Закрытие алертов
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('alert-close')) {
+          var alert = e.target.closest('.alert');
           if (alert) {
+            alert.style.transition = 'opacity 0.3s ease';
             alert.style.opacity = '0';
             setTimeout(function() {
               if (alert.parentNode) {
@@ -291,56 +315,71 @@
               }
             }, 300);
           }
-        });
-      }
-
-      // Auto-hide alerts after 5 seconds
+        }
+      });
+      
+      // Авто-скрытие алертов
       setTimeout(function() {
-        var alerts = document.querySelectorAll('.alert');
-        for (var i = 0; i < alerts.length; i++) {
-          var alert = alerts[i];
-          if (alert.style.opacity !== '0') {
-            alert.style.opacity = '0';
-            setTimeout(function(alertElement) {
-              return function() {
-                if (alertElement.parentNode) {
-                  alertElement.parentNode.removeChild(alertElement);
-                }
-              };
-            }(alert), 300);
-          }
-        }
+        var alerts = document.querySelectorAll('.alert[data-autohide="true"]');
+        alerts.forEach(function(alert) {
+          alert.style.transition = 'opacity 0.3s ease';
+          alert.style.opacity = '0';
+          setTimeout(function() {
+            if (alert.parentNode) {
+              alert.parentNode.removeChild(alert);
+            }
+          }, 300);
+        });
       }, 5000);
-
-      // Newsletter form
-      var newsletterForm = document.getElementById('newsletterForm');
-      if (newsletterForm) {
-        newsletterForm.addEventListener('submit', function(event) {
-          event.preventDefault();
-          var emailInput = this.querySelector('input[type="email"]');
-          if (emailInput && emailInput.value) {
-            alert('Спасибо за подписку! На ' + emailInput.value + ' скоро придут наши новости.');
-            emailInput.value = '';
+      
+      // Простая навигация
+      var navToggle = document.getElementById('navToggle');
+      var navMenu = document.getElementById('navMenu');
+      
+      if (navToggle && navMenu) {
+        navToggle.addEventListener('click', function() {
+          var isExpanded = this.getAttribute('aria-expanded') === 'true';
+          this.setAttribute('aria-expanded', !isExpanded);
+          navMenu.classList.toggle('active');
+        });
+        
+        // Закрытие при клике вне меню
+        document.addEventListener('click', function(e) {
+          if (!navMenu.contains(e.target) && !navToggle.contains(e.target) && navMenu.classList.contains('active')) {
+            navToggle.setAttribute('aria-expanded', 'false');
+            navMenu.classList.remove('active');
           }
         });
       }
-    });
-
-    // CSRF token helper for AJAX
-    function getCSRFToken() {
-      var cookies = document.cookie.split('; ');
-      for (var i = 0; i < cookies.length; i++) {
-        var parts = cookies[i].split('=');
-        if (parts[0] === 'csrftoken') {
-          return decodeURIComponent(parts[1]);
-        }
+      
+      // Простая смена темы
+      var themeToggle = document.getElementById('themeToggle');
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+          var html = document.documentElement;
+          var current = html.getAttribute('data-theme') || 'light';
+          var next = current === 'light' ? 'dark' : 'light';
+          html.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+          this.textContent = next === 'dark' ? '☀️' : '🌙';
+          this.setAttribute('aria-label', next === 'dark' ? 'Переключить на светлую тему' : 'Переключить на темную тему');
+        });
+        
+        // Восстановление темы
+        try {
+          var saved = localStorage.getItem('theme');
+          if (saved) {
+            document.documentElement.setAttribute('data-theme', saved);
+            themeToggle.textContent = saved === 'dark' ? '☀️' : '🌙';
+            themeToggle.setAttribute('aria-label', saved === 'dark' ? 'Переключить на светлую тему' : 'Переключить на темную тему');
+          }
+        } catch(e) {}
       }
-      return '';
-    }
+    })();
   </script>
 
-  <!-- Main JavaScript -->
-  <script src="{% static 'js/main.js' %}?v={{ STATIC_VERSION|default:'1.0' }}"></script>
+  <!-- Load main.js with defer -->
+  <script defer src="{% static 'js/main.js' %}?v=1.0"></script>
 
   {% block extra_js %}{% endblock %}
 </body>

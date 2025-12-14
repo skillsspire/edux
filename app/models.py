@@ -158,6 +158,16 @@ class Course(TimestampedModel):
         (INTERMEDIATE, "Средний"),
         (ADVANCED, "Продвинутый"),
     ]
+    
+    # Добавьте эти константы для статусов
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+    STATUS_CHOICES = [
+        (DRAFT, "Черновик"),
+        (PUBLISHED, "Опубликован"),
+        (ARCHIVED, "В архиве"),
+    ]
 
     title = models.CharField("Название", max_length=255)
     slug = models.SlugField("Слаг", max_length=255, unique=True, blank=True)
@@ -182,6 +192,14 @@ class Course(TimestampedModel):
     level = models.CharField("Уровень", max_length=20, choices=LEVEL_CHOICES, default=BEGINNER)
     duration_hours = models.PositiveIntegerField("Длительность (часы)", null=True, blank=True)
     is_featured = models.BooleanField("В подборке", default=False)
+    
+    # Добавьте это поле
+    status = models.CharField(
+        "Статус", 
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default=DRAFT
+    )
 
     price = models.DecimalField("Цена", max_digits=10, decimal_places=2, default=Decimal("0.00"))
     discount_price = models.DecimalField("Цена со скидкой", max_digits=10, decimal_places=2, null=True, blank=True)
@@ -224,6 +242,10 @@ class Course(TimestampedModel):
         except Exception:
             pass
         return None
+    
+    @property
+    def is_published(self):
+        return self.status == self.PUBLISHED
 
 
 class Module(TimestampedModel):
