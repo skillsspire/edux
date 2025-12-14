@@ -1,581 +1,507 @@
 from django.contrib import admin
+from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
-from django.urls import path
-from django.template.response import TemplateResponse
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
-from django.contrib.auth.models import User, Group
-from django.contrib.auth.admin import UserAdmin, GroupAdmin
-from django.db.models.functions import TruncMonth
 
 from .models import (
-    Category, InstructorProfile, Course, Module, Lesson, LessonProgress,
-    Enrollment, Review, Wishlist, Payment, ContactMessage, Article, Material,
+    Category,
+    Course,
+    Enrollment,
+    InstructorProfile,
+    Lesson,
+    BlockProgress,
+    Payment,
+    Review,
+    Wishlist,
+    Article,
+    Material,
+    UserProfile,
+    Module,
+    LessonBlock,
+    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    Lead, Interaction, Segment, SupportTicket, FAQ,
+    Plan, Subscription, Refund, Mailing,
+    CourseStaff, AuditLog,
+    ContactMessage
 )
 
-IMAGE_PREVIEW_SIZE = {"width": 100, "height": 70}
-DEFAULT_EMPTY_VALUE = "—"
+# 🔥 СТАНДАРТНЫЕ МОДЕЛИ DJANGO
+admin.site.unregister(User)
+admin.site.unregister(Group)
 
-class ModuleInline(admin.TabularInline):
-    model = Module
-    extra = 0
-    fields = ("title", "order", "is_active", "lesson_count")
-    readonly_fields = ("lesson_count",)
-    show_change_link = True
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['username', 'email', 'full_name', 'is_staff', 'is_active', 'date_joined']
+    list_filter = ['is_staff', 'is_superuser', 'is_active', 'date_joined']
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    ordering = ['-date_joined']
     
-    def lesson_count(self, obj):
-        return obj.lessons.count()
+    def full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}" if obj.first_name or obj.last_name else "—"
 
-class LessonInline(admin.TabularInline):
-    model = Lesson
-    extra = 0
-    fields = ("title", "slug", "order", "is_active", "duration_minutes", "completion_rate")
-    readonly_fields = ("completion_rate",)
-    prepopulated_fields = {"slug": ("title",)}
-    show_change_link = True
-    
-    def completion_rate(self, obj):
-        total = LessonProgress.objects.filter(lesson=obj).count()
-        completed = LessonProgress.objects.filter(lesson=obj, is_completed=True).count()
-        return f"{round((completed/total*100), 1) if total else 0}%"
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ['permissions']
 
-class EnrollmentInline(admin.TabularInline):
-    model = Enrollment
-    extra = 0
-    readonly_fields = ("user", "completed", "created_at")
-    can_delete = False
-
-class ReviewInline(admin.TabularInline):
-    model = Review
-    extra = 0
-    readonly_fields = ("user", "rating", "comment", "created_at")
-    can_delete = False
-
-class PaymentInline(admin.TabularInline):
-    model = Payment
-    extra = 0
-    readonly_fields = ("user", "amount", "status", "created_at")
-    can_delete = False
-
+# 🏗️ ЯДРО ПЛАТФОРМЫ
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "is_active", "courses_count", "student_count")
-    list_editable = ("is_active",)
-    search_fields = ("name",)
-    list_filter = ("is_active",)
-    prepopulated_fields = {"slug": ("name",)}
-
-    def courses_count(self, obj):
+    list_display = ['name', 'slug', 'course_count', 'is_active']
+    list_editable = ['is_active']
+    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ['name', 'slug']  # ← ДОБАВЛЕНО
+    
+    def course_count(self, obj):
         return obj.courses.count()
 
-    def student_count(self, obj):
-        return User.objects.filter(enrolled_courses__category=obj).distinct().count()
-
-@admin.register(InstructorProfile)
-class InstructorProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "specialization", "courses_count", "students_count", "avg_rating", "is_approved")
-    list_filter = ("is_approved", "created_at")
-    search_fields = ("user__username", "user__email", "specialization")
-    readonly_fields = ("created_at", "updated_at", "courses_count", "students_count", "avg_rating")
-    actions = ["approve_instructors"]
-
-    def courses_count(self, obj):
-        return obj.user.taught_courses.count()
-
-    def students_count(self, obj):
-        return User.objects.filter(enrolled_courses__instructor=obj.user).distinct().count()
-
-    def avg_rating(self, obj):
-        avg = Review.objects.filter(course__instructor=obj.user).aggregate(Avg('rating'))['rating__avg']
-        return round(avg, 2) if avg else 0
-
-    @admin.action(description="Подтвердить выбранных инструкторов")
-    def approve_instructors(self, request, queryset):
-        updated = queryset.update(is_approved=True)
-        self.message_user(request, f"Подтверждено {updated} инструкторов")
+class CourseStaffInline(admin.TabularInline):
+    model = CourseStaff
+    extra = 1
+    autocomplete_fields = ['user']
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = (
-        "image_preview",
-        "title",
-        "category",
-        "instructor",
-        "price",
-        "discount_price",
-        "level",
-        "is_featured",
-        "students_count",
-        "completion_rate",
-        "revenue",
-        "avg_rating",
-        "created_at",
-    )
-    list_display_links = ("image_preview", "title")
-    list_filter = ("category", "level", "is_featured", "created_at")
-    search_fields = ("title", "short_description", "description", "category__name", "instructor__username")
-    prepopulated_fields = {"slug": ("title",)}
-    autocomplete_fields = ("category", "instructor")
-    readonly_fields = ("created_at", "updated_at", "image_preview", "completion_rate", "revenue", "students_count", "avg_rating")
-    inlines = [ModuleInline, EnrollmentInline, ReviewInline, PaymentInline]
-    ordering = ("-created_at",)
-    list_select_related = ("category", "instructor")
-    actions = ["duplicate_courses", "toggle_featured"]
-
+    list_display = ['title', 'status', 'category', 'instructor', 'price_display', 'students_count', 'revenue', 'created_at']
+    list_filter = ['status', 'category', 'level', 'is_featured', 'created_at']
+    search_fields = ['title', 'description', 'instructor__username']
+    prepopulated_fields = {'slug': ('title',)}
+    readonly_fields = ['created_at', 'updated_at', 'students_count', 'revenue', 'completion_rate']
+    autocomplete_fields = ['category', 'instructor']
+    ordering = ['-created_at']
+    inlines = [CourseStaffInline]
+    
     fieldsets = (
-        ("Основное", {
-            "fields": ("title", "slug", "category", "instructor", "short_description", "description")
-        }),
-        ("Медиа", {
-            "fields": ("image", "thumbnail", "image_preview")
-        }),
-        ("Настройки", {
-            "fields": ("level", "duration_hours", "is_featured", "price", "discount_price")
-        }),
-        ("Статистика", {
-            "fields": ("students_count", "completion_rate", "revenue", "avg_rating"),
-            "classes": ("collapse",)
-        }),
-        ("Служебное", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
-        }),
+        ('Основное', {'fields': ('title', 'slug', 'status', 'category', 'instructor')}),
+        ('Контент', {'fields': ('short_description', 'description', 'image', 'thumbnail')}),
+        ('Настройки', {'fields': ('level', 'duration_hours', 'is_featured', 'price', 'discount_price', 'certificate')}),
+        ('Требования', {'fields': ('requirements', 'what_you_learn'), 'classes': ('collapse',)}),
+        ('Статистика', {'fields': ('students_count', 'completion_rate', 'revenue'), 'classes': ('collapse',)}),
+        ('Служебное', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
-
-    def image_preview(self, obj):
-        url = obj.display_image_url
-        if url:
+    
+    def price_display(self, obj):
+        if obj.discount_price and obj.discount_price < obj.price:
             return format_html(
-                '<img src="{}" width="{}" height="{}" style="object-fit:cover;border-radius:6px;">',
-                url, IMAGE_PREVIEW_SIZE["width"], IMAGE_PREVIEW_SIZE["height"]
+                '<span style="text-decoration: line-through;">{}</span> <span style="color: #dc2626;">{}</span>',
+                f"{obj.price:,} ₸",
+                f"{obj.discount_price:,} ₸"
             )
-        return DEFAULT_EMPTY_VALUE
-
+        return f"{obj.price:,} ₸"
+    
     def students_count(self, obj):
-        return obj.students.count()
-
-    def avg_rating(self, obj):
-        try:
-            return round(obj.reviews.aggregate(a=Avg("rating"))["a"] or 0, 2)
-        except Exception:
-            return 0
-
+        return obj.enrollments.count()
+    
+    def revenue(self, obj):
+        total = Payment.objects.filter(course=obj, status='success').aggregate(Sum('amount'))['amount__sum'] or 0
+        return f"{total:,} ₸"
+    
     def completion_rate(self, obj):
         total = obj.enrollments.count()
         completed = obj.enrollments.filter(completed=True).count()
         return f"{round((completed/total*100), 1) if total else 0}%"
 
-    def revenue(self, obj):
-        total = Payment.objects.filter(course=obj, status='success').aggregate(Sum('amount'))['amount__sum'] or 0
-        return f"{total:,} ₸"
-
-    @admin.action(description="Дублировать выбранные курсы")
-    def duplicate_courses(self, request, queryset):
-        for course in queryset:
-            course.pk = None
-            course.title = f"{course.title} (копия)"
-            course.slug = f"{course.slug}-copy-{int(timezone.now().timestamp())}"
-            course.save()
-        self.message_user(request, f"Создано {queryset.count()} копий курсов")
-
-    @admin.action(description="Переключить featured статус")
-    def toggle_featured(self, request, queryset):
-        for course in queryset:
-            course.is_featured = not course.is_featured
-            course.save()
-        self.message_user(request, f"Обновлено {queryset.count()} курсов")
+class LessonInline(admin.TabularInline):
+    model = Lesson
+    extra = 1
+    fields = ['title', 'slug', 'order', 'duration_minutes', 'is_active', 'is_free']
+    prepopulated_fields = {'slug': ('title',)}
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
-    list_display = ("title", "course", "order", "is_active", "lessons_count", "completion_rate")
-    list_filter = ("is_active", "course")
-    search_fields = ("title", "course__title")
-    autocomplete_fields = ("course",)
+    list_display = ['title', 'course', 'order', 'lesson_count', 'is_active']
+    list_filter = ['course', 'is_active']
     inlines = [LessonInline]
-    ordering = ("course", "order")
-    list_select_related = ("course",)
-    readonly_fields = ("completion_rate",)
-
-    def lessons_count(self, obj):
+    ordering = ['course', 'order']
+    
+    def lesson_count(self, obj):
         return obj.lessons.count()
 
-    def completion_rate(self, obj):
-        progresses = LessonProgress.objects.filter(lesson__module=obj)
-        total = progresses.count()
-        completed = progresses.filter(is_completed=True).count()
-        return f"{round((completed/total*100), 1) if total else 0}%"
+class LessonBlockInline(admin.TabularInline):
+    model = LessonBlock
+    extra = 1
+    fields = ['block_type', 'title', 'order', 'is_required', 'is_free_preview']
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ("title", "module", "course_display", "order", "is_active", "duration_minutes", "completion_rate")
-    list_filter = ("is_active", "module__course")
-    search_fields = ("title", "module__title", "module__course__title")
-    prepopulated_fields = {"slug": ("title",)}
-    autocomplete_fields = ("module",)
-    ordering = ("module__course", "module__order", "order")
-    list_select_related = ("module", "module__course")
-    readonly_fields = ("completion_rate",)
+    list_display = ['title', 'module', 'course_name', 'order', 'duration_minutes', 'is_active', 'block_count']
+    list_filter = ['module__course', 'is_active', 'is_free']
+    search_fields = ['title', 'module__course__title']
+    prepopulated_fields = {'slug': ('title',)}
+    ordering = ['module__course', 'module__order', 'order']
+    inlines = [LessonBlockInline]
+    
+    def course_name(self, obj):
+        return obj.module.course.title if obj.module else "—"
+    
+    def block_count(self, obj):
+        return obj.blocks.count()
 
-    def course_display(self, obj):
-        return obj.module.course.title if obj.module and obj.module.course else DEFAULT_EMPTY_VALUE
+# 💰 ФИНАНСЫ (только для superusers)
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'amount', 'status', 'type', 'created_at', 'revenue_impact']
+    list_filter = ['status', 'type', 'created_at']
+    search_fields = ['user__username', 'course__title', 'kaspi_invoice_id', 'payment_id']
+    readonly_fields = ['created_at', 'updated_at', 'payment_id', 'idempotency_key']
+    ordering = ['-created_at']
+    
+    def revenue_impact(self, obj):
+        if obj.status == 'success':
+            return format_html('<span style="color: #059669; font-weight: bold;">+{} ₸</span>', f"{obj.amount:,}")
+        return format_html('<span style="color: #dc2626;">—</span>')
 
-    def completion_rate(self, obj):
-        total = LessonProgress.objects.filter(lesson=obj).count()
-        completed = LessonProgress.objects.filter(lesson=obj, is_completed=True).count()
-        return f"{round((completed/total*100), 1) if total else 0}%"
-
-@admin.register(LessonProgress)
-class LessonProgressAdmin(admin.ModelAdmin):
-    list_display = ("user", "lesson", "course_display", "is_completed", "percent", "updated_at")
-    list_filter = ("is_completed", "updated_at", "lesson__module__course")
-    search_fields = ("user__username", "user__email", "lesson__title", "lesson__module__course__title")
-    autocomplete_fields = ("user", "lesson")
-    readonly_fields = ("updated_at", "course_display")
-    ordering = ("-updated_at",)
-    list_select_related = ("lesson", "lesson__module", "lesson__module__course", "user")
-
-    def course_display(self, obj):
-        return obj.lesson.module.course.title if obj.lesson.module else DEFAULT_EMPTY_VALUE
-
+# 📊 ОБУЧЕНИЕ (LMS)
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ("user", "course", "completed", "progress_percentage", "created_at", "last_activity")
-    list_filter = ("completed", "created_at", "course")
-    search_fields = ("user__username", "user__email", "course__title")
-    autocomplete_fields = ("user", "course")
-    readonly_fields = ("created_at", "progress_percentage", "last_activity")
-    ordering = ("-created_at",)
-    list_select_related = ("user", "course")
-    actions = ["mark_completed", "mark_incomplete"]
-
-    def progress_percentage(self, obj):
-        total_lessons = obj.course.lessons.count()
-        if total_lessons == 0:
+    list_display = ['user', 'course', 'completed', 'progress', 'created_at']
+    list_filter = ['completed', 'course', 'created_at']
+    search_fields = ['user__username', 'course__title']
+    readonly_fields = ['created_at', 'progress']
+    
+    def progress(self, obj):
+        # Теперь считаем прогресс по блокам, а не по урокам
+        total_blocks = LessonBlock.objects.filter(
+            lesson__module__course=obj.course,
+            is_required=True,
+            is_deleted=False
+        ).count()
+        
+        if total_blocks == 0:
             return "0%"
-        completed_lessons = LessonProgress.objects.filter(
-            user=obj.user, 
-            lesson__module__course=obj.course, 
+            
+        completed_blocks = BlockProgress.objects.filter(
+            user=obj.user,
+            block__lesson__module__course=obj.course,
             is_completed=True
         ).count()
-        return f"{round((completed_lessons/total_lessons*100), 1)}%"
+        
+        return f"{round((completed_blocks/total_blocks*100), 1)}%"
 
-    def last_activity(self, obj):
-        last_progress = LessonProgress.objects.filter(
-            user=obj.user, 
-            lesson__module__course=obj.course
-        ).order_by('-updated_at').first()
-        return last_progress.updated_at if last_progress else DEFAULT_EMPTY_VALUE
-
-    @admin.action(description="Отметить как завершённые")
-    def mark_completed(self, request, queryset):
-        updated = queryset.update(completed=True)
-        self.message_user(request, f"Отмечено {updated} записей как завершённые")
-
-    @admin.action(description="Отметить как незавершённые")
-    def mark_incomplete(self, request, queryset):
-        updated = queryset.update(completed=False)
-        self.message_user(request, f"Отмечено {updated} записей как незавершённые")
+@admin.register(BlockProgress)
+class BlockProgressAdmin(admin.ModelAdmin):
+    list_display = ['user', 'block', 'progress_percent', 'is_completed', 'time_spent', 'last_accessed']
+    list_filter = ['is_completed', 'created_at']
+    search_fields = ['user__username', 'block__title']
+    readonly_fields = ['created_at', 'updated_at']
+    list_select_related = ['user', 'block']
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ("user", "course", "rating", "is_active", "created_at", "comment_preview")
-    list_filter = ("rating", "is_active", "created_at", "course")
-    search_fields = ("user__username", "user__email", "course__title", "comment")
-    autocomplete_fields = ("user", "course")
-    ordering = ("-created_at",)
-    list_select_related = ("user", "course")
-    actions = ["activate_reviews", "deactivate_reviews"]
-
+    list_display = ['course', 'user', 'rating', 'is_active', 'created_at', 'comment_preview']
+    list_filter = ['rating', 'is_active', 'course']
+    search_fields = ['course__title', 'user__username', 'comment']
+    list_editable = ['is_active']
+    
     def comment_preview(self, obj):
         return obj.comment[:100] + "..." if len(obj.comment) > 100 else obj.comment
 
-    @admin.action(description="Активировать отзывы")
-    def activate_reviews(self, request, queryset):
-        updated = queryset.update(is_active=True)
-        self.message_user(request, f"Активировано {updated} отзывов")
-
-    @admin.action(description="Деактивировать отзывы")
-    def deactivate_reviews(self, request, queryset):
-        updated = queryset.update(is_active=False)
-        self.message_user(request, f"Деактивировано {updated} отзывов")
-
-@admin.register(Wishlist)
-class WishlistAdmin(admin.ModelAdmin):
-    list_display = ("user", "course", "created_at")
-    list_filter = ("created_at", "course")
-    search_fields = ("user__username", "user__email", "course__title")
-    autocomplete_fields = ("user", "course")
-    ordering = ("-created_at",)
-    list_select_related = ("user", "course")
-
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("user", "course", "amount", "status", "type", "kaspi_invoice_id", "created_at", "revenue_impact")
-    list_filter = ("status", "type", "created_at", "course")
-    search_fields = ("user__username", "user__email", "course__title", "kaspi_invoice_id")
-    autocomplete_fields = ("user", "course")
-    ordering = ("-created_at",)
-    list_select_related = ("user", "course")
-    readonly_fields = ("created_at", "updated_at", "receipt_preview", "revenue_impact")
-    actions = ("mark_success", "mark_failed", "export_payments")
-
-    fieldsets = (
-        ("Основное", {"fields": ("user", "course", "amount", "status", "type")}),
-        ("Kaspi", {"fields": ("kaspi_invoice_id",)}),
-        ("Чек", {"fields": ("receipt", "receipt_preview")}),
-        ("Служебное", {"fields": ("created_at", "updated_at", "revenue_impact")}),
-    )
-
-    def receipt_preview(self, obj):
-        f = getattr(obj, "receipt", None)
-        if not f:
-            return DEFAULT_EMPTY_VALUE
-        url = getattr(f, "url", "") or getattr(f, "name", "")
-        if not url:
-            return DEFAULT_EMPTY_VALUE
-        lower = str(url).lower()
-        if lower.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
-            return format_html('<img src="{}" style="max-width:280px;max-height:180px;object-fit:contain;border-radius:6px;">', url)
-        return format_html('<a href="{}" target="_blank" rel="noopener">Открыть файл чека</a>', url)
-
-    def revenue_impact(self, obj):
-        if obj.status == 'success':
-            return format_html('<span style="color: green;">+{} ₸</span>', obj.amount)
-        return format_html('<span style="color: red;">0 ₸</span>')
-
-    @admin.action(description="Отметить оплачено (success)")
-    def mark_success(self, request, queryset):
-        updated = queryset.update(status="success")
-        self.message_user(request, f"Обновлено {updated} платежей как 'success'.")
-        for p in queryset.select_related("user", "course"):
-            try:
-                Enrollment.objects.get_or_create(user=p.user, course=p.course)
-                p.course.students.add(p.user)
-            except Exception:
-                pass
-
-    @admin.action(description="Отметить ошибку (failed)")
-    def mark_failed(self, request, queryset):
-        updated = queryset.update(status="failed")
-        self.message_user(request, f"Обновлено {updated} платежей как 'failed'.")
-
-    @admin.action(description="Экспорт платежей в CSV")
-    def export_payments(self, request, queryset):
-        pass
+# 🎯 CRM (модерация)
+@admin.register(Lead)
+class LeadAdmin(admin.ModelAdmin):
+    list_display = ['email', 'name', 'source', 'status', 'converted', 'created_at']
+    list_filter = ['status', 'source', 'converted']
+    search_fields = ['email', 'name', 'phone']
+    list_editable = ['status']
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "subject", "is_processed", "created_at", "message_preview")
-    list_filter = ("created_at", "is_processed")
-    search_fields = ("name", "email", "subject", "message")
-    readonly_fields = ("created_at",)
-    ordering = ("-created_at",)
-    actions = ["mark_as_processed", "mark_as_unprocessed"]
+    list_display = ['email', 'name', 'subject', 'is_processed', 'created_at']
+    list_filter = ['is_processed', 'created_at']
+    search_fields = ['email', 'name', 'subject']
+    list_editable = ['is_processed']
 
-    def message_preview(self, obj):
-        return obj.message[:100] + "..." if len(obj.message) > 100 else obj.message
-
-    @admin.action(description="Отметить как обработанное")
-    def mark_as_processed(self, request, queryset):
-        updated = queryset.update(is_processed=True)
-        self.message_user(request, f"Отмечено {updated} сообщений как обработанные")
-
-    @admin.action(description="Отметить как необработанное")
-    def mark_as_unprocessed(self, request, queryset):
-        updated = queryset.update(is_processed=False)
-        self.message_user(request, f"Отмечено {updated} сообщений как необработанные")
-
+# 📝 КОНТЕНТ
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ("cover_preview", "title", "status", "published_at", "view_count", "created_at")
-    list_filter = ("status", "published_at", "created_at")
-    search_fields = ("title", "excerpt", "body", "seo_title", "seo_description", "seo_keywords")
-    prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ("created_at", "updated_at", "cover_preview", "view_count")
-    date_hierarchy = "published_at"
-    ordering = ("-published_at", "-created_at")
-    actions = ["publish_articles", "unpublish_articles"]
-
+    list_display = ['title', 'status', 'published_at', 'view_count', 'created_at']
+    list_filter = ['status', 'published_at']
+    search_fields = ['title', 'excerpt']
+    prepopulated_fields = {'slug': ('title',)}
+    date_hierarchy = 'published_at'
+    
     fieldsets = (
-        ("Основное", {"fields": ("title", "slug", "excerpt", "cover", "cover_preview", "body", "status", "published_at", "view_count")}),
-        ("SEO", {"fields": ("seo_title", "seo_description", "seo_keywords", "seo_schema")}),
-        ("Служебное", {"fields": ("created_at", "updated_at")}),
+        ('Основное', {'fields': ('title', 'slug', 'status', 'published_at', 'author')}),
+        ('Контент', {'fields': ('excerpt', 'body', 'cover')}),
+        ('SEO', {'fields': ('seo_title', 'seo_description', 'seo_keywords')}),
     )
 
-    def cover_preview(self, obj):
-        if obj.cover and hasattr(obj.cover, "url"):
-            return format_html('<img src="{}" style="max-width:160px; max-height:100px; object-fit:cover; border-radius:6px;">', obj.cover.url)
-        return "—"
+# 🔥 КАСТОМНЫЕ ДЕЙСТВИЯ
+@admin.action(description="✅ Опубликовать выбранные курсы")
+def make_published(modeladmin, request, queryset):
+    for course in queryset:
+        course.publish()
+    modeladmin.message_user(request, f"{queryset.count()} курсов опубликовано")
 
-    @admin.action(description="Опубликовать статьи")
-    def publish_articles(self, request, queryset):
-        updated = queryset.update(status="published", published_at=timezone.now())
-        self.message_user(request, f"Опубликовано {updated} статей")
+@admin.action(description="📝 Перевести в черновик")
+def make_draft(modeladmin, request, queryset):
+    queryset.update(status='draft')
+    modeladmin.message_user(request, f"{queryset.count()} курсов переведено в черновик")
 
-    @admin.action(description="Снять с публикации")
-    def unpublish_articles(self, request, queryset):
-        updated = queryset.update(status="draft")
-        self.message_user(request, f"Снято с публикации {updated} статей")
+@admin.action(description="📤 Отправить на проверку")
+def submit_for_review(modeladmin, request, queryset):
+    for course in queryset:
+        course.submit_for_review()
+    modeladmin.message_user(request, f"{queryset.count()} курсов отправлено на проверку")
+
+@admin.action(description="✅ Одобрить курсы")
+def approve_courses(modeladmin, request, queryset):
+    for course in queryset:
+        course.approve()
+    modeladmin.message_user(request, f"{queryset.count()} курсов одобрено")
+
+@admin.action(description="💰 Добавить скидку 20%")
+def add_discount(modeladmin, request, queryset):
+    for course in queryset:
+        if course.price > 0:
+            course.discount_price = course.price * 0.8
+            course.save()
+    modeladmin.message_user(request, f"Скидка 20% добавлена к {queryset.count()} курсам")
+
+@admin.action(description="🗑️ Мягкое удаление")
+def soft_delete(modeladmin, request, queryset):
+    for obj in queryset:
+        if hasattr(obj, 'soft_delete'):
+            obj.soft_delete()
+    modeladmin.message_user(request, f"{queryset.count()} объектов помечено как удалённые")
+
+@admin.action(description="↩️ Восстановить удалённые")
+def restore_deleted(modeladmin, request, queryset):
+    for obj in queryset:
+        if hasattr(obj, 'is_deleted'):
+            obj.is_deleted = False
+            obj.deleted_at = None
+            obj.save()
+    modeladmin.message_user(request, f"{queryset.count()} объектов восстановлено")
+
+# Добавляем действия к CourseAdmin
+CourseAdmin.actions = [make_published, make_draft, submit_for_review, approve_courses, add_discount, soft_delete, restore_deleted]
+
+# Регистрируем LessonBlock с действиями
+@admin.register(LessonBlock)
+class LessonBlockAdmin(admin.ModelAdmin):
+    list_display = ['title', 'lesson', 'block_type', 'order', 'is_required', 'is_free_preview']
+    list_filter = ['block_type', 'is_required', 'is_free_preview', 'is_deleted']
+    search_fields = ['title', 'lesson__title']
+    ordering = ['lesson', 'order']
+    actions = [soft_delete, restore_deleted]
+
+# 🏃‍♀️ БЫСТРАЯ РЕГИСТРАЦИЯ ОСТАЛЬНЫХ МОДЕЛЕЙ (без кастомизации)
+# Сначала создаем простые классы с действиями для моделей с soft delete
+@admin.register(InstructorProfile)
+class InstructorProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'specialization', 'is_approved', 'created_at']
+    search_fields = ['user__username', 'specialization']
+    actions = [soft_delete, restore_deleted]
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'platform_role', 'city', 'balance', 'is_deleted']
+    list_filter = ['platform_role', 'is_deleted']
+    search_fields = ['user__username', 'phone', 'city']
+    actions = [soft_delete, restore_deleted]
+
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'created_at']
+    search_fields = ['user__username', 'course__title']
+    actions = [soft_delete, restore_deleted]
 
 @admin.register(Material)
 class MaterialAdmin(admin.ModelAdmin):
-    list_display = ("title", "file_preview", "is_public", "download_count", "created_at")
-    list_filter = ("is_public", "created_at")
-    search_fields = ("title", "description")
-    prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ("created_at", "updated_at", "download_count", "file_preview")
-    ordering = ("-created_at",)
-    actions = ["make_public", "make_private"]
+    list_display = ['title', 'category', 'download_count', 'is_public', 'created_at']
+    search_fields = ['title', 'category']
+    actions = [soft_delete, restore_deleted]
 
-    def file_preview(self, obj):
-        if obj.file:
-            return format_html('<a href="{}" target="_blank">📎 {}</a>', obj.file.url, obj.file.name.split('/')[-1])
-        return "—"
-
-    @admin.action(description="Сделать публичными")
-    def make_public(self, request, queryset):
-        updated = queryset.update(is_public=True)
-        self.message_user(request, f"Сделано публичными {updated} материалов")
-
-    @admin.action(description="Сделать приватными")
-    def make_private(self, request, queryset):
-        updated = queryset.update(is_public=False)
-        self.message_user(request, f"Сделано приватными {updated} материалов")
-
-class CustomAdminSite(admin.AdminSite):
-    site_header = "🎯 SkillsSpire Platform — Единый центр управления"
-    site_title = "SkillsSpire Platform"
-    index_title = "Панель управления образовательной платформой"
+# Регистрируем остальные модели без кастомизации, но с действиями
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ['action', 'user', 'object_type', 'object_id', 'created_at']
+    list_filter = ['action', 'object_type', 'created_at']
+    search_fields = ['user__username', 'object_id']
+    date_hierarchy = 'created_at'
     
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('platform-dashboard/', self.admin_view(self.platform_dashboard), name='platform-dashboard'),
-            path('learning-analytics/', self.admin_view(self.learning_analytics), name='learning-analytics'),
-            path('financial-reports/', self.admin_view(self.financial_reports), name='financial-reports'),
-        ]
-        return custom_urls + urls
+    def has_add_permission(self, request):
+        return False
     
-    def platform_dashboard(self, request):
-        week_ago = timezone.now() - timedelta(days=7)
-        month_ago = timezone.now() - timedelta(days=30)
-        
-        total_students = Course.objects.aggregate(
-            total=Count('students', distinct=True)
-        )['total'] or 0
-        
-        total_revenue = Payment.objects.filter(
-            status='success', 
-            created_at__gte=month_ago
-        ).aggregate(Sum('amount'))['amount__sum'] or 0
-        
-        active_learners = Enrollment.objects.filter(
-            created_at__gte=week_ago
-        ).count()
-        
-        completion_rate = self.calculate_completion_rate()
-        
-        popular_courses = Course.objects.annotate(
-            enrollment_count=Count('enrollments')
-        ).order_by('-enrollment_count')[:5]
-        
-        recent_payments = Payment.objects.select_related('user', 'course').filter(
-            status='success'
-        ).order_by('-created_at')[:10]
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
 
-        context = {
-            **self.each_context(request),
-            'total_students': total_students,
-            'total_courses': Course.objects.count(),
-            'total_revenue': total_revenue,
-            'active_learners': active_learners,
-            'completion_rate': completion_rate,
-            'popular_courses': popular_courses,
-            'recent_payments': recent_payments,
-            'pending_messages': ContactMessage.objects.filter(is_processed=False)[:5],
-            'recent_enrollments': Enrollment.objects.select_related('user', 'course').order_by('-created_at')[:5],
-        }
-        return TemplateResponse(request, "admin/platform_dashboard.html", context)
-    
-    def learning_analytics(self, request):
-        course_progress = Course.objects.annotate(
-            total_enrollments=Count('enrollments'),
-            completed_enrollments=Count('enrollments', filter=Q(enrollments__completed=True)),
-            avg_rating=Avg('reviews__rating')
-        ).order_by('-total_enrollments')
-        
-        context = {
-            **self.each_context(request),
-            'course_progress': course_progress,
-        }
-        return TemplateResponse(request, "admin/learning_analytics.html", context)
-    
-    def financial_reports(self, request):
-        one_year_ago = timezone.now() - timedelta(days=365)
+@admin.register(CourseStaff)
+class CourseStaffAdmin(admin.ModelAdmin):
+    list_display = ['course', 'user', 'role', 'is_active', 'joined_at']
+    list_filter = ['role', 'is_active', 'joined_at']
+    search_fields = ['course__title', 'user__username']
+    raw_id_fields = ['course', 'user']
 
-        monthly_revenue = (
-            Payment.objects.filter(status='success', created_at__gte=one_year_ago)
-            .annotate(month=TruncMonth('created_at'))  # ✅ заменили .extra() на TruncMonth
-            .values('month')
-            .annotate(
-                total=Sum('amount'),
-                count=Count('id')
-         )
-            .order_by('month')
+# 📋 МОДЕЛИ БЕЗ КАСТОМИЗАЦИИ
+@admin.register(Quiz)
+class QuizAdmin(admin.ModelAdmin):
+    list_display = ['title', 'lesson', 'passing_score', 'time_limit', 'is_active']
+    list_filter = ['is_active', 'lesson__module__course']
+    search_fields = ['title', 'lesson__title']
+    ordering = ['lesson', 'title']
+
+class AnswerInline(admin.TabularInline):
+    model = Answer
+    extra = 3
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ['text', 'quiz', 'question_type', 'order', 'points']
+    list_filter = ['question_type', 'quiz']
+    search_fields = ['text', 'quiz__title']
+    inlines = [AnswerInline]
+    ordering = ['quiz', 'order']
+
+@admin.register(Answer)
+class AnswerAdmin(admin.ModelAdmin):
+    list_display = ['text', 'question', 'is_correct', 'order']
+    list_filter = ['is_correct', 'question__quiz']
+    search_fields = ['text', 'question__text']
+    ordering = ['question', 'order']
+
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+    list_display = ['title', 'course', 'due_date', 'max_points', 'is_active']
+    list_filter = ['is_active', 'course', 'due_date']
+    search_fields = ['title', 'course__title', 'description']
+    date_hierarchy = 'due_date'
+
+from django.contrib.admin import SimpleListFilter
+
+class IsGradedFilter(SimpleListFilter):
+    title = 'Оценено'
+    parameter_name = 'is_graded'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
         )
-
-        context = {
-            **self.each_context(request),
-            'monthly_revenue': monthly_revenue,
-        }
-        return TemplateResponse(request, "admin/financial_reports.html", context)
-
     
-    def calculate_completion_rate(self):
-        total_enrollments = Enrollment.objects.count()
-        completed_enrollments = Enrollment.objects.filter(completed=True).count()
-        return round((completed_enrollments / total_enrollments * 100), 2) if total_enrollments else 0
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.filter(grade__isnull=False)
+        if self.value() == 'no':
+            return queryset.filter(grade__isnull=True)
+        return queryset
 
-    def get_app_list(self, request):
-        app_list = super().get_app_list(request)
-        custom_app_list = []
+@admin.register(Submission)
+class SubmissionAdmin(admin.ModelAdmin):
+    list_display = ['assignment', 'user', 'submitted_at', 'is_graded', 'grade']
+    list_filter = [IsGradedFilter, 'assignment__course', 'submitted_at']  # ← Использование кастомного фильтра
+    search_fields = ['user__username', 'assignment__title', 'text']
+    readonly_fields = ['submitted_at']
+    date_hierarchy = 'submitted_at'
+    
+    def is_graded(self, obj):
+        return obj.grade is not None
+    is_graded.boolean = True
+    is_graded.short_description = 'Оценено'
 
-        learning_app = {"name": "🏫 Обучение", "app_label": "learning", "models": []}
-        sales_app = {"name": "💼 Продажи и CRM", "app_label": "sales", "models": []}
-        content_app = {"name": "🧠 Контент", "app_label": "content", "models": []}
+@admin.register(Certificate)
+class CertificateAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'certificate_id', 'issued_at', 'is_revoked']
+    list_filter = ['is_revoked', 'course', 'issued_at']
+    search_fields = ['user__username', 'course__title', 'certificate_id']
+    readonly_fields = ['certificate_id', 'issued_at']
 
-        for app in app_list:
-            if app.get("app_label") == "app":
-                for model in app.get("models", []):
-                    name = model.get("object_name", "")
-                    if name in ["Course", "Module", "Lesson", "LessonProgress", "Enrollment", "InstructorProfile"]:
-                        learning_app["models"].append(model)
-                    elif name in ["Payment", "Review", "Wishlist", "ContactMessage"]:
-                        sales_app["models"].append(model)
-                    elif name in ["Category", "Article", "Material"]:
-                        content_app["models"].append(model)
+@admin.register(Interaction)
+class InteractionAdmin(admin.ModelAdmin):
+    list_display = ['lead', 'type', 'created_by', 'follow_up_date', 'is_completed']
+    list_filter = ['type', 'is_completed', 'created_at']
+    search_fields = ['lead__email', 'lead__name', 'description']
+    date_hierarchy = 'created_at'
 
-        return [learning_app, sales_app, content_app]
+@admin.register(Segment)
+class SegmentAdmin(admin.ModelAdmin):
+    list_display = ['name', 'is_active', 'is_dynamic', 'user_count']
+    list_filter = ['is_active', 'is_dynamic']
+    search_fields = ['name', 'description']
+    filter_horizontal = ['users']
 
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ['user', 'ticket_id', 'subject', 'status', 'priority', 'created_at']
+    list_filter = ['status', 'priority', 'category', 'created_at']
+    search_fields = ['user__username', 'subject', 'ticket_id', 'description']
+    readonly_fields = ['ticket_id']
+    date_hierarchy = 'created_at'
 
-admin_site = CustomAdminSite(name='skills_spire_admin')
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ['question', 'category', 'order', 'is_active', 'view_count']
+    list_filter = ['category', 'is_active']
+    search_fields = ['question', 'answer']
+    ordering = ['category', 'order']
 
-# Регистрируем все модели в кастомной админке
-admin_site.register(Category, CategoryAdmin)
-admin_site.register(InstructorProfile, InstructorProfileAdmin)
-admin_site.register(Course, CourseAdmin)
-admin_site.register(Module, ModuleAdmin)
-admin_site.register(Lesson, LessonAdmin)
-admin_site.register(LessonProgress, LessonProgressAdmin)
-admin_site.register(Enrollment, EnrollmentAdmin)
-admin_site.register(Review, ReviewAdmin)
-admin_site.register(Wishlist, WishlistAdmin)
-admin_site.register(Payment, PaymentAdmin)
-admin_site.register(ContactMessage, ContactMessageAdmin)
-admin_site.register(Article, ArticleAdmin)
-admin_site.register(Material, MaterialAdmin)
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ['name', 'price', 'duration_days', 'is_active', 'is_popular']
+    list_filter = ['is_active', 'is_popular']
+    search_fields = ['name', 'description']
+    list_editable = ['is_active', 'is_popular']
 
-# ✅ РЕГИСТРИРУЕМ User и Group для работы autocomplete_fields
-admin_site.register(User, UserAdmin)
-admin_site.register(Group, GroupAdmin)
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'plan', 'status', 'start_date', 'end_date', 'is_active']
+    list_filter = ['status', 'plan', 'start_date', 'end_date']
+    search_fields = ['user__username', 'plan__name']
+    readonly_fields = ['start_date', 'end_date']
+    date_hierarchy = 'start_date'
+    
+    def is_active(self, obj):
+        return obj.status == 'active' and obj.end_date > timezone.now()
+    is_active.boolean = True
+
+@admin.register(Refund)
+class RefundAdmin(admin.ModelAdmin):
+    list_display = ['payment', 'user', 'amount', 'status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['user__username', 'payment__payment_id', 'reason']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+
+@admin.register(Mailing)
+class MailingAdmin(admin.ModelAdmin):
+    list_display = ['subject', 'channel', 'status', 'scheduled_for', 'sent_at', 'sent']
+    list_filter = ['channel', 'status', 'scheduled_for']
+    search_fields = ['subject', 'message']
+    readonly_fields = ['sent', 'opens', 'clicks', 'unsubscribes', 'sent_at']
+    date_hierarchy = 'created_at'
+
+# 📊 Добавляем действия мягкого удаления к уже зарегистрированным моделям, у которых есть is_deleted
+def add_actions_to_existing_models():
+    """Добавляет действия к уже зарегистрированным моделям"""
+    models_with_is_deleted = [
+        Module, Lesson, Enrollment, Review, Article, Payment,
+        Category, Course, ContactMessage, Lead
+    ]
+    
+    for model in models_with_is_deleted:
+        try:
+            # Получаем админ-класс из реестра
+            model_admin_instance = admin.site._registry[model]
+            
+            # Создаем новый список действий
+            current_actions = list(getattr(model_admin_instance, 'actions', []))
+            
+            # Добавляем действия если их еще нет
+            if soft_delete not in current_actions:
+                current_actions.append(soft_delete)
+            if restore_deleted not in current_actions:
+                current_actions.append(restore_deleted)
+            
+            # Обновляем действия
+            model_admin_instance.actions = current_actions
+        except KeyError:
+            # Модель не зарегистрирована, это нормально
+            pass
+
+# Вызываем функцию для добавления действий
+add_actions_to_existing_models()
