@@ -10,6 +10,17 @@ from .forms import EmailAuthenticationForm
 from . import views
 
 urlpatterns = [
+    # 📰 КОНТЕНТ
+    path("articles/", views.articles_list, name="articles_list"),
+    path("articles/<slug:slug>/", views.article_detail, name="article_detail"),
+
+    path("materials/", views.materials_list, name="materials_list"),
+    # path("materials/<slug:slug>/", views.material_detail, name="material_detail"),  # если появится
+    
+    # 👤 ЛИЧНЫЙ КАБИНЕТ
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("my-courses/", views.my_courses, name="my_courses"),
+
     # 1️⃣ АДМИНКА (стандартная) — точка управления
     path("admin/", admin.site.urls),
     
