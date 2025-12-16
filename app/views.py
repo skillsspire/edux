@@ -148,7 +148,7 @@ def home(request):
     
     try:
         featured_courses_qs = Course.objects.filter(
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_featured=True,
             is_deleted=False
         ).only(
@@ -169,14 +169,14 @@ def home(request):
         
         if _has_field(Course, 'students_count'):
             popular_courses_qs = Course.objects.filter(
-                status=Course.Status.PUBLISHED,
+                status=Course.PUBLISHED,
                 is_deleted=False
             ).only(
                 'id', 'title', 'slug', 'price', 'short_description', 'students_count'
             ).order_by('-students_count', '-created_at')[:6]
         else:
             popular_courses_qs = Course.objects.filter(
-                status=Course.Status.PUBLISHED,
+                status=Course.PUBLISHED,
                 is_deleted=False
             ).annotate(
                 real_students_count=Count('students')
@@ -208,7 +208,7 @@ def home(request):
         
         reviews = list(Review.objects.filter(
             is_active=True,
-            course__status=Course.Status.PUBLISHED,
+            course__status=Course.PUBLISHED,
             course__is_deleted=False
         ).select_related('user', 'course').only(
             'rating', 'comment', 'created_at',
@@ -221,7 +221,8 @@ def home(request):
         ))
         
         latest_articles_qs = Article.objects.filter(
-            is_published=True
+            status=Article.PUBLISHED,
+            is_deleted=False
         ).only(
             'id', 'title', 'slug', 'excerpt', 'created_at'
         ).order_by('-created_at')[:3]
@@ -295,7 +296,7 @@ def category_detail(request, slug):
         
         courses_qs = Course.objects.filter(
             category=category,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).select_related("category").only(
             'id', 'title', 'slug', 'price', 'short_description',
@@ -350,7 +351,7 @@ def courses_list(request):
             return render(request, "courses/list.html", cached_data)
     
     courses_qs = Course.objects.filter(
-        status=Course.Status.PUBLISHED,
+        status=Course.PUBLISHED,
         is_deleted=False
     ).select_related("category").only(
         'id', 'title', 'slug', 'price', 'short_description',
@@ -444,10 +445,11 @@ def articles_list(request):
             return render(request, "articles/list.html", cached_data)
     
     qs = Article.objects.filter(
-        is_published=True
+        status=Article.PUBLISHED,
+        is_deleted=False
     ).only(
-        'id', 'title', 'slug', 'excerpt', 'created_at', 'published_at'
-    ).order_by('-published_at', '-created_at')
+        'id', 'title', 'slug', 'excerpt', 'created_at'
+    ).order_by('-created_at')
     
     articles = []
     for article in qs:
@@ -480,7 +482,8 @@ def article_detail(request, slug):
     try:
         article_obj = Article.objects.filter(
             slug=slug,
-            is_published=True
+            status=Article.PUBLISHED,
+            is_deleted=False
         ).only(
             'id', 'title', 'slug', 'body', 'excerpt', 
             'created_at', 'author_id', 'category_id'
@@ -500,7 +503,8 @@ def article_detail(request, slug):
         }
         
         latest_qs = Article.objects.filter(
-            is_published=True
+            status=Article.PUBLISHED,
+            is_deleted=False
         ).exclude(
             pk=article_obj.pk
         ).only(
@@ -576,7 +580,7 @@ def course_detail(request, slug):
     try:
         course_obj = Course.objects.filter(
             slug=slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).select_related("category", "instructor").only(
             'id', 'title', 'slug', 'price', 'short_description', 'description',
@@ -630,7 +634,7 @@ def course_detail(request, slug):
 
         related_courses_qs = Course.objects.filter(
             category=course_obj.category,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).exclude(id=course_obj.id).only(
             'id', 'title', 'slug', 'price', 'short_description'
@@ -707,7 +711,7 @@ def course_learn(request, course_slug):
     try:
         course_obj = Course.objects.filter(
             slug=course_slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).only('id', 'title', 'slug').order_by('id').first()
         
@@ -751,7 +755,7 @@ def lesson_detail(request, course_slug, lesson_slug):
     try:
         course_obj = Course.objects.filter(
             slug=course_slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).only('id', 'title', 'slug', 'price').order_by('id').first()
         
@@ -927,7 +931,7 @@ def enroll_course(request, slug):
     try:
         course = Course.objects.filter(
             slug=slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).only('id', 'slug').order_by('id').first()
         
@@ -961,7 +965,7 @@ def create_payment(request, slug):
     try:
         course = Course.objects.filter(
             slug=slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).only('id', 'title', 'slug', 'price').order_by('id').first()
         
@@ -1277,7 +1281,7 @@ def add_review(request, slug):
     try:
         course = Course.objects.filter(
             slug=slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).only('id', 'title', 'slug').order_by('id').first()
         
@@ -1618,7 +1622,7 @@ def instructor_students(request):
 def api_courses(request):
     try:
         courses = Course.objects.filter(
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).only('id', 'title', 'slug', 'price', 'short_description')[:50]
         
@@ -1664,7 +1668,7 @@ def api_enroll(request):
         
         course = Course.objects.filter(
             slug=course_slug,
-            status=Course.Status.PUBLISHED,
+            status=Course.PUBLISHED,
             is_deleted=False
         ).first()
         
@@ -1915,7 +1919,7 @@ def about(request):
         total_instructors = len(instructors)
         
         stats = {
-            "total_courses": Course.objects.filter(status=Course.Status.PUBLISHED, is_deleted=False).count(),
+            "total_courses": Course.objects.filter(status=Course.PUBLISHED, is_deleted=False).count(),
             "total_students": Enrollment.objects.values('user').distinct().count(),
             "total_instructors": total_instructors,
         }
@@ -2006,7 +2010,7 @@ def sitemap(request):
             {'loc': reverse('materials_list'), 'priority': '0.7'},
         ]
         
-        courses = Course.objects.filter(status=Course.Status.PUBLISHED, is_deleted=False).only('slug', 'updated_at')[:1000]
+        courses = Course.objects.filter(status=Course.PUBLISHED, is_deleted=False).only('slug', 'updated_at')[:1000]
         for course in courses:
             urls.append({
                 'loc': reverse('course_detail', args=[course.slug]),
@@ -2014,7 +2018,7 @@ def sitemap(request):
                 'priority': '0.8',
             })
         
-        articles = Article.objects.filter(is_published=True).only('slug', 'updated_at')[:1000]
+        articles = Article.objects.filter(status=Article.PUBLISHED, is_deleted=False).only('slug', 'updated_at')[:1000]
         for article in articles:
             urls.append({
                 'loc': reverse('article_detail', args=[article.slug]),
