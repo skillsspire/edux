@@ -15,6 +15,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse
+from django.utils.translation import get_language
+
 
 import hmac
 import hashlib
@@ -156,7 +158,8 @@ def home(request):
     """Главная страница - ОПТИМИЗИРОВАННАЯ"""
     
     # Ключ кэша только для анонимных пользователей
-    cache_key = f'home_page_{request.LANGUAGE_CODE}'
+    language = get_language() or 'ru'
+    cache_key = f'home_page_{language}'
     cached_data = cache.get(cache_key)
     
     # Для анонимных пользователей используем кэш
