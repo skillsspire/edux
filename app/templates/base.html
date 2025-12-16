@@ -87,6 +87,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      pointer-events: all;
     }
     
     .preloader-spinner {
@@ -292,15 +295,33 @@
     (function() {
       'use strict';
       
-      // Быстро скрываем прелоадер
-      var preloader = document.getElementById('preloader');
-      if (preloader) {
-        preloader.style.opacity = '0';
+      // Функция для скрытия прелоадера с учетом кэша браузера
+      function hidePreloader() {
+        var preloader = document.getElementById('preloader');
+        if (!preloader) return;
+        
         preloader.style.transition = 'opacity 0.3s ease';
+        preloader.style.opacity = '0';
+        preloader.style.pointerEvents = 'none';
+        
         setTimeout(function() {
           preloader.style.display = 'none';
         }, 300);
       }
+      
+      // Обычная загрузка страницы
+      document.addEventListener('DOMContentLoaded', hidePreloader);
+      
+      // Back/Forward cache - ОБЯЗАТЕЛЬНО для браузерного кэша
+      window.addEventListener('pageshow', function(event) {
+        // Если страница загружена из кэша (bfcache)
+        if (event.persisted) {
+          hidePreloader();
+        }
+      });
+      
+      // Дублируем на всякий случай
+      window.addEventListener('load', hidePreloader);
       
       // Закрытие алертов
       document.addEventListener('click', function(e) {
@@ -360,7 +381,9 @@
           var current = html.getAttribute('data-theme') || 'light';
           var next = current === 'light' ? 'dark' : 'light';
           html.setAttribute('data-theme', next);
-          localStorage.setItem('theme', next);
+          try {
+            localStorage.setItem('theme', next);
+          } catch(e) {}
           this.textContent = next === 'dark' ? '☀️' : '🌙';
           this.setAttribute('aria-label', next === 'dark' ? 'Переключить на светлую тему' : 'Переключить на темную тему');
         });

@@ -48,6 +48,7 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(next_page="/"), name="logout"),
     path("signup/", views.signup, name="signup"),
     path("account/", views.account_settings, name="account_settings"),
+    path("settings/", views.profile_settings, name="profile_settings"),
     
     # 7️⃣ ОПЛАТА (единый flow)
     path("checkout/<slug:slug>/", views.checkout, name="checkout"),
