@@ -17,7 +17,6 @@ from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse
 from django.utils.translation import get_language
 
-
 import hmac
 import hashlib
 import json
@@ -48,13 +47,9 @@ from .models import (
     CourseStaff, AuditLog
 )
 
-# Настройка логгера
 logger = logging.getLogger(__name__)
 
-# ---------- helpers ----------
-
 def _has_field(model, name: str) -> bool:
-    """Безопасная проверка наличия поля в модели"""
     try:
         model._meta.get_field(name)
         return True
@@ -62,7 +57,6 @@ def _has_field(model, name: str) -> bool:
         return False
 
 def public_storage_url(path: Optional[str]) -> Optional[str]:
-    """Генерация публичного URL для Supabase Storage"""
     if not path:
         return None
     base = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -72,13 +66,10 @@ def public_storage_url(path: Optional[str]) -> Optional[str]:
     return f"{base}/storage/v1/object/public/{bucket}/{path.lstrip('/')}"
 
 def first_nonempty(*vals):
-    """Возвращает первое непустое значение"""
     for v in vals:
         if v:
             return v
     return None
-
-# ---------- webhooks/payments ----------
 
 @csrf_exempt
 def kaspi_webhook(request):
@@ -104,7 +95,6 @@ def kaspi_webhook(request):
     except (Payment.DoesNotExist, json.JSONDecodeError, KeyError, TypeError):
         return JsonResponse({"error": "Payment not found or invalid data"}, status=404)
 
-    # валидация суммы
     try:
         if amount is not None and float(amount) < float(payment.amount or 0):
             return JsonResponse({"error": "Invalid amount"}, status=400)
@@ -120,14 +110,11 @@ def kaspi_webhook(request):
 
     return JsonResponse({"status": "ok"})
 
-# ---------- auth/basic pages ----------
-
 @csrf_protect
 def signup(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         
-        # django-recaptcha автоматически проверяет капчу в form.is_valid()
         if form.is_valid():
             user = form.save()
             auth_user = authenticate(
@@ -142,7 +129,6 @@ def signup(request):
             messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
             return redirect("login")
         else:
-            # Если форма невалидна (включая ошибку капчи)
             if 'captcha' in form.errors:
                 messages.error(request, "Пожалуйста, пройдите проверку reCAPTCHA.")
             else:
@@ -152,26 +138,19 @@ def signup(request):
     
     return render(request, "registration/signup.html", {"form": form})
 
-# ---------- ГЛАВНАЯ СТРАНИЦА (ИСПРАВЛЕННАЯ) ----------
-
 def home(request):
-    """Главная страница - ОПТИМИЗИРОВАННАЯ"""
-    
-    # Ключ кэша только для анонимных пользователей
     language = get_language() or 'ru'
     cache_key = f'home_page_{language}'
     cached_data = cache.get(cache_key)
     
-    # Для анонимных пользователей используем кэш
     if cached_data and not request.user.is_authenticated:
         return render(request, "home.html", cached_data)
     
-    # Генерируем данные
     try:
-        # 1. FEATURED COURSES
         featured_courses_qs = Course.objects.filter(
-            is_published=True, 
-            is_featured=True
+            status=Course.Status.PUBLISHED,
+            is_featured=True,
+            is_deleted=False
         ).only(
             'id', 'title', 'slug', 'price', 'short_description', 'category_id'
         )[:6]
@@ -188,19 +167,17 @@ def home(request):
                 'url': f"/courses/{course.slug}/",
             })
         
-        # Проверяем, является ли students_count полем в БД
-        # Если это property, используем аннотацию Count('students')
         if _has_field(Course, 'students_count'):
-            # Если это поле в БД
             popular_courses_qs = Course.objects.filter(
-                is_published=True
+                status=Course.Status.PUBLISHED,
+                is_deleted=False
             ).only(
                 'id', 'title', 'slug', 'price', 'short_description', 'students_count'
             ).order_by('-students_count', '-created_at')[:6]
         else:
-            # Если это property, используем аннотацию
             popular_courses_qs = Course.objects.filter(
-                is_published=True
+                status=Course.Status.PUBLISHED,
+                is_deleted=False
             ).annotate(
                 real_students_count=Count('students')
             ).only(
@@ -209,7 +186,6 @@ def home(request):
         
         popular_courses = []
         for course in popular_courses_qs:
-            # Получаем students_count в зависимости от типа
             if _has_field(Course, 'students_count'):
                 students_count = course.students_count or 0
             else:
@@ -226,15 +202,14 @@ def home(request):
                 'url': f"/courses/{course.slug}/",
             })
         
-        # 3. CATEGORIES
         categories = list(Category.objects.filter(
             is_active=True
         ).only('id', 'name', 'slug', 'icon')[:8].values('id', 'name', 'slug', 'icon'))
         
-        # 4. REVIEWS
         reviews = list(Review.objects.filter(
             is_active=True,
-            course__is_published=True
+            course__status=Course.Status.PUBLISHED,
+            course__is_deleted=False
         ).select_related('user', 'course').only(
             'rating', 'comment', 'created_at',
             'user__first_name', 'user__last_name',
@@ -245,7 +220,6 @@ def home(request):
             'course__title'
         ))
         
-        # 5. ARTICLES
         latest_articles_qs = Article.objects.filter(
             is_published=True
         ).only(
@@ -264,17 +238,13 @@ def home(request):
             })
             
     except Exception as e:
-        # Широкий Exception допустим только на главной,
-        # чтобы страница загружалась всегда
         logger.error(f"Ошибка загрузки данных главной: {str(e)}", exc_info=True)
-        # Используем пустые данные вместо краха
         featured_courses = []
         popular_courses = []
         categories = []
         reviews = []
         latest_articles = []
 
-    # 6. FAQ (статические)
     faqs = [
         {"question": "Как проходит обучение?", "answer": "Онлайн в личном кабинете: видео, задания и обратная связь."},
         {"question": "Будет ли доступ к материалам после окончания?", "answer": "Да, бессрочный доступ ко всем урокам курса."},
@@ -292,7 +262,6 @@ def home(request):
         "faqs": faqs,
     }
     
-    # Кэшируем только для анонимных пользователей на 3 минуты
     if not request.user.is_authenticated:
         cache.set(cache_key, context, 180)
     
@@ -311,27 +280,23 @@ def toggle_wishlist(request, slug):
         message = "Курс удален из избранного"
         in_wishlist = False
 
-    # AJAX
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({"success": True, "in_wishlist": in_wishlist, "message": message})
 
     messages.success(request, message)
     return redirect("course_detail", slug=slug)
 
-# ---------- catalog ----------
-
 def catalog(request):
-    """Каталог курсов"""
     return redirect('courses_list')
 
 def category_detail(request, slug):
-    """Детальная страница категории"""
     try:
         category = Category.objects.get(slug=slug, is_active=True)
         
         courses_qs = Course.objects.filter(
             category=category,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).select_related("category").only(
             'id', 'title', 'slug', 'price', 'short_description',
             'students_count', 'created_at'
@@ -341,7 +306,6 @@ def category_detail(request, slug):
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
         
-        # Преобразуем в словари
         courses_with_images = []
         for course in page_obj:
             courses_with_images.append({
@@ -371,27 +335,23 @@ def category_detail(request, slug):
     return render(request, "categories/detail.html", context)
 
 def courses_list(request):
-    """Список курсов - ОПТИМИЗИРОВАННЫЙ"""
-    
     search_query = request.GET.get("q", "").strip()
     sort_by = request.GET.get("sort", "newest")
     price_filter = request.GET.get("price")
     category_filter = request.GET.get("category")
     
-    # Генерируем ключ кэша
     params = f"{search_query}_{sort_by}_{price_filter}_{category_filter}"
     params_hash = hashlib.md5(params.encode()).hexdigest()[:8]
     cache_key = f'courses_list_{params_hash}'
     
-    # Для анонимных - проверяем кэш
     if not request.user.is_authenticated:
         cached_data = cache.get(cache_key)
         if cached_data:
             return render(request, "courses/list.html", cached_data)
     
-    # Базовый запрос
     courses_qs = Course.objects.filter(
-        is_published=True
+        status=Course.Status.PUBLISHED,
+        is_deleted=False
     ).select_related("category").only(
         'id', 'title', 'slug', 'price', 'short_description',
         'students_count', 'created_at', 'category_id',
@@ -412,7 +372,6 @@ def courses_list(request):
     elif price_filter == "paid":
         courses_qs = courses_qs.filter(price__gt=0)
 
-    # Проверяем тип students_count для сортировки
     if sort_by == "popular":
         if _has_field(Course, 'students_count'):
             courses_qs = courses_qs.order_by("-students_count", "-created_at")
@@ -433,10 +392,8 @@ def courses_list(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    # Преобразуем в словари
     courses_with_images = []
     for course in page_obj:
-        # Получаем students_count в зависимости от типа
         if _has_field(Course, 'students_count'):
             students_count = course.students_count or 0
         else:
@@ -457,7 +414,6 @@ def courses_list(request):
             'url': f"/courses/{course.slug}/",
         })
 
-    # Категории для фильтра
     try:
         categories = list(Category.objects.filter(
             is_active=True
@@ -474,14 +430,12 @@ def courses_list(request):
         "sort_by": sort_by,
     }
     
-    # Кэшируем для анонимных на 5 минут
     if not request.user.is_authenticated:
         cache.set(cache_key, context, 300)
     
     return render(request, "courses/list.html", context)
 
 def articles_list(request):
-    """Список статей - ОПТИМИЗИРОВАННЫЙ"""
     cache_key = 'articles_list_all'
     
     if not request.user.is_authenticated:
@@ -510,14 +464,12 @@ def articles_list(request):
     
     context = {"articles": articles}
     
-    # Кэшируем для анонимных на 10 минут
     if not request.user.is_authenticated:
         cache.set(cache_key, context, 600)
     
     return render(request, "articles/list.html", context)
 
 def article_detail(request, slug):
-    """Детальная страница статьи - ОПТИМИЗИРОВАННАЯ"""
     cache_key = f'article_detail_{slug}'
     
     if not request.user.is_authenticated:
@@ -547,7 +499,6 @@ def article_detail(request, slug):
             'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
         }
         
-        # Похожие статьи
         latest_qs = Article.objects.filter(
             is_published=True
         ).exclude(
@@ -571,7 +522,6 @@ def article_detail(request, slug):
             "latest": latest_articles
         }
         
-        # Кэшируем для анонимных на 15 минут
         if not request.user.is_authenticated:
             cache.set(cache_key, context, 900)
         
@@ -582,7 +532,6 @@ def article_detail(request, slug):
     return render(request, "articles/detail.html", context)
 
 def materials_list(request):
-    """Список материалов - ОПТИМИЗИРОВАННЫЙ"""
     cache_key = 'materials_list_all'
     
     if not request.user.is_authenticated:
@@ -609,22 +558,17 @@ def materials_list(request):
     
     context = {"materials": materials}
     
-    # Кэшируем для анонимных на 15 минут
     if not request.user.is_authenticated:
         cache.set(cache_key, context, 900)
     
     return render(request, "materials/list.html", context)
 
-# ---------- course detail & lessons ----------
-
 def course_detail(request, slug):
-    """Детальная страница курса - ОПТИМИЗИРОВАННАЯ"""
     cache_key = f'course_detail_{slug}'
     
     if not request.user.is_authenticated:
         cached_data = cache.get(cache_key)
         if cached_data:
-            # Добавляем персональные данные для авторизованных
             if request.user.is_authenticated:
                 cached_data = _enrich_course_data(cached_data, request.user)
             return render(request, "courses/detail.html", cached_data)
@@ -632,7 +576,8 @@ def course_detail(request, slug):
     try:
         course_obj = Course.objects.filter(
             slug=slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).select_related("category", "instructor").only(
             'id', 'title', 'slug', 'price', 'short_description', 'description',
             'category_id', 'category__name', 'category__slug',
@@ -661,7 +606,6 @@ def course_detail(request, slug):
             'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
         }
 
-        # Доступ
         has_access = False
         is_in_wishlist = False
         if request.user.is_authenticated:
@@ -674,7 +618,6 @@ def course_detail(request, slug):
                 course=course_obj
             ).exists()
 
-        # Модули вместо уроков напрямую
         try:
             modules = list(Module.objects.filter(
                 course=course_obj, 
@@ -685,10 +628,10 @@ def course_detail(request, slug):
         except Exception:
             modules = []
 
-        # Похожие курсы
         related_courses_qs = Course.objects.filter(
             category=course_obj.category,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).exclude(id=course_obj.id).only(
             'id', 'title', 'slug', 'price', 'short_description'
         )[:4]
@@ -705,7 +648,6 @@ def course_detail(request, slug):
                 'url': f"/courses/{course.slug}/",
             })
 
-        # Отзывы
         reviews = list(Review.objects.filter(
             course=course_obj, 
             is_active=True
@@ -726,7 +668,6 @@ def course_detail(request, slug):
             "reviews": reviews,
         }
         
-        # Кэшируем для анонимных на 10 минут
         if not request.user.is_authenticated:
             cache.set(cache_key, context, 600)
         
@@ -737,24 +678,20 @@ def course_detail(request, slug):
     return render(request, "courses/detail.html", context)
 
 def _enrich_course_data(cached_data, user):
-    """Добавляет персональные данные к кэшированному курсу"""
     if not user.is_authenticated:
         return cached_data
     
-    # Создаём копию сразу, чтобы не мутировать исходный кэш
     result = cached_data.copy()
     
     try:
         course_id = result['course'].get('id')
         if course_id:
-            # Проверяем доступ
             has_access = Enrollment.objects.filter(
                 user=user, 
                 course_id=course_id
             ).exists()
             result['has_access'] = has_access
             
-            # Проверяем избранное
             is_in_wishlist = Wishlist.objects.filter(
                 user=user, 
                 course_id=course_id
@@ -767,17 +704,16 @@ def _enrich_course_data(cached_data, user):
     return result
 
 def course_learn(request, course_slug):
-    """Страница обучения курса"""
     try:
         course_obj = Course.objects.filter(
             slug=course_slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).only('id', 'title', 'slug').order_by('id').first()
         
         if not course_obj:
             raise Http404("Курс не найден")
         
-        # Проверка доступа
         if not request.user.is_authenticated:
             messages.error(request, "Для доступа к курсу необходимо авторизоваться")
             return redirect('login')
@@ -791,7 +727,6 @@ def course_learn(request, course_slug):
                 messages.error(request, "У вас нет доступа к этому курсу")
                 return redirect("course_detail", slug=course_slug)
         
-        # Получаем первый урок для перенаправления
         first_lesson = Lesson.objects.filter(
             module__course=course_obj,
             is_active=True
@@ -809,22 +744,20 @@ def course_learn(request, course_slug):
         return redirect("course_detail", slug=course_slug)
 
 def lesson_view(request, course_slug, lesson_slug):
-    """Просмотр урока (альтернативное название для lesson_detail)"""
     return lesson_detail(request, course_slug, lesson_slug)
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
-    """Детальная страница урока"""
     try:
         course_obj = Course.objects.filter(
             slug=course_slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).only('id', 'title', 'slug', 'price').order_by('id').first()
         
         if not course_obj:
             raise Http404("Курс не найден")
         
-        # Проверка доступа
         if course_obj.price and float(course_obj.price or 0) > 0:
             has_access = Enrollment.objects.filter(
                 user=request.user, 
@@ -858,7 +791,6 @@ def lesson_detail(request, course_slug, lesson_slug):
             messages.error(request, "Урок недоступен")
             return redirect("course_detail", slug=course_slug)
 
-        # Соседние уроки
         try:
             lessons_qs = Lesson.objects.filter(
                 module__course=course_obj, 
@@ -877,13 +809,9 @@ def lesson_detail(request, course_slug, lesson_slug):
             previous_lesson = None
             next_lesson = None
 
-        # Обновляем прогресс (BlockProgress вместо LessonProgress)
         try:
-            # Для совместимости - создаем BlockProgress, если его нет
-            # Но сначала проверяем, есть ли блоки для этого урока
             blocks = LessonBlock.objects.filter(lesson=lesson, is_deleted=False)
             if blocks.exists():
-                # Создаем прогресс для первого блока или обновляем существующий
                 for block in blocks:
                     BlockProgress.objects.update_or_create(
                         user=request.user,
@@ -920,7 +848,6 @@ def lesson_detail(request, course_slug, lesson_slug):
 
 @login_required
 def update_progress(request):
-    """Обновление прогресса урока"""
     if request.method == "POST":
         try:
             lesson_id = request.POST.get("lesson_id")
@@ -935,10 +862,8 @@ def update_progress(request):
             except ValueError:
                 return JsonResponse({"error": "Invalid progress value"}, status=400)
             
-            # Ищем урок
             lesson = Lesson.objects.get(id=lesson_id)
             
-            # Обновляем прогресс первого блока урока
             block = LessonBlock.objects.filter(lesson=lesson, is_deleted=False).first()
             if block:
                 block_progress, created = BlockProgress.objects.update_or_create(
@@ -951,7 +876,6 @@ def update_progress(request):
                     }
                 )
                 
-                # Если урок завершен (100%), проверяем завершение курса
                 if progress >= 100:
                     _check_course_completion(request.user, lesson.module.course)
                 
@@ -972,9 +896,7 @@ def update_progress(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 def _check_course_completion(user, course):
-    """Проверка завершения курса"""
     try:
-        # Получаем все обязательные блоки курса
         required_blocks = LessonBlock.objects.filter(
             lesson__module__course=course,
             is_required=True,
@@ -984,14 +906,12 @@ def _check_course_completion(user, course):
         if required_blocks == 0:
             return
         
-        # Получаем завершенные блоки пользователя
         completed_blocks = BlockProgress.objects.filter(
             user=user,
             block__lesson__module__course=course,
             is_completed=True
         ).count()
         
-        # Если все обязательные блоки завершены, отмечаем курс как завершенный
         if completed_blocks >= required_blocks:
             enrollment = Enrollment.objects.get(user=user, course=course)
             if not enrollment.completed:
@@ -1002,15 +922,13 @@ def _check_course_completion(user, course):
     except Exception as e:
         logger.error(f"Ошибка проверки завершения курса: {str(e)}", exc_info=True)
 
-# ---------- enrollment & payments ----------
-
 @login_required
 def enroll_course(request, slug):
-    """Запись на курс"""
     try:
         course = Course.objects.filter(
             slug=slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).only('id', 'slug').order_by('id').first()
         
         if not course:
@@ -1019,7 +937,6 @@ def enroll_course(request, slug):
         
         Enrollment.objects.get_or_create(user=request.user, course=course)
         
-        # Получаем первый доступный урок
         first_lesson = Lesson.objects.filter(
             module__course=course,
             is_active=True
@@ -1037,16 +954,15 @@ def enroll_course(request, slug):
         return redirect("course_detail", slug=slug)
 
 def checkout(request, slug):
-    """Страница оформления заказа"""
     return create_payment(request, slug)
 
 @login_required
 def create_payment(request, slug):
-    """Создание платежа"""
     try:
         course = Course.objects.filter(
             slug=slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).only('id', 'title', 'slug', 'price').order_by('id').first()
         
         if not course:
@@ -1078,12 +994,10 @@ def create_payment(request, slug):
         return redirect("course_detail", slug=slug)
 
 def checkout_confirm(request, slug):
-    """Подтверждение оформления заказа"""
     return payment_claim(request, slug)
 
 @login_required
 def payment_claim(request, slug):
-    """Подтверждение платежа"""
     try:
         course = Course.objects.filter(slug=slug).only('id', 'title', 'slug').order_by('id').first()
         if not course:
@@ -1121,12 +1035,10 @@ def payment_claim(request, slug):
         return redirect("course_detail", slug=slug)
 
 def payment_webhook(request):
-    """Webhook для платежей"""
     return kaspi_webhook(request)
 
 @login_required
 def payment_thanks(request, slug):
-    """Страница благодарности за платеж"""
     try:
         course = Course.objects.filter(slug=slug).only('id', 'title', 'slug').order_by('id').first()
         if not course:
@@ -1144,11 +1056,8 @@ def payment_thanks(request, slug):
         logger.error(f"Ошибка страницы благодарности {slug}: {str(e)}", exc_info=True)
         return redirect("courses_list")
 
-# ---------- user area ----------
-
 @login_required
 def my_courses(request):
-    """Мои курсы"""
     try:
         enrollments = Enrollment.objects.filter(
             user=request.user
@@ -1191,11 +1100,9 @@ def my_courses(request):
 
 @login_required
 def dashboard(request):
-    """Дашборд пользователя"""
     try:
         user = request.user
         
-        # Мои курсы
         my_courses_qs = Course.objects.filter(
             students__id=user.id
         ).only('id', 'title', 'slug', 'created_at')[:10]
@@ -1214,13 +1121,11 @@ def dashboard(request):
         total_courses = len(my_courses)
         recent_courses = sorted(my_courses, key=lambda x: x['created_at'], reverse=True)[:5]
 
-        # Завершенные курсы
         completed_courses = Enrollment.objects.filter(
             user_id=user.id, 
             completed=True
         ).count()
 
-        # Прогресс блоков вместо уроков
         try:
             progress_qs = BlockProgress.objects.filter(user=user)
             total_blocks = progress_qs.count()
@@ -1250,13 +1155,10 @@ def dashboard(request):
     return render(request, "users/dashboard.html", context)
 
 def learning_dashboard(request):
-    """Дашборд обучения (алиас для dashboard)"""
     return dashboard(request)
 
 @login_required
 def profile_settings(request):
-    """Настройки профиля - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
-    # Гарантируем создание профиля
     profile, created = UserProfile.objects.get_or_create(
         user=request.user,
         defaults={
@@ -1279,12 +1181,10 @@ def profile_settings(request):
     user = request.user
     
     if request.method == 'POST':
-        # Устанавливаем активную вкладку по умолчанию
         active_tab = 'profile'
         
         try:
             if 'update_profile' in request.POST:
-                # Обновление профиля
                 try:
                     first_name = request.POST.get('first_name', '').strip()
                     last_name = request.POST.get('last_name', '').strip()
@@ -1294,11 +1194,9 @@ def profile_settings(request):
                     if last_name:
                         user.last_name = last_name
                     
-                    # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Аватар сохраняем в profile, а не в user
                     if 'avatar' in request.FILES:
                         profile.avatar = request.FILES['avatar']
                     
-                    # Дополнительные поля профиля
                     profile.phone = request.POST.get('phone', '').strip()
                     profile.bio = request.POST.get('bio', '').strip()
                     profile.company = request.POST.get('company', '').strip()
@@ -1317,7 +1215,6 @@ def profile_settings(request):
                 active_tab = 'profile'
             
             elif 'change_password' in request.POST:
-                # Смена пароля
                 try:
                     current_password = request.POST.get('current_password', '')
                     new_password1 = request.POST.get('new_password1', '')
@@ -1343,7 +1240,6 @@ def profile_settings(request):
                 active_tab = 'security'
                 
             elif 'update_notifications' in request.POST:
-                # Обновление настроек уведомлений
                 try:
                     profile.email_notifications = 'email_notifications' in request.POST
                     profile.course_updates = 'course_updates' in request.POST
@@ -1357,14 +1253,12 @@ def profile_settings(request):
                 
                 active_tab = 'notifications'
             
-            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Всегда возвращаем активную вкладку
             return redirect(f'{request.path}?tab={active_tab}')
             
         except Exception as e:
             logger.error(f"Общая ошибка обработки формы профиля: {str(e)}", exc_info=True)
             messages.error(request, 'Произошла ошибка при сохранении настроек')
     
-    # GET запрос
     active_tab = request.GET.get('tab', 'profile')
     
     context = {
@@ -1376,23 +1270,21 @@ def profile_settings(request):
     return render(request, "users/profile_settings.html", context)
 
 def account_settings(request):
-    """Настройки аккаунта (алиас для profile_settings)"""
     return profile_settings(request)
 
 @login_required
 def add_review(request, slug):
-    """Добавление отзыва"""
     try:
         course = Course.objects.filter(
             slug=slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).only('id', 'title', 'slug').order_by('id').first()
         
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
 
-        # Проверка доступа
         has_access = Enrollment.objects.filter(
             user=request.user, 
             course=course
@@ -1402,7 +1294,6 @@ def add_review(request, slug):
             messages.error(request, "Только студенты курса могут оставлять отзывы")
             return redirect("course_detail", slug=slug)
 
-        # Проверка существующего отзыва
         if Review.objects.filter(course=course, user=request.user).exists():
             messages.error(request, "Вы уже оставили отзыв на этот курс")
             return redirect("course_detail", slug=slug)
@@ -1432,13 +1323,9 @@ def add_review(request, slug):
         messages.error(request, "Произошла ошибка")
         return redirect("course_detail", slug=slug)
 
-# ---------- instructor area ----------
-
 @login_required
 def instructor_dashboard(request):
-    """Дашборд инструктора"""
     if not request.user.is_staff and not request.user.is_superuser:
-        # Проверяем, является ли пользователь инструктором
         is_instructor = Course.objects.filter(instructor=request.user).exists() or \
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
         if not is_instructor:
@@ -1448,7 +1335,6 @@ def instructor_dashboard(request):
     try:
         user = request.user
         
-        # Курсы инструктора
         instructor_courses = Course.objects.filter(
             Q(instructor=user) | 
             Q(staff__user=user, staff__role__in=['owner', 'instructor'])
@@ -1469,7 +1355,6 @@ def instructor_dashboard(request):
                 'url': f"/courses/{course.slug}/",
             })
         
-        # Общая статистика
         total_courses = len(courses_data)
         total_students = Enrollment.objects.filter(
             course__in=[c['id'] for c in courses_data]
@@ -1496,7 +1381,6 @@ def instructor_dashboard(request):
 
 @login_required
 def instructor_courses(request):
-    """Курсы инструктора"""
     if not request.user.is_staff and not request.user.is_superuser:
         is_instructor = Course.objects.filter(instructor=request.user).exists() or \
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
@@ -1513,7 +1397,6 @@ def instructor_courses(request):
             'created_at', 'students_count'
         ).order_by('-created_at')
         
-        # Добавляем статистику
         courses_with_stats = []
         for course in courses:
             students = Enrollment.objects.filter(course=course).count()
@@ -1541,11 +1424,9 @@ def instructor_courses(request):
 
 @login_required
 def instructor_course_detail(request, slug):
-    """Детальная страница курса инструктора"""
     try:
         course = Course.objects.get(slug=slug)
         
-        # Проверка прав
         has_access = (
             request.user.is_staff or 
             request.user.is_superuser or
@@ -1557,12 +1438,10 @@ def instructor_course_detail(request, slug):
             messages.error(request, "У вас нет прав доступа к этому курсу")
             return redirect('instructor_courses')
         
-        # Статистика
         enrollments = Enrollment.objects.filter(course=course)
         payments = Payment.objects.filter(course=course, status='success')
         reviews = Review.objects.filter(course=course, is_active=True)
         
-        # Прогресс студентов
         students_progress = []
         for enrollment in enrollments.select_related('user')[:20]:
             completed_blocks = BlockProgress.objects.filter(
@@ -1605,7 +1484,6 @@ def instructor_course_detail(request, slug):
 
 @login_required
 def instructor_analytics(request):
-    """Аналитика инструктора"""
     if not request.user.is_staff and not request.user.is_superuser:
         is_instructor = Course.objects.filter(instructor=request.user).exists() or \
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
@@ -1614,19 +1492,16 @@ def instructor_analytics(request):
             return redirect('learning_dashboard')
     
     try:
-        # Получаем курсы инструктора
         courses = Course.objects.filter(
             Q(instructor=request.user) | 
             Q(staff__user=request.user, staff__role__in=['owner', 'instructor'])
         ).distinct()
         
-        # Общая статистика
         total_courses = courses.count()
         total_enrollments = Enrollment.objects.filter(course__in=courses).count()
         total_revenue = Payment.objects.filter(course__in=courses, status='success').aggregate(Sum('amount'))['amount__sum'] or 0
         total_reviews = Review.objects.filter(course__in=courses, is_active=True).count()
         
-        # Статистика по месяцам
         months_data = []
         for i in range(5, -1, -1):
             month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30*i)
@@ -1673,7 +1548,6 @@ def instructor_analytics(request):
 
 @login_required
 def instructor_students(request):
-    """Студенты инструктора"""
     if not request.user.is_staff and not request.user.is_superuser:
         is_instructor = Course.objects.filter(instructor=request.user).exists() or \
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
@@ -1682,22 +1556,19 @@ def instructor_students(request):
             return redirect('learning_dashboard')
     
     try:
-        # Получаем курсы инструктора
         courses = Course.objects.filter(
             Q(instructor=request.user) | 
             Q(staff__user=request.user, staff__role__in=['owner', 'instructor'])
         ).distinct()
         
-        # Получаем студентов
         students = User.objects.filter(
             enrollments__course__in=courses
         ).distinct().select_related('profile').prefetch_related(
             'enrollments', 'enrollments__course'
-        )[:50]  # Ограничиваем для производительности
+        )[:50]
         
         students_data = []
         for student in students:
-            # Курсы студента
             student_courses = Enrollment.objects.filter(
                 user=student,
                 course__in=courses
@@ -1705,7 +1576,6 @@ def instructor_students(request):
             
             courses_list = []
             for enrollment in student_courses:
-                # Прогресс по курсу
                 completed_blocks = BlockProgress.objects.filter(
                     user=student,
                     block__lesson__module__course=enrollment.course,
@@ -1745,13 +1615,11 @@ def instructor_students(request):
     
     return render(request, "instructor/students.html", context)
 
-# ---------- API endpoints ----------
-
 def api_courses(request):
-    """API для получения списка курсов"""
     try:
         courses = Course.objects.filter(
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).only('id', 'title', 'slug', 'price', 'short_description')[:50]
         
         courses_list = []
@@ -1780,7 +1648,6 @@ def api_courses(request):
 
 @login_required
 def api_enroll(request):
-    """API для записи на курс"""
     if request.method != 'POST':
         return JsonResponse({
             'status': 'error',
@@ -1797,7 +1664,8 @@ def api_enroll(request):
         
         course = Course.objects.filter(
             slug=course_slug,
-            is_published=True
+            status=Course.Status.PUBLISHED,
+            is_deleted=False
         ).first()
         
         if not course:
@@ -1806,7 +1674,6 @@ def api_enroll(request):
                 'message': 'Course not found',
             }, status=404)
         
-        # Проверяем, не записан ли уже
         if Enrollment.objects.filter(user=request.user, course=course).exists():
             return JsonResponse({
                 'status': 'success',
@@ -1814,7 +1681,6 @@ def api_enroll(request):
                 'enrolled': True,
             })
         
-        # Записываем
         Enrollment.objects.create(user=request.user, course=course)
         
         return JsonResponse({
@@ -1831,7 +1697,6 @@ def api_enroll(request):
         }, status=500)
 
 def api_reviews(request):
-    """API для получения отзывов"""
     try:
         course_slug = request.GET.get('course_slug')
         
@@ -1875,37 +1740,29 @@ def api_reviews(request):
             'message': 'Internal server error',
         }, status=500)
 
-# ---------- CRM area ----------
-
 @login_required
 def crm_dashboard(request):
-    """CRM дашборд (только для staff)"""
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "У вас нет прав доступа к CRM")
         return redirect('learning_dashboard')
     
     try:
-        # Статистика
         today = timezone.now().date()
         week_ago = today - timedelta(days=7)
         month_ago = today - timedelta(days=30)
         
-        # Новые лиды за период
         new_leads_today = Lead.objects.filter(created_at__date=today).count()
         new_leads_week = Lead.objects.filter(created_at__gte=week_ago).count()
         new_leads_month = Lead.objects.filter(created_at__gte=month_ago).count()
         
-        # Конвертированные лиды
         converted_leads_today = Lead.objects.filter(converted=True, converted_at__date=today).count()
         converted_leads_week = Lead.objects.filter(converted=True, converted_at__gte=week_ago).count()
         converted_leads_month = Lead.objects.filter(converted=True, converted_at__gte=month_ago).count()
         
-        # Платежи
         payments_today = Payment.objects.filter(created_at__date=today, status='success').aggregate(Sum('amount'))['amount__sum'] or 0
         payments_week = Payment.objects.filter(created_at__gte=week_ago, status='success').aggregate(Sum('amount'))['amount__sum'] or 0
         payments_month = Payment.objects.filter(created_at__gte=month_ago, status='success').aggregate(Sum('amount'))['amount__sum'] or 0
         
-        # Конверсия
         conversion_rate_today = round((converted_leads_today / new_leads_today * 100), 1) if new_leads_today > 0 else 0
         conversion_rate_week = round((converted_leads_week / new_leads_week * 100), 1) if new_leads_week > 0 else 0
         conversion_rate_month = round((converted_leads_month / new_leads_month * 100), 1) if new_leads_month > 0 else 0
@@ -1946,7 +1803,6 @@ def crm_dashboard(request):
 
 @login_required
 def crm_leads(request):
-    """Управление лидами (только для staff)"""
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "У вас нет прав доступа к CRM")
         return redirect('learning_dashboard')
@@ -1954,12 +1810,10 @@ def crm_leads(request):
     try:
         leads = Lead.objects.all().select_related('assigned_to').order_by('-created_at')
         
-        # Фильтрация
         status_filter = request.GET.get('status')
         if status_filter:
             leads = leads.filter(status=status_filter)
         
-        # Поиск
         search_query = request.GET.get('q')
         if search_query:
             leads = leads.filter(
@@ -1968,7 +1822,6 @@ def crm_leads(request):
                 Q(phone__icontains=search_query)
             )
         
-        # Пагинация
         paginator = Paginator(leads, 25)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -1991,7 +1844,6 @@ def crm_leads(request):
 
 @login_required
 def crm_payments(request):
-    """Управление платежами (только для staff)"""
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "У вас нет прав доступа к CRM")
         return redirect('learning_dashboard')
@@ -1999,12 +1851,10 @@ def crm_payments(request):
     try:
         payments = Payment.objects.all().select_related('user', 'course').order_by('-created_at')
         
-        # Фильтрация
         status_filter = request.GET.get('status')
         if status_filter:
             payments = payments.filter(status=status_filter)
         
-        # Поиск
         search_query = request.GET.get('q')
         if search_query:
             payments = payments.filter(
@@ -2014,12 +1864,10 @@ def crm_payments(request):
                 Q(payment_id__icontains=search_query)
             )
         
-        # Пагинация
         paginator = Paginator(payments, 25)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         
-        # Статистика
         total_revenue = Payment.objects.filter(status='success').aggregate(Sum('amount'))['amount__sum'] or 0
         pending_payments = Payment.objects.filter(status='pending').count()
         failed_payments = Payment.objects.filter(status='failed').count()
@@ -2046,10 +1894,7 @@ def crm_payments(request):
     
     return render(request, "crm/payments.html", context)
 
-# ---------- static pages ----------
-
 def about(request):
-    """О нас"""
     cache_key = 'about_page_data'
     
     cached_data = cache.get(cache_key)
@@ -2070,7 +1915,7 @@ def about(request):
         total_instructors = len(instructors)
         
         stats = {
-            "total_courses": Course.objects.filter(is_published=True).count(),
+            "total_courses": Course.objects.filter(status=Course.Status.PUBLISHED, is_deleted=False).count(),
             "total_students": Enrollment.objects.values('user').distinct().count(),
             "total_instructors": total_instructors,
         }
@@ -2085,13 +1930,11 @@ def about(request):
         "stats": stats,
     }
     
-    # Кэшируем на 30 минут
     cache.set(cache_key, context, 1800)
     
     return render(request, "about.html", context)
 
 def contact(request):
-    """Контакты"""
     if request.method == "POST":
         form = ContactForm(request.POST)
         if form.is_valid():
@@ -2108,7 +1951,6 @@ def contact(request):
     return render(request, "contact.html", {"form": form})
 
 def design_wireframe(request):
-    """Дизайн-макет"""
     cache_key = 'design_wireframe_data'
     
     cached_data = cache.get(cache_key)
@@ -2126,20 +1968,14 @@ def design_wireframe(request):
     
     context = {"features": features}
     
-    # Кэшируем на 1 час
     cache.set(cache_key, context, 3600)
     
     return render(request, "design_wireframe.html", context)
 
-# ---------- service pages ----------
-
 def health_check(request):
-    """Проверка здоровья приложения"""
     try:
-        # Проверяем подключение к базе данных
         Course.objects.count()
         
-        # Проверяем кэш
         cache.set('health_check', 'ok', 1)
         if cache.get('health_check') != 'ok':
             raise Exception("Cache not working")
@@ -2160,9 +1996,7 @@ def health_check(request):
         }, status=500)
 
 def sitemap(request):
-    """Генерация sitemap.xml"""
     try:
-        # Базовые URL
         urls = [
             {'loc': reverse('home'), 'priority': '1.0'},
             {'loc': reverse('about'), 'priority': '0.8'},
@@ -2172,8 +2006,7 @@ def sitemap(request):
             {'loc': reverse('materials_list'), 'priority': '0.7'},
         ]
         
-        # Курсы
-        courses = Course.objects.filter(is_published=True).only('slug', 'updated_at')[:1000]
+        courses = Course.objects.filter(status=Course.Status.PUBLISHED, is_deleted=False).only('slug', 'updated_at')[:1000]
         for course in courses:
             urls.append({
                 'loc': reverse('course_detail', args=[course.slug]),
@@ -2181,7 +2014,6 @@ def sitemap(request):
                 'priority': '0.8',
             })
         
-        # Статьи
         articles = Article.objects.filter(is_published=True).only('slug', 'updated_at')[:1000]
         for article in articles:
             urls.append({
@@ -2190,7 +2022,6 @@ def sitemap(request):
                 'priority': '0.6',
             })
         
-        # Категории
         categories = Category.objects.filter(is_active=True).only('slug', 'updated_at')[:100]
         for category in categories:
             urls.append({
@@ -2199,7 +2030,6 @@ def sitemap(request):
                 'priority': '0.5',
             })
         
-        # Формируем XML
         xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 '''
@@ -2223,12 +2053,8 @@ def sitemap(request):
         logger.error(f"Ошибка генерации sitemap: {str(e)}", exc_info=True)
         return HttpResponse(status=500)
 
-# ---------- error handlers ----------
-
 def handler404(request, exception):
-    """Обработчик 404 ошибки"""
     return render(request, '404.html', status=404)
 
 def handler500(request):
-    """Обработчик 500 ошибки"""
     return render(request, '500.html', status=500)
