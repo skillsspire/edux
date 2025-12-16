@@ -1252,12 +1252,10 @@ def learning_dashboard(request):
 
 @login_required
 def profile_settings(request):
-    """Настройки профиля"""
-    user = request.user
-    
-    # Профиль пользователя
+    """Настройки профиля - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
+    # Гарантируем создание профиля
     profile, created = UserProfile.objects.get_or_create(
-        user=user,
+        user=request.user,
         defaults={
             'phone': '',
             'city': '',
@@ -1275,8 +1273,12 @@ def profile_settings(request):
         }
     )
     
+    user = request.user
+    
     if request.method == 'POST':
-        # Разбили на отдельные try-catch блоки
+        # Устанавливаем активную вкладку по умолчанию
+        active_tab = 'profile'
+        
         try:
             if 'update_profile' in request.POST:
                 # Обновление профиля
@@ -1289,9 +1291,9 @@ def profile_settings(request):
                     if last_name:
                         user.last_name = last_name
                     
-                    # Аватар
+                    # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Аватар сохраняем в profile, а не в user
                     if 'avatar' in request.FILES:
-                        user.avatar = request.FILES['avatar']
+                        profile.avatar = request.FILES['avatar']
                     
                     # Дополнительные поля профиля
                     profile.phone = request.POST.get('phone', '').strip()
@@ -1352,6 +1354,7 @@ def profile_settings(request):
                 
                 active_tab = 'notifications'
             
+            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Всегда возвращаем активную вкладку
             return redirect(f'{request.path}?tab={active_tab}')
             
         except Exception as e:
@@ -1437,7 +1440,7 @@ def instructor_dashboard(request):
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
         if not is_instructor:
             messages.error(request, "У вас нет прав доступа к панели инструктора")
-            return redirect('dashboard')
+            return redirect('learning_dashboard')
     
     try:
         user = request.user
@@ -1496,7 +1499,7 @@ def instructor_courses(request):
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
         if not is_instructor:
             messages.error(request, "У вас нет прав доступа")
-            return redirect('dashboard')
+            return redirect('learning_dashboard')
     
     try:
         courses = Course.objects.filter(
@@ -1605,7 +1608,7 @@ def instructor_analytics(request):
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
         if not is_instructor:
             messages.error(request, "У вас нет прав доступа")
-            return redirect('dashboard')
+            return redirect('learning_dashboard')
     
     try:
         # Получаем курсы инструктора
@@ -1673,7 +1676,7 @@ def instructor_students(request):
                        CourseStaff.objects.filter(user=request.user, role__in=['owner', 'instructor']).exists()
         if not is_instructor:
             messages.error(request, "У вас нет прав доступа")
-            return redirect('dashboard')
+            return redirect('learning_dashboard')
     
     try:
         # Получаем курсы инструктора
@@ -1876,7 +1879,7 @@ def crm_dashboard(request):
     """CRM дашборд (только для staff)"""
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "У вас нет прав доступа к CRM")
-        return redirect('dashboard')
+        return redirect('learning_dashboard')
     
     try:
         # Статистика
@@ -1943,7 +1946,7 @@ def crm_leads(request):
     """Управление лидами (только для staff)"""
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "У вас нет прав доступа к CRM")
-        return redirect('dashboard')
+        return redirect('learning_dashboard')
     
     try:
         leads = Lead.objects.all().select_related('assigned_to').order_by('-created_at')
@@ -1988,7 +1991,7 @@ def crm_payments(request):
     """Управление платежами (только для staff)"""
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "У вас нет прав доступа к CRM")
-        return redirect('dashboard')
+        return redirect('learning_dashboard')
     
     try:
         payments = Payment.objects.all().select_related('user', 'course').order_by('-created_at')
