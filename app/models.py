@@ -897,15 +897,7 @@ class Article(TimestampedModel):
     
     status = models.CharField("Статус", max_length=10, choices=STATUS_CHOICES, default=DRAFT)
     published_at = models.DateTimeField("Опубликовано", blank=True, null=True)
-    
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="articles",
-        verbose_name="Автор"
-    )
+
     
     is_deleted = models.BooleanField("Удалён", default=False)
     deleted_at = models.DateTimeField("Удалён", null=True, blank=True)
