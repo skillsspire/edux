@@ -155,61 +155,18 @@ def home(request):
             'id', 'title', 'slug', 'price', 'short_description', 'category_id'
         )[:6]
         
-        featured_courses = []
-        for course in featured_courses_qs:
-            featured_courses.append({
-                'id': course.id,
-                'title': course.title,
-                'slug': course.slug,
-                'price': float(course.price or 0),
-                'short_description': course.short_description[:100] if course.short_description else '',
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{course.slug}/",
-            })
-        
-        if _has_field(Course, 'students_count'):
-            popular_courses_qs = Course.objects.filter(
-                status=Course.PUBLISHED,
-                is_deleted=False
-            ).only(
-                'id', 'title', 'slug', 'price', 'short_description', 'students_count'
-            ).order_by('-students_count', '-created_at')[:6]
-        else:
-            popular_courses_qs = Course.objects.filter(
-                status=Course.PUBLISHED,
-                is_deleted=False
-            ).annotate(
-                real_students_count=Count('students')
-            ).only(
-                'id', 'title', 'slug', 'price', 'short_description'
-            ).order_by('-real_students_count', '-created_at')[:6]
-        
-        popular_courses = []
-        for course in popular_courses_qs:
-            if _has_field(Course, 'students_count'):
-                students_count = course.students_count or 0
-            else:
-                students_count = getattr(course, 'real_students_count', 0) or 0
-                
-            popular_courses.append({
-                'id': course.id,
-                'title': course.title,
-                'slug': course.slug,
-                'price': float(course.price or 0),
-                'short_description': course.short_description[:100] if course.short_description else '',
-                'students_count': students_count,
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{course.slug}/",
-            })
-        
-        categories = list(Category.objects.filter(
-            is_active=True
-        ).only('id', 'name', 'slug', 'icon')[:8].values('id', 'name', 'slug', 'icon'))
+        popular_courses_qs = Course.objects.filter(
+            status=Course.PUBLISHED,
+            is_deleted=False
+        ).annotate(
+            students_count=Count('enrollments', distinct=True)
+        ).only(
+            'id', 'title', 'slug', 'price', 'short_description'
+        ).order_by('-students_count', '-created_at')[:6]
         
         reviews = list(Review.objects.filter(
             is_active=True,
-            course__status=Course.PUBLISHED,
-            course__is_deleted=False
+            course__status=Course.PUBLISHED
         ).select_related('user', 'course').only(
             'rating', 'comment', 'created_at',
             'user__first_name', 'user__last_name',
@@ -221,23 +178,18 @@ def home(request):
         ))
         
         latest_articles_qs = Article.objects.filter(
-            status=Article.PUBLISHED,
-            is_deleted=False
+            status=Article.PUBLISHED
         ).only(
             'id', 'title', 'slug', 'excerpt', 'created_at'
         ).order_by('-created_at')[:3]
         
-        latest_articles = []
-        for article in latest_articles_qs:
-            latest_articles.append({
-                'id': article.id,
-                'title': article.title,
-                'slug': article.slug,
-                'excerpt': article.excerpt[:150] if article.excerpt else '',
-                'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
-                'url': f"/articles/{article.slug}/",
-            })
-            
+        # ✅ Исправляем имена переменных
+        featured_courses = list(featured_courses_qs)
+        popular_courses = list(popular_courses_qs)
+        latest_articles = list(latest_articles_qs)
+        
+        categories = []
+        
     except Exception as e:
         logger.error(f"Ошибка загрузки данных главной: {str(e)}", exc_info=True)
         featured_courses = []
@@ -300,7 +252,7 @@ def category_detail(request, slug):
             is_deleted=False
         ).select_related("category").only(
             'id', 'title', 'slug', 'price', 'short_description',
-            'students_count', 'created_at'
+            'created_at'  # ✅ Убрали students_count
         ).order_by('-created_at')
         
         paginator = Paginator(courses_qs, 12)
@@ -309,13 +261,14 @@ def category_detail(request, slug):
         
         courses_with_images = []
         for course in page_obj:
+            # ✅ Заменяем обращение к students_count на .enrollments.count()
             courses_with_images.append({
                 'id': course.id,
                 'title': course.title,
                 'slug': course.slug,
                 'price': float(course.price or 0),
                 'short_description': course.short_description[:100] if course.short_description else '',
-                'students_count': course.students_count or 0,
+                'students_count': course.enrollments.count(),  # ✅ Используем count()
                 'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
                 'url': f"/courses/{course.slug}/",
             })
@@ -355,7 +308,7 @@ def courses_list(request):
         is_deleted=False
     ).select_related("category").only(
         'id', 'title', 'slug', 'price', 'short_description',
-        'students_count', 'created_at', 'category_id',
+        'created_at', 'category_id',
         'category__name', 'category__slug'
     )
 
@@ -374,12 +327,9 @@ def courses_list(request):
         courses_qs = courses_qs.filter(price__gt=0)
 
     if sort_by == "popular":
-        if _has_field(Course, 'students_count'):
-            courses_qs = courses_qs.order_by("-students_count", "-created_at")
-        else:
-            courses_qs = courses_qs.annotate(
-                real_students_count=Count('students')
-            ).order_by("-real_students_count", "-created_at")
+        courses_qs = courses_qs.annotate(
+            students_count=Count('enrollments', distinct=True)
+        ).order_by("-students_count", "-created_at")
     elif sort_by == "rating":
         courses_qs = courses_qs.order_by("-created_at")
     elif sort_by == "price_low":
@@ -395,10 +345,10 @@ def courses_list(request):
 
     courses_with_images = []
     for course in page_obj:
-        if _has_field(Course, 'students_count'):
-            students_count = course.students_count or 0
+        if hasattr(course, 'students_count'):
+            students_count = course.students_count
         else:
-            students_count = getattr(course, 'real_students_count', 0) or 0
+            students_count = course.enrollments.count()
             
         courses_with_images.append({
             'id': course.id,
@@ -436,41 +386,6 @@ def courses_list(request):
     
     return render(request, "courses/list.html", context)
 
-def articles_list(request):
-    cache_key = 'articles_list_all'
-    
-    if not request.user.is_authenticated:
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return render(request, "articles/list.html", cached_data)
-    
-    qs = Article.objects.filter(
-        status=Article.PUBLISHED,
-        is_deleted=False
-    ).only(
-        'id', 'title', 'slug', 'excerpt', 'created_at'
-    ).order_by('-created_at')
-    
-    articles = []
-    for article in qs:
-        articles.append({
-            'id': article.id,
-            'title': article.title,
-            'slug': article.slug,
-            'excerpt': article.excerpt[:150] if article.excerpt else '',
-            'published_at': article.published_at,
-            'created_at': article.created_at,
-            'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
-            'url': f"/articles/{article.slug}/",
-        })
-    
-    context = {"articles": articles}
-    
-    if not request.user.is_authenticated:
-        cache.set(cache_key, context, 600)
-    
-    return render(request, "articles/list.html", context)
-
 def article_detail(request, slug):
     cache_key = f'article_detail_{slug}'
     
@@ -482,8 +397,7 @@ def article_detail(request, slug):
     try:
         article_obj = Article.objects.filter(
             slug=slug,
-            status=Article.PUBLISHED,
-            is_deleted=False
+            status=Article.PUBLISHED
         ).only(
             'id', 'title', 'slug', 'body', 'excerpt', 
             'created_at', 'author_id', 'category_id'
@@ -503,8 +417,7 @@ def article_detail(request, slug):
         }
         
         latest_qs = Article.objects.filter(
-            status=Article.PUBLISHED,
-            is_deleted=False
+            status=Article.PUBLISHED
         ).exclude(
             pk=article_obj.pk
         ).only(
@@ -586,7 +499,7 @@ def course_detail(request, slug):
             'id', 'title', 'slug', 'price', 'short_description', 'description',
             'category_id', 'category__name', 'category__slug',
             'instructor_id', 'instructor__first_name', 'instructor__last_name',
-            'students_count', 'created_at'
+            'created_at'  # ✅ Убрали students_count
         ).order_by('id').first()
         
         if not course_obj:
@@ -606,7 +519,7 @@ def course_detail(request, slug):
             'instructor': {
                 'name': f"{course_obj.instructor.first_name or ''} {course_obj.instructor.last_name or ''}".strip() if course_obj.instructor else "",
             },
-            'students_count': course_obj.students_count or 0,
+            'students_count': course_obj.enrollments.count(),  # ✅ Используем count()
             'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
         }
 
@@ -1398,7 +1311,7 @@ def instructor_courses(request):
             Q(staff__user=request.user, staff__role__in=['owner', 'instructor'])
         ).distinct().select_related('category').only(
             'id', 'title', 'slug', 'status', 'category__name',
-            'created_at', 'students_count'
+            'created_at'  # ✅ Убрали students_count
         ).order_by('-created_at')
         
         courses_with_stats = []
@@ -2010,7 +1923,11 @@ def sitemap(request):
             {'loc': reverse('materials_list'), 'priority': '0.7'},
         ]
         
-        courses = Course.objects.filter(status=Course.PUBLISHED, is_deleted=False).only('slug', 'updated_at')[:1000]
+        courses = Course.objects.filter(
+            status=Course.PUBLISHED, 
+            is_deleted=False
+        ).only('slug', 'updated_at')[:1000]
+        
         for course in courses:
             urls.append({
                 'loc': reverse('course_detail', args=[course.slug]),
@@ -2018,7 +1935,12 @@ def sitemap(request):
                 'priority': '0.8',
             })
         
-        articles = Article.objects.filter(status=Article.PUBLISHED, is_deleted=False).only('slug', 'updated_at')[:1000]
+        # ✅ Исправляем - убираем is_deleted для Article
+        articles = Article.objects.filter(
+            status=Article.PUBLISHED
+            # is_deleted=False  # ⬅️ УБИРАЕМ
+        ).only('slug', 'updated_at')[:1000]
+        
         for article in articles:
             urls.append({
                 'loc': reverse('article_detail', args=[article.slug]),
