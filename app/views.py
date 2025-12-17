@@ -386,6 +386,32 @@ def courses_list(request):
     
     return render(request, "courses/list.html", context)
 
+def articles_list(request):
+    try:
+        articles_qs = Article.objects.filter(
+            status=Article.PUBLISHED
+        ).order_by('-created_at')
+
+        articles = []
+        for article in articles_qs:
+            articles.append({
+                'id': article.id,
+                'title': article.title,
+                'slug': article.slug,
+                'excerpt': article.excerpt or '',
+                'created_at': article.created_at,
+                'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
+                'url': f"/articles/{article.slug}/",
+            })
+
+        return render(request, "articles/list.html", {
+            "articles": articles
+        })
+
+    except Exception as e:
+        logger.error(f"Ошибка списка статей: {e}", exc_info=True)
+        raise Http404("Статьи не найдены")
+
 def article_detail(request, slug):
     cache_key = f'article_detail_{slug}'
     
