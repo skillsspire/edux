@@ -1,166 +1,175 @@
-{% extends 'base.html' %}
+```html
+{% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
-{% block title %}Статьи о финансах и аналитике — SkillsSpire{% endblock %}
+{% block title %}{% trans "Все курсы" %} | SkillsSpire{% endblock %}
 
 {% block content %}
-<section class="section articles-section py-5">
-  <div class="container">
-    
-    <!-- Заголовок -->
-    <div class="section-header text-center mb-5">
-      <h1 class="fw-bold mb-3">Статьи о финансах и аналитике</h1>
-      <p class="lead text-secondary">
-        Исследования, кейсы и аналитика от профессоров и экспертов
-      </p>
+
+<section class="course-hero">
+    <div class="container text-center">
+        <span class="course-badge">🎓 SkillsSpire</span>
+        <h1 class="course-title">Все онлайн-курсы</h1>
+        <p class="course-subtitle">
+            Осваивайте востребованные навыки — в удобном формате, с практикой и поддержкой
+        </p>
+
+        <form method="get" class="hero-search">
+            <input
+                type="search"
+                name="q"
+                placeholder="Поиск курса…"
+                value="{{ q|default:'' }}"
+                aria-label="Поиск курса"
+            >
+            <button type="submit">Найти</button>
+        </form>
     </div>
-
-    <!-- Главная статья -->
-    {% if featured_articles and featured_articles.first %}
-      {% with first=featured_articles.first %}
-      <div class="main-article-card mb-5">
-        <a href="{{ first.url }}" class="text-decoration-none text-dark">
-          <div class="row g-4">
-            <div class="col-lg-6">
-              <div class="main-article-image">
-                <img src="{{ first.image_url|default:'/static/images/article-default.jpg' }}" 
-                     alt="{{ first.title }}" 
-                     class="img-fluid rounded-3" loading="lazy">
-              </div>
-            </div>
-            <div class="col-lg-6 d-flex flex-column">
-              <div class="mb-3">
-                <span class="badge bg-primary">Главная</span>
-                <span class="text-muted ms-3">
-                  <!-- ИСПРАВЛЕНО: используем first.created_at вместо first.article.published_at -->
-                  {{ first.created_at|date:"d.m.Y" }}
-                </span>
-              </div>
-              <h2 class="h3 mb-3">{{ first.title }}</h2>
-              <p class="text-muted flex-grow-1">
-                {{ first.excerpt|default:""|truncatewords:50 }}
-              </p>
-              <div class="d-flex align-items-center mt-3">
-                <span class="text-primary fw-semibold">Читать статью →</span>
-              </div>
-            </div>
-          </div>
-        </a>
-      </div>
-      {% endwith %}
-    {% endif %}
-
-    <!-- Сетка статей -->
-    <div class="articles-grid mb-5">
-      {% for article in articles %}
-      <article class="article-card">
-        <a href="{{ article.url }}" class="text-decoration-none text-dark">
-          <div class="article-image mb-3">
-            <img src="{{ article.image_url|default:'/static/images/article-default.jpg' }}" 
-                 alt="{{ article.title }}" 
-                 class="img-fluid rounded-2" loading="lazy">
-          </div>
-          <div class="mb-2">
-            <span class="text-muted small">
-              <!-- ИСПРАВЛЕНО: используем article.created_at вместо article.published_at -->
-              {{ article.created_at|date:"d.m.Y" }}
-            </span>
-          </div>
-          <h3 class="h5 mb-2">{{ article.title }}</h3>
-          <p class="text-muted small">
-            {{ article.excerpt|default:""|truncatewords:25 }}
-          </p>
-        </a>
-      </article>
-      {% empty %}
-      <div class="col-12 text-center py-5">
-        <i class="bi bi-journal-text" style="font-size:3rem;color:#cbd5e0;"></i>
-        <h4 class="text-muted mt-3">Статьи не найдены</h4>
-        <p class="text-muted">Скоро появятся новые публикации</p>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- ПАГИНАЦИЯ -->
-    {% if is_paginated %}
-    <nav class="mt-5 pagination-modern" aria-label="Навигация по страницам">
-      <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link"
-             href="?page={{ page_obj.previous_page_number }}">
-            Назад
-          </a>
-        </li>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-        {% if num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-          <a class="page-link"
-             href="?page={{ num }}">
-            {{ num }}
-          </a>
-        </li>
-        {% endif %}
-        {% endfor %}
-
-        {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link"
-             href="?page={{ page_obj.next_page_number }}">
-            Вперед
-          </a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-    {% endif %}
-  </div>
 </section>
-{% endblock %}
 
-{% block extra_css %}
-<style>
-.articles-section {
-  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-}
-.main-article-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-}
-.main-article-image img {
-  width: 100%;
-  height: 320px;
-  object-fit: cover;
-}
-.articles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-}
-.article-card {
-  transition: transform 0.25s ease;
-}
-.article-card:hover {
-  transform: translateY(-4px);
-}
-.article-image img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-}
-.pagination-modern .page-link {
-  border-radius: 8px;
-  margin: 0 4px;
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--color-border);
-}
-.pagination-modern .page-item.active .page-link {
-  background-color: #01349D;
-  border-color: #01349D;
-}
-</style>
+<section class="courses-section">
+    <div class="container">
+
+        <form method="get"
+              class="filters-form"
+              style="position:sticky;top:90px;z-index:20">
+
+            {% if q %}
+                <input type="hidden" name="q" value="{{ q }}">
+            {% endif %}
+
+            <select name="category" onchange="this.form.submit()">
+                <option value="">Все категории</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.slug }}"
+                        {% if cat.slug == request.GET.category %}selected{% endif %}
+                    >
+                        {{ cat.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <select name="price" onchange="this.form.submit()">
+                <option value="">Все</option>
+                <option value="free" {% if request.GET.price == "free" %}selected{% endif %}>
+                    Бесплатные
+                </option>
+                <option value="paid" {% if request.GET.price == "paid" %}selected{% endif %}>
+                    Платные
+                </option>
+            </select>
+
+            <select name="sort" onchange="this.form.submit()">
+                <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>
+                    Сначала новые
+                </option>
+                <option value="popular" {% if sort_by == "popular" %}selected{% endif %}>
+                    По популярности
+                </option>
+                <option value="price_low" {% if sort_by == "price_low" %}selected{% endif %}>
+                    Цена ↑
+                </option>
+                <option value="price_high" {% if sort_by == "price_high" %}selected{% endif %}>
+                    Цена ↓
+                </option>
+            </select>
+
+        </form>
+
+        <div class="courses-grid">
+
+            {% for course in courses %}
+                <a href="{{ course.url }}" class="course-card card-hover">
+
+                    <div class="badge">
+                        {% if course.is_new %}
+                            <span class="course-category" style="background:var(--color-accent-cyan)">Новинка</span>
+                        {% endif %}
+                        {% if course.students_count|default:0 >= 100 %}
+                            <span class="course-category" style="background:var(--color-accent-warm)">Хит</span>
+                        {% endif %}
+                    </div>
+
+                    <img
+                        src="{{ course.image_url }}"
+                        alt="{{ course.title }}"
+                        class="course-card-img"
+                        loading="lazy"
+                    >
+
+                    <div class="course-card-content">
+
+                        {% if course.category.name %}
+                            <span class="course-category">
+                                {{ course.category.name }}
+                            </span>
+                        {% endif %}
+
+                        <h3 class="course-card-title">
+                            {{ course.title }}
+                        </h3>
+
+                        <p class="course-card-text">
+                            {{ course.short_description|truncatechars:120 }}
+                        </p>
+
+                        <div class="course-card-meta">
+                            <div class="course-rating">
+                                ⭐ {{ course.students_count|default:"0" }}
+                            </div>
+                            <div class="course-price">
+                                {% if course.price == 0 %}
+                                    Бесплатно
+                                {% else %}
+                                    {{ course.price }} ₸
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="course-card-meta text-sm">
+                            {% if course.level %}
+                                <span>Уровень: {{ course.level }}</span>
+                            {% endif %}
+                            {% if course.duration %}
+                                <span>{{ course.duration }} ч</span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </a>
+            {% empty %}
+                <p class="text-center text-lg">
+                    Курсы скоро появятся 🚀
+                </p>
+            {% endfor %}
+
+        </div>
+
+        {% if is_paginated %}
+            <div class="text-center mt-4">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-outline"
+                       href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                        ← Назад
+                    </a>
+                {% endif %}
+
+                <span class="text-sm">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a class="btn btn-outline"
+                       href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                        Вперёд →
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    </div>
+</section>
+
 {% endblock %}
+```
