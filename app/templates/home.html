@@ -26,7 +26,6 @@
       <p>Сертификаты об окончании обучения — для резюме и LinkedIn.</p>
     </div>
 
-
     <form action="{% url 'courses_list' %}" method="get" class="hero-search">
       <input type="text" name="q" placeholder="Поиск курсов..." aria-label="Поиск курсов">
       <button type="submit">Поиск</button>
@@ -123,23 +122,46 @@
     
     <div class="courses-grid">
       {% for course in popular_courses %}
-        <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
-          <div class="course-card">
-            <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
-                 alt="{{ course.title }}"
-                 loading="lazy"
-                 width="400"
-                 height="225">
-            <div class="course-card-content">
-              <h3>{{ course.title }}</h3>
-              <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
-              <div class="course-meta">
-                <span class="course-duration">⏱️ {{ course.duration|default:"8 недель" }}</span>
-                <span class="course-level">{{ course.level|default:"Начальный" }}</span>
+        {% if course.course and course.course.slug %}
+          <!-- Карточка с ссылкой -->
+          <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
+            <div class="course-card">
+              <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
+                   alt="{{ course.title }}"
+                   loading="lazy"
+                   width="400"
+                   height="225">
+              <div class="course-card-content">
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
+                <div class="course-meta">
+                  <span class="course-duration">⏱️ {{ course.duration|default:"8 недель" }}</span>
+                  <span class="course-level">{{ course.level|default:"Начальный" }}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        {% else %}
+          <!-- Карточка без ссылки (в разработке) -->
+          <div class="course-card-link disabled" style="cursor: not-allowed;" title="Курс в разработке">
+            <div class="course-card">
+              <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
+                   alt="{{ course.title }}"
+                   loading="lazy"
+                   width="400"
+                   height="225">
+              <div class="course-card-content">
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
+                <div class="course-meta">
+                  <span class="course-duration">⏱️ {{ course.duration|default:"8 недель" }}</span>
+                  <span class="course-level">{{ course.level|default:"Начальный" }}</span>
+                  <span class="badge bg-warning text-dark mt-1 d-inline-block">В разработке</span>
+                </div>
               </div>
             </div>
           </div>
-        </a>
+        {% endif %}
       {% empty %}
         <div class="no-courses" style="text-align: center; grid-column: 1 / -1; padding: 3rem 1rem;">
           <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin-bottom: 1rem;">
@@ -293,4 +315,43 @@
 <!-- ТОЛЬКО эти 2 строки - НИКАКОГО inline JS -->
 <script defer src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script defer src="{% static 'js/home.js' %}?v=1.0"></script>
+
+<!-- Обработка кликов по карточкам в разработке -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Обработка кликов по карточкам в разработке
+  document.querySelectorAll('.course-card-link.disabled').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Создаем уведомление
+      const notification = document.createElement('div');
+      notification.className = 'alert alert-warning position-fixed';
+      notification.style.cssText = `
+        top: 20px;
+        right: 20px;
+        left: 20px;
+        max-width: 400px;
+        margin: 0 auto;
+        z-index: 9999;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      `;
+      notification.textContent = 'Этот курс в разработке и скоро будет доступен!';
+      
+      document.body.appendChild(notification);
+      
+      // Убираем уведомление через 3 секунды
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 3000);
+    });
+  });
+});
+</script>
 {% endblock %}
