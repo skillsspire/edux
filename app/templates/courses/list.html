@@ -44,7 +44,10 @@
     <!-- Сетка курсов -->
     <div class="courses-grid">
       {% for course in courses %}
-      <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
+      <!-- Исправленная строка с защитой от отсутствия slug -->
+      <a href="{% if course.course.slug %}{% url 'course_detail' course.course.slug %}{% else %}#{% endif %}" 
+         class="course-card-link" 
+         {% if not course.course.slug %}onclick="return false;" style="cursor: not-allowed;"{% endif %}>
         <article class="course-card">
           <img src="{{ course.image_url }}" alt="{{ course.title }}" class="course-card-img" loading="lazy">
 
@@ -73,6 +76,11 @@
               {% endif %}
               {% if course.has_certificate %}
                 🎓 Сертификат
+              {% endif %}
+              
+              <!-- Дополнительная индикация для курсов без slug -->
+              {% if not course.course.slug %}
+                <span class="badge bg-warning text-dark mt-1 d-inline-block">В разработке</span>
               {% endif %}
             </div>
           </div>
@@ -170,6 +178,7 @@
   display: flex;
   flex-direction: column;
   transition: all 0.25s ease;
+  height: 100%;
 }
 .course-card:hover {
   transform: translateY(-6px);
@@ -190,21 +199,30 @@
   font-size: 1.125rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
+  color: #1f2937;
 }
 .course-card-text {
   font-size: 0.95rem;
   color: var(--color-text-secondary);
   flex: 1;
+  line-height: 1.5;
 }
 .course-card-meta {
   font-size: 0.9rem;
   color: var(--color-text-secondary);
   margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f0f0f0;
 }
 .pagination-modern .page-link {
   border-radius: 8px;
   margin: 0 4px;
   padding: 0.6rem 1rem;
+  border: 1px solid var(--color-border);
+}
+.pagination-modern .page-item.active .page-link {
+  background-color: #01349D;
+  border-color: #01349D;
 }
 </style>
 {% endblock %}
@@ -222,6 +240,29 @@ document.querySelectorAll('.filter-select').forEach(el => {
 
     url.searchParams.delete('page');
     window.location.href = url.toString();
+  });
+});
+
+// Дополнительная защита для ссылок без slug
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.course-card-link[href="#"]').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Можно показать уведомление
+      const card = this.querySelector('.course-card');
+      const tempBadge = document.createElement('div');
+      tempBadge.className = 'alert alert-warning position-absolute';
+      tempBadge.style.cssText = 'top: 10px; right: 10px; left: 10px; z-index: 10; padding: 8px; font-size: 0.85rem;';
+      tempBadge.textContent = 'Курс в разработке, скоро будет доступен';
+      card.appendChild(tempBadge);
+      
+      setTimeout(() => {
+        if (card.contains(tempBadge)) {
+          card.removeChild(tempBadge);
+        }
+      }, 3000);
+    });
   });
 });
 </script>
