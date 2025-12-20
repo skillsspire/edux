@@ -71,6 +71,47 @@ def first_nonempty(*vals):
             return v
     return None
 
+# ============================================================
+# DTO-функции для консистентности данных
+# ============================================================
+
+def article_card_dto(article, request=None):
+    """Универсальный DTO для карточек статей"""
+    base_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
+    
+    return {
+        'id': article.id,
+        'title': article.title,
+        'slug': article.slug,
+        'excerpt': article.excerpt or '',
+        'created_at': article.created_at,
+        'category': article.category.name if article.category else None,
+        'category_slug': article.category.slug if article.category else None,
+        'image_url': base_url,
+        'url': reverse('article_detail', args=[article.slug]),
+        'view_count': getattr(article, 'view_count', 0),
+    }
+
+def course_card_dto(course, request=None):
+    """Универсальный DTO для карточек курсов"""
+    base_url = f"{settings.STATIC_URL}img/courses/course-placeholder.jpg"
+    
+    return {
+        'id': course.id,
+        'title': course.title,
+        'slug': course.slug,
+        'price': float(course.price or 0),
+        'short_description': course.short_description or '',
+        'category': {
+            'name': course.category.name if course.category else '',
+            'slug': course.category.slug if course.category else '',
+        },
+        'students_count': getattr(course, 'students_count', 
+                                course.enrollments.count() if hasattr(course, 'enrollments') else 0),
+        'image_url': base_url,
+        'url': reverse('course_detail', args=[course.slug]),
+    }
+
 @csrf_exempt
 def kaspi_webhook(request):
     if request.method != "POST":
@@ -183,10 +224,10 @@ def home(request):
             'id', 'title', 'slug', 'excerpt', 'created_at'
         ).order_by('-created_at')[:3]
         
-        # ✅ Исправляем имена переменных
-        featured_courses = list(featured_courses_qs)
-        popular_courses = list(popular_courses_qs)
-        latest_articles = list(latest_articles_qs)
+        # Используем DTO-функции
+        featured_courses = [course_card_dto(course) for course in featured_courses_qs]
+        popular_courses = [course_card_dto(course) for course in popular_courses_qs]
+        latest_articles = [article_card_dto(article) for article in latest_articles_qs]
         
         categories = []
         
@@ -252,26 +293,15 @@ def category_detail(request, slug):
             is_deleted=False
         ).select_related("category").only(
             'id', 'title', 'slug', 'price', 'short_description',
-            'created_at'  # ✅ Убрали students_count
+            'created_at'
         ).order_by('-created_at')
         
         paginator = Paginator(courses_qs, 12)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
         
-        courses_with_images = []
-        for course in page_obj:
-            # ✅ Заменяем обращение к students_count на .enrollments.count()
-            courses_with_images.append({
-                'id': course.id,
-                'title': course.title,
-                'slug': course.slug,
-                'price': float(course.price or 0),
-                'short_description': course.short_description[:100] if course.short_description else '',
-                'students_count': course.enrollments.count(),  # ✅ Используем count()
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{course.slug}/",
-            })
+        # Используем DTO
+        courses_with_images = [course_card_dto(course) for course in page_obj]
         
         context = {
             "category": category,
@@ -343,27 +373,8 @@ def courses_list(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    courses_with_images = []
-    for course in page_obj:
-        if hasattr(course, 'students_count'):
-            students_count = course.students_count
-        else:
-            students_count = course.enrollments.count()
-            
-        courses_with_images.append({
-            'id': course.id,
-            'title': course.title,
-            'slug': course.slug,
-            'price': float(course.price or 0),
-            'short_description': course.short_description[:100] if course.short_description else '',
-            'category': {
-                'name': course.category.name if course.category else '',
-                'slug': course.category.slug if course.category else '',
-            },
-            'students_count': students_count,
-            'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-            'url': f"/courses/{course.slug}/",
-        })
+    # Используем DTO
+    courses_with_images = [course_card_dto(course) for course in page_obj]
 
     try:
         categories = list(Category.objects.filter(
@@ -389,23 +400,21 @@ def courses_list(request):
 def articles_list(request):
     articles_qs = Article.objects.filter(
         status='published'
-    ).order_by('-created_at')
+    ).select_related('category').order_by('-created_at')
 
-    articles = []
-    for article in articles_qs:
-        articles.append({
-            'id': article.id,
-            'title': article.title,
-            'slug': article.slug,
-            'excerpt': article.excerpt or '',
-            'created_at': article.created_at,
-            'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
-            'url': f"/articles/{article.slug}/",
-        })
+    # Используем DTO и корректно разделяем featured и остальные
+    articles_dto = [article_card_dto(article) for article in articles_qs]
+    
+    featured_article = articles_dto[0] if articles_dto else None
+    rest_articles = articles_dto[1:] if len(articles_dto) > 1 else []
 
-    return render(request, "articles/list.html", {
-        "articles": articles
-    })
+    context = {
+        "articles": articles_dto,  # Для обратной совместимости
+        "featured_article": featured_article,
+        "rest_articles": rest_articles,
+    }
+    
+    return render(request, "articles/list.html", context)
 
 def article_detail(request, slug):
     cache_key = f'article_detail_{slug}'
@@ -419,41 +428,32 @@ def article_detail(request, slug):
         article_obj = Article.objects.filter(
             slug=slug,
             status=Article.PUBLISHED
-        ).only(
+        ).select_related('category').only(
             'id', 'title', 'slug', 'body', 'excerpt', 
-            'created_at', 'author_id', 'category_id'
+            'created_at', 'author_id', 'category_id',
+            'category__name', 'category__slug'
         ).order_by('id').first()
         
         if not article_obj:
             raise Http404("Статья не найдена")
         
-        article_data = {
-            'id': article_obj.id,
-            'title': article_obj.title,
-            'slug': article_obj.slug,
+        # Создаем DTO для детальной статьи
+        article_data = article_card_dto(article_obj)
+        article_data.update({
             'body': article_obj.body or "",
-            'excerpt': article_obj.excerpt or "",
-            'created_at': article_obj.created_at,
-            'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
-        }
+            'category_name': article_obj.category.name if article_obj.category else "",
+            'category_slug': article_obj.category.slug if article_obj.category else "",
+        })
         
         latest_qs = Article.objects.filter(
             status=Article.PUBLISHED
         ).exclude(
             pk=article_obj.pk
-        ).only(
-            'id', 'title', 'slug', 'created_at'
+        ).select_related('category').only(
+            'id', 'title', 'slug', 'created_at', 'category__name'
         ).order_by('-created_at')[:4]
         
-        latest_articles = []
-        for article in latest_qs:
-            latest_articles.append({
-                'id': article.id,
-                'title': article.title,
-                'slug': article.slug,
-                'image_url': f"{settings.STATIC_URL}img/articles/article-placeholder.jpg",
-                'url': f"/articles/{article.slug}/",
-            })
+        latest_articles = [article_card_dto(article) for article in latest_qs]
         
         context = {
             "article": article_data,
@@ -463,6 +463,8 @@ def article_detail(request, slug):
         if not request.user.is_authenticated:
             cache.set(cache_key, context, 900)
         
+    except Article.DoesNotExist:
+        raise Http404("Статья не найдена")
     except Exception as e:
         logger.error(f"Ошибка загрузки статьи {slug}: {str(e)}", exc_info=True)
         raise Http404("Статья не найдена")
@@ -520,29 +522,19 @@ def course_detail(request, slug):
             'id', 'title', 'slug', 'price', 'short_description', 'description',
             'category_id', 'category__name', 'category__slug',
             'instructor_id', 'instructor__first_name', 'instructor__last_name',
-            'created_at'  # ✅ Убрали students_count
+            'created_at'
         ).order_by('id').first()
         
         if not course_obj:
             raise Http404("Курс не найден")
         
-        course_data = {
-            'id': course_obj.id,
-            'title': course_obj.title,
-            'slug': course_obj.slug,
-            'price': float(course_obj.price or 0),
-            'short_description': course_obj.short_description or "",
+        course_data = course_card_dto(course_obj)
+        course_data.update({
             'description': course_obj.description or "",
-            'category': {
-                'name': course_obj.category.name if course_obj.category else "",
-                'slug': course_obj.category.slug if course_obj.category else "",
-            },
             'instructor': {
                 'name': f"{course_obj.instructor.first_name or ''} {course_obj.instructor.last_name or ''}".strip() if course_obj.instructor else "",
             },
-            'students_count': course_obj.enrollments.count(),  # ✅ Используем count()
-            'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-        }
+        })
 
         has_access = False
         is_in_wishlist = False
@@ -574,17 +566,7 @@ def course_detail(request, slug):
             'id', 'title', 'slug', 'price', 'short_description'
         )[:4]
         
-        related_courses = []
-        for course in related_courses_qs:
-            related_courses.append({
-                'id': course.id,
-                'title': course.title,
-                'slug': course.slug,
-                'price': float(course.price or 0),
-                'short_description': course.short_description[:80] if course.short_description else '',
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{course.slug}/",
-            })
+        related_courses = [course_card_dto(course) for course in related_courses_qs]
 
         reviews = list(Review.objects.filter(
             course=course_obj, 
@@ -609,6 +591,8 @@ def course_detail(request, slug):
         if not request.user.is_authenticated:
             cache.set(cache_key, context, 600)
         
+    except Course.DoesNotExist:
+        raise Http404("Курс не найден")
     except Exception as e:
         logger.error(f"Ошибка загрузки курса {slug}: {str(e)}", exc_info=True)
         raise Http404("Курс не найден")
@@ -705,12 +689,7 @@ def lesson_detail(request, course_slug, lesson_slug):
                 messages.error(request, "У вас нет доступа к этому уроку")
                 return redirect("course_detail", slug=course_slug)
         
-        course_data = {
-            'id': course_obj.id,
-            'title': course_obj.title,
-            'slug': course_obj.slug,
-            'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-        }
+        course_data = course_card_dto(course_obj)
 
         try:
             lesson = Lesson.objects.filter(
@@ -725,6 +704,8 @@ def lesson_detail(request, course_slug, lesson_slug):
             if not lesson:
                 raise Http404("Урок не найден")
                 
+        except Lesson.DoesNotExist:
+            raise Http404("Урок не найден")
         except Exception:
             messages.error(request, "Урок недоступен")
             return redirect("course_detail", slug=course_slug)
@@ -1332,7 +1313,7 @@ def instructor_courses(request):
             Q(staff__user=request.user, staff__role__in=['owner', 'instructor'])
         ).distinct().select_related('category').only(
             'id', 'title', 'slug', 'status', 'category__name',
-            'created_at'  # ✅ Убрали students_count
+            'created_at'
         ).order_by('-created_at')
         
         courses_with_stats = []
@@ -1956,10 +1937,8 @@ def sitemap(request):
                 'priority': '0.8',
             })
         
-        # ✅ Исправляем - убираем is_deleted для Article
         articles = Article.objects.filter(
             status=Article.PUBLISHED
-            # is_deleted=False  # ⬅️ УБИРАЕМ
         ).only('slug', 'updated_at')[:1000]
         
         for article in articles:
