@@ -1,4 +1,3 @@
-```html
 {% extends "base.html" %}
 {% load static %}
 {% load i18n %}
@@ -31,9 +30,7 @@
 <section class="courses-section">
     <div class="container">
 
-        <form method="get"
-              class="filters-form"
-              style="position:sticky;top:90px;z-index:20">
+        <form method="get" class="filters-form" style="position:sticky;top:90px;z-index:20">
 
             {% if q %}
                 <input type="hidden" name="q" value="{{ q }}">
@@ -42,9 +39,7 @@
             <select name="category" onchange="this.form.submit()">
                 <option value="">Все категории</option>
                 {% for cat in categories %}
-                    <option value="{{ cat.slug }}"
-                        {% if cat.slug == request.GET.category %}selected{% endif %}
-                    >
+                    <option value="{{ cat.slug }}" {% if cat.slug == request.GET.category %}selected{% endif %}>
                         {{ cat.name }}
                     </option>
                 {% endfor %}
@@ -52,27 +47,15 @@
 
             <select name="price" onchange="this.form.submit()">
                 <option value="">Все</option>
-                <option value="free" {% if request.GET.price == "free" %}selected{% endif %}>
-                    Бесплатные
-                </option>
-                <option value="paid" {% if request.GET.price == "paid" %}selected{% endif %}>
-                    Платные
-                </option>
+                <option value="free" {% if request.GET.price == "free" %}selected{% endif %}>Бесплатные</option>
+                <option value="paid" {% if request.GET.price == "paid" %}selected{% endif %}>Платные</option>
             </select>
 
             <select name="sort" onchange="this.form.submit()">
-                <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>
-                    Сначала новые
-                </option>
-                <option value="popular" {% if sort_by == "popular" %}selected{% endif %}>
-                    По популярности
-                </option>
-                <option value="price_low" {% if sort_by == "price_low" %}selected{% endif %}>
-                    Цена ↑
-                </option>
-                <option value="price_high" {% if sort_by == "price_high" %}selected{% endif %}>
-                    Цена ↓
-                </option>
+                <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>Сначала новые</option>
+                <option value="popular" {% if sort_by == "popular" %}selected{% endif %}>По популярности</option>
+                <option value="price_low" {% if sort_by == "price_low" %}selected{% endif %}>Цена ↑</option>
+                <option value="price_high" {% if sort_by == "price_high" %}selected{% endif %}>Цена ↓</option>
             </select>
 
         </form>
@@ -82,66 +65,50 @@
             {% for course in courses %}
                 <a href="{{ course.url }}" class="course-card card-hover">
 
-                    <div class="badge">
-                        {% if course.is_new %}
-                            <span class="course-category" style="background:var(--color-accent-cyan)">Новинка</span>
-                        {% endif %}
-                        {% if course.students_count|default:0 >= 100 %}
-                            <span class="course-category" style="background:var(--color-accent-warm)">Хит</span>
-                        {% endif %}
-                    </div>
-
-                    <img
-                        src="{{ course.image_url }}"
-                        alt="{{ course.title }}"
-                        class="course-card-img"
-                        loading="lazy"
-                    >
-
-                    <div class="course-card-content">
-
+                    <div class="course-card-header">
                         {% if course.category.name %}
-                            <span class="course-category">
-                                {{ course.category.name }}
-                            </span>
+                            <span class="course-category">{{ course.category.name }}</span>
                         {% endif %}
 
-                        <h3 class="course-card-title">
-                            {{ course.title }}
-                        </h3>
-
-                        <p class="course-card-text">
-                            {{ course.short_description|truncatechars:120 }}
-                        </p>
-
-                        <div class="course-card-meta">
-                            <div class="course-rating">
-                                ⭐ {{ course.students_count|default:"0" }}
-                            </div>
-                            <div class="course-price">
-                                {% if course.price == 0 %}
-                                    Бесплатно
-                                {% else %}
-                                    {{ course.price }} ₸
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="course-card-meta text-sm">
-                            {% if course.level %}
-                                <span>Уровень: {{ course.level }}</span>
+                        <div class="course-badges">
+                            {% if course.is_new %}
+                                <span class="badge badge-new">Новинка</span>
                             {% endif %}
-                            {% if course.duration %}
-                                <span>{{ course.duration }} ч</span>
+                            {% if course.students_count|default:0 >= 100 %}
+                                <span class="badge badge-hit">Хит</span>
                             {% endif %}
                         </div>
-
                     </div>
+
+                    <h3 class="course-card-title">{{ course.title }}</h3>
+
+                    <p class="course-card-text">
+                        {{ course.short_description|truncatechars:120 }}
+                    </p>
+
+                    <div class="course-meta">
+                        {% if course.level %}
+                            <span>📈 {{ course.level }}</span>
+                        {% endif %}
+                        {% if course.duration %}
+                            <span>⏱ {{ course.duration }} ч</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="course-footer">
+                        <span class="course-students">👥 {{ course.students_count|default:"0" }}</span>
+                        <span class="course-price">
+                            {% if course.price == 0 %}
+                                Бесплатно
+                            {% else %}
+                                {{ course.price }} ₸
+                            {% endif %}
+                        </span>
+                    </div>
+
                 </a>
             {% empty %}
-                <p class="text-center text-lg">
-                    Курсы скоро появятся 🚀
-                </p>
+                <p class="text-center text-lg">Курсы скоро появятся 🚀</p>
             {% endfor %}
 
         </div>
@@ -172,4 +139,3 @@
 </section>
 
 {% endblock %}
-```
