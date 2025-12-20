@@ -32,11 +32,17 @@
         {% if articles %}
             {% with first=articles.0 %}
             <div class="featured-article">
-                <a href="{% url 'article_detail' first.slug %}" class="featured-link">
+                <a href="{{ first.url }}" class="featured-link">
                     <div class="featured-content">
                         <div class="featured-meta">
                             {% if first.category %}
-                            <span class="category-badge">{{ first.category.name }}</span>
+                            <span class="category-badge">
+                                {% if first.category.name %}
+                                    {{ first.category.name }}
+                                {% else %}
+                                    {{ first.category }}
+                                {% endif %}
+                            </span>
                             {% endif %}
                             <span class="reading-time">⏱️ 5 мин чтения</span>
                         </div>
@@ -48,7 +54,7 @@
                         <div class="featured-footer">
                             <div class="author-info">
                                 <span class="author-name">Автор: SkillsSpire</span>
-                                <span class="publish-date">{{ first.article.published_at|date:"d.m.Y"|default:first.article.created_at|date:"d.m.Y" }}</span>
+                                <span class="publish-date">{{ first.created_at|date:"d.m.Y" }}</span>
                             </div>
                             <span class="read-more">Читать →</span>
                         </div>
@@ -59,15 +65,21 @@
             
             <!-- Сетка статей -->
             <div class="articles-grid">
-                {% for article in articles|slice:"1:" %}
+                {% for article in rest_articles %}
                 <article class="article-card">
-                    <a href="{% url 'article_detail' article.slug %}" class="article-link">
+                    <a href="{{ article.url }}" class="article-link">
                         <div class="article-content">
                             <div class="article-meta">
                                 {% if article.category %}
-                                <span class="category-tag">{{ article.category.name }}</span>
+                                <span class="category-tag">
+                                    {% if article.category.name %}
+                                        {{ article.category.name }}
+                                    {% else %}
+                                        {{ article.category }}
+                                    {% endif %}
+                                </span>
                                 {% endif %}
-                                <span class="article-date">{{ article.published_at|date:"d.m.Y"|default:article.created_at|date:"d.m.Y" }}</span>
+                                <span class="article-date">{{ article.created_at|date:"d.m.Y" }}</span>
                             </div>
                             
                             <h3 class="article-title">{{ article.title }}</h3>
@@ -76,7 +88,14 @@
                             
                             <div class="article-footer">
                                 <span class="stats">
-                                    <span class="views">👁️ {{ article.view_count|default:"0" }} просмотров</span>
+                                    <span class="views">👁️ 
+                                        {% if article.view_count %}
+                                            {{ article.view_count }} 
+                                        {% else %}
+                                            0
+                                        {% endif %}
+                                        просмотров
+                                    </span>
                                 </span>
                                 <span class="read-time">→</span>
                             </div>

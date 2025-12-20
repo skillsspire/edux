@@ -1,98 +1,82 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Бесплатные курсы от профессоров — SkillsSpire{% endblock %}
+{% block title %}Статьи о финансах и аналитике — SkillsSpire{% endblock %}
 
 {% block content %}
-<section class="section courses-section py-5">
+<section class="section articles-section py-5">
   <div class="container">
-
+    
     <!-- Заголовок -->
     <div class="section-header text-center mb-5">
-      <h1 class="fw-bold mb-3">Бесплатные курсы от профессоров</h1>
+      <h1 class="fw-bold mb-3">Статьи о финансах и аналитике</h1>
       <p class="lead text-secondary">
-        Учись бесплатно. Сертификаты доступны за символическую плату.
-      </p>
-      <p class="text-muted mt-2">
-        На платформе <strong>SkillsSpire</strong> доступны онлайн-курсы по финансам, аналитике, менеджменту и экономике.<br>
-        После прохождения курса вы можете получить академический сертификат для резюме и поступления за рубеж.
+        Исследования, кейсы и аналитика от профессоров и экспертов
       </p>
     </div>
 
-    <!-- Фильтры -->
-    <div class="filters-form shadow-sm mb-5">
-      <select class="filter-select" data-param="level">
-        <option value="">Все уровни</option>
-        <option value="beginner" {% if request.GET.level == 'beginner' %}selected{% endif %}>Начинающий</option>
-        <option value="intermediate" {% if request.GET.level == 'intermediate' %}selected{% endif %}>Средний</option>
-        <option value="advanced" {% if request.GET.level == 'advanced' %}selected{% endif %}>Продвинутый</option>
-      </select>
-
-      <select class="filter-select" data-param="certificate">
-        <option value="">Все курсы</option>
-        <option value="available" {% if request.GET.certificate == 'available' %}selected{% endif %}>С сертификатом</option>
-        <option value="not_available" {% if request.GET.certificate == 'not_available' %}selected{% endif %}>Без сертификата</option>
-      </select>
-
-      <select class="filter-select" data-param="sort">
-        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Сначала новые</option>
-        <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Популярные</option>
-        <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>По рейтингу</option>
-      </select>
-    </div>
-
-    <!-- Сетка курсов -->
-    <div class="courses-grid">
-      {% for course in courses %}
-      <!-- Исправленная строка: используем course.slug вместо course.course.slug -->
-      <a href="{% if course.slug %}{% url 'course_detail' course.slug %}{% else %}#{% endif %}" 
-         class="course-card-link" 
-         {% if not course.slug %}onclick="return false;" style="cursor: not-allowed;"{% endif %}>
-        <article class="course-card">
-          <img src="{{ course.image_url }}" alt="{{ course.title }}" class="course-card-img" loading="lazy">
-
-          <div class="course-card-content">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              {% if course.type == 'profession' %}
-                <span class="badge bg-primary">Профессия</span>
-              {% else %}
-                <span class="badge bg-secondary">Курс</span>
-              {% endif %}
-
-              {% if course.is_popular %}
-                <span class="badge bg-danger">Хит продаж</span>
-              {% endif %}
+    <!-- Главная статья -->
+    {% if featured_articles and featured_articles.first %}
+      {% with first=featured_articles.first %}
+      <div class="main-article-card mb-5">
+        <a href="{{ first.url }}" class="text-decoration-none text-dark">
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="main-article-image">
+                <img src="{{ first.image_url|default:'/static/images/article-default.jpg' }}" 
+                     alt="{{ first.title }}" 
+                     class="img-fluid rounded-3" loading="lazy">
+              </div>
             </div>
-
-            <h3 class="course-card-title">{{ course.title }}</h3>
-            <p class="course-card-text">
-              {{ course.short_description|default:course.description|truncatewords:22 }}
-            </p>
-
-            <!-- нижний блок -->
-            <div class="course-card-meta mt-auto small text-muted">
-              {% if course.duration_hours %}
-                ⏱ {{ course.duration_hours }} ч{% if course.has_certificate %} • {% endif %}
-              {% endif %}
-              {% if course.has_certificate %}
-                🎓 Сертификат
-              {% endif %}
-              
-              <!-- Дополнительная индикация для курсов без slug -->
-              {% if not course.slug %}
-                <span class="badge bg-warning text-dark mt-1 d-inline-block">В разработке</span>
-              {% endif %}
+            <div class="col-lg-6 d-flex flex-column">
+              <div class="mb-3">
+                <span class="badge bg-primary">Главная</span>
+                <span class="text-muted ms-3">
+                  <!-- ИСПРАВЛЕНО: используем first.created_at вместо first.article.published_at -->
+                  {{ first.created_at|date:"d.m.Y" }}
+                </span>
+              </div>
+              <h2 class="h3 mb-3">{{ first.title }}</h2>
+              <p class="text-muted flex-grow-1">
+                {{ first.excerpt|default:""|truncatewords:50 }}
+              </p>
+              <div class="d-flex align-items-center mt-3">
+                <span class="text-primary fw-semibold">Читать статью →</span>
+              </div>
             </div>
           </div>
-        </article>
-      </a>
+        </a>
+      </div>
+      {% endwith %}
+    {% endif %}
 
+    <!-- Сетка статей -->
+    <div class="articles-grid mb-5">
+      {% for article in articles %}
+      <article class="article-card">
+        <a href="{{ article.url }}" class="text-decoration-none text-dark">
+          <div class="article-image mb-3">
+            <img src="{{ article.image_url|default:'/static/images/article-default.jpg' }}" 
+                 alt="{{ article.title }}" 
+                 class="img-fluid rounded-2" loading="lazy">
+          </div>
+          <div class="mb-2">
+            <span class="text-muted small">
+              <!-- ИСПРАВЛЕНО: используем article.created_at вместо article.published_at -->
+              {{ article.created_at|date:"d.m.Y" }}
+            </span>
+          </div>
+          <h3 class="h5 mb-2">{{ article.title }}</h3>
+          <p class="text-muted small">
+            {{ article.excerpt|default:""|truncatewords:25 }}
+          </p>
+        </a>
+      </article>
       {% empty %}
       <div class="col-12 text-center py-5">
-        <i class="bi bi-search" style="font-size:3rem;color:#cbd5e0;"></i>
-        <h4 class="text-muted mt-3">Курсы не найдены</h4>
-        <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
-        <a href="{% url 'courses_list' %}" class="btn btn-primary mt-3">Сбросить фильтры</a>
+        <i class="bi bi-journal-text" style="font-size:3rem;color:#cbd5e0;"></i>
+        <h4 class="text-muted mt-3">Статьи не найдены</h4>
+        <p class="text-muted">Скоро появятся новые публикации</p>
       </div>
       {% endfor %}
     </div>
@@ -101,11 +85,10 @@
     {% if is_paginated %}
     <nav class="mt-5 pagination-modern" aria-label="Навигация по страницам">
       <ul class="pagination justify-content-center">
-
         {% if page_obj.has_previous %}
         <li class="page-item">
           <a class="page-link"
-             href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+             href="?page={{ page_obj.previous_page_number }}">
             Назад
           </a>
         </li>
@@ -115,7 +98,7 @@
         {% if num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
         <li class="page-item {% if num == page_obj.number %}active{% endif %}">
           <a class="page-link"
-             href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+             href="?page={{ num }}">
             {{ num }}
           </a>
         </li>
@@ -125,7 +108,7 @@
         {% if page_obj.has_next %}
         <li class="page-item">
           <a class="page-link"
-             href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+             href="?page={{ page_obj.next_page_number }}">
             Вперед
           </a>
         </li>
@@ -139,80 +122,35 @@
 
 {% block extra_css %}
 <style>
-.courses-section {
+.articles-section {
   background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
 }
-.filters-form {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
+.main-article-card {
   background: #fff;
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
-.filters-form select {
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-white);
-  font-size: 1rem;
-}
-.courses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.8rem;
-}
-.course-card-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.course-card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.25s ease;
-  height: 100%;
-}
-.course-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-}
-.course-card-img {
+.main-article-image img {
   width: 100%;
-  height: 200px;
+  height: 320px;
   object-fit: cover;
 }
-.course-card-content {
-  padding: 1.25rem 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+.articles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
 }
-.course-card-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #1f2937;
+.article-card {
+  transition: transform 0.25s ease;
 }
-.course-card-text {
-  font-size: 0.95rem;
-  color: var(--color-text-secondary);
-  flex: 1;
-  line-height: 1.5;
+.article-card:hover {
+  transform: translateY(-4px);
 }
-.course-card-meta {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f0f0f0;
+.article-image img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
 }
 .pagination-modern .page-link {
   border-radius: 8px;
@@ -225,45 +163,4 @@
   border-color: #01349D;
 }
 </style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.querySelectorAll('.filter-select').forEach(el => {
-  el.addEventListener('change', () => {
-    const url = new URL(window.location.href);
-    const param = el.dataset.param;
-    const value = el.value;
-
-    if (value) url.searchParams.set(param, value);
-    else url.searchParams.delete(param);
-
-    url.searchParams.delete('page');
-    window.location.href = url.toString();
-  });
-});
-
-// Дополнительная защита для ссылок без slug
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.course-card-link[href="#"]').forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      // Показываем уведомление
-      const card = this.querySelector('.course-card');
-      const tempBadge = document.createElement('div');
-      tempBadge.className = 'alert alert-warning position-absolute';
-      tempBadge.style.cssText = 'top: 10px; right: 10px; left: 10px; z-index: 10; padding: 8px; font-size: 0.85rem;';
-      tempBadge.textContent = 'Курс в разработке, скоро будет доступен';
-      card.appendChild(tempBadge);
-      
-      setTimeout(() => {
-        if (card.contains(tempBadge)) {
-          card.removeChild(tempBadge);
-        }
-      }, 3000);
-    });
-  });
-});
-</script>
 {% endblock %}
