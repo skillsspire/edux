@@ -44,10 +44,10 @@
     <!-- Сетка курсов -->
     <div class="courses-grid">
       {% for course in courses %}
-      <!-- Исправленная строка с защитой от отсутствия slug -->
-      <a href="{% if course.course.slug %}{% url 'course_detail' course.course.slug %}{% else %}#{% endif %}" 
+      <!-- Исправленная строка: используем course.slug вместо course.course.slug -->
+      <a href="{% if course.slug %}{% url 'course_detail' course.slug %}{% else %}#{% endif %}" 
          class="course-card-link" 
-         {% if not course.course.slug %}onclick="return false;" style="cursor: not-allowed;"{% endif %}>
+         {% if not course.slug %}onclick="return false;" style="cursor: not-allowed;"{% endif %}>
         <article class="course-card">
           <img src="{{ course.image_url }}" alt="{{ course.title }}" class="course-card-img" loading="lazy">
 
@@ -66,7 +66,7 @@
 
             <h3 class="course-card-title">{{ course.title }}</h3>
             <p class="course-card-text">
-              {{ course.short_description|default:course.course.description|truncatewords:22 }}
+              {{ course.short_description|default:course.description|truncatewords:22 }}
             </p>
 
             <!-- нижний блок -->
@@ -79,7 +79,7 @@
               {% endif %}
               
               <!-- Дополнительная индикация для курсов без slug -->
-              {% if not course.course.slug %}
+              {% if not course.slug %}
                 <span class="badge bg-warning text-dark mt-1 d-inline-block">В разработке</span>
               {% endif %}
             </div>
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
     link.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      // Можно показать уведомление
+      // Показываем уведомление
       const card = this.querySelector('.course-card');
       const tempBadge = document.createElement('div');
       tempBadge.className = 'alert alert-warning position-absolute';
