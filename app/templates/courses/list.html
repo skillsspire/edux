@@ -30,65 +30,66 @@
 <section class="courses-section">
     <div class="container">
 
-        <form method="get" class="filters-form" style="position:sticky;top:90px;z-index:20">
-
+        <!-- Обновленные фильтры -->
+        <form method="get" class="courses-filters">
             {% if q %}
                 <input type="hidden" name="q" value="{{ q }}">
             {% endif %}
 
-            <select name="category" onchange="this.form.submit()">
-                <option value="">Все категории</option>
-                {% for cat in categories %}
-                    <option value="{{ cat.slug }}" {% if cat.slug == request.GET.category %}selected{% endif %}>
-                        {{ cat.name }}
-                    </option>
-                {% endfor %}
-            </select>
+            <div class="filters-row">
+                <select name="category" onchange="this.form.submit()">
+                    <option value="">Все категории</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.slug }}" {% if cat.slug == request.GET.category %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
 
-            <select name="price" onchange="this.form.submit()">
-                <option value="">Все</option>
-                <option value="free" {% if request.GET.price == "free" %}selected{% endif %}>Бесплатные</option>
-                <option value="paid" {% if request.GET.price == "paid" %}selected{% endif %}>Платные</option>
-            </select>
+                <select name="price" onchange="this.form.submit()">
+                    <option value="">Все цены</option>
+                    <option value="free" {% if request.GET.price == "free" %}selected{% endif %}>Бесплатные</option>
+                    <option value="paid" {% if request.GET.price == "paid" %}selected{% endif %}>Платные</option>
+                </select>
 
-            <select name="sort" onchange="this.form.submit()">
-                <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>Сначала новые</option>
-                <option value="popular" {% if sort_by == "popular" %}selected{% endif %}>По популярности</option>
-                <option value="price_low" {% if sort_by == "price_low" %}selected{% endif %}>Цена ↑</option>
-                <option value="price_high" {% if sort_by == "price_high" %}selected{% endif %}>Цена ↓</option>
-            </select>
-
+                <select name="sort" onchange="this.form.submit()">
+                    <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>Сначала новые</option>
+                    <option value="popular" {% if sort_by == "popular" %}selected{% endif %}>По популярности</option>
+                    <option value="price_low" {% if sort_by == "price_low" %}selected{% endif %}>Цена ↑</option>
+                    <option value="price_high" {% if sort_by == "price_high" %}selected{% endif %}>Цена ↓</option>
+                </select>
+            </div>
         </form>
 
         <div class="courses-grid">
-
             {% for course in courses %}
-                <a href="{{ course.url }}" class="course-card card-hover">
-
-                    <div class="course-card-header">
-                        {% if course.category.name %}
-                            <span class="course-category">{{ course.category.name }}</span>
-                        {% endif %}
-
-                        <div class="course-badges">
-                            {% if course.is_new %}
-                                <span class="badge badge-new">Новинка</span>
-                            {% endif %}
-                            {% if course.students_count|default:0 >= 100 %}
-                                <span class="badge badge-hit">Хит</span>
-                            {% endif %}
+                <a href="{{ course.url }}" class="course-card-academic card-hover">
+                    
+                    {% if course.category.name %}
+                        <div class="course-category">
+                            {{ course.category.name }}
                         </div>
+                    {% endif %}
+
+                    <div class="course-badges">
+                        {% if course.is_featured %}
+                            <span class="badge badge-recommended">Рекомендуем</span>
+                        {% elif course.is_new %}
+                            <span class="badge badge-new">Новинка</span>
+                        {% elif course.level == "beginner" %}
+                            <span class="badge badge-level">Для начинающих</span>
+                        {% endif %}
                     </div>
 
                     <h3 class="course-card-title">{{ course.title }}</h3>
 
                     <p class="course-card-text">
-                        {{ course.short_description|truncatechars:120 }}
+                        {{ course.short_description|truncatechars:140 }}
                     </p>
 
                     <div class="course-meta">
-                        {% if course.level %}
-                            <span>📈 {{ course.level }}</span>
+                        {% if course.level and course.level != "beginner" %}
+                            <span>📈 {{ course.level|capfirst }}</span>
                         {% endif %}
                         {% if course.duration %}
                             <span>⏱ {{ course.duration }} ч</span>
@@ -96,7 +97,7 @@
                     </div>
 
                     <div class="course-footer">
-                        <span class="course-students">👥 {{ course.students_count|default:"0" }}</span>
+                        <span class="course-students">👥 {{ course.students_count|default:"0" }} студентов</span>
                         <span class="course-price">
                             {% if course.price == 0 %}
                                 Бесплатно
@@ -106,28 +107,46 @@
                         </span>
                     </div>
 
+                    <!-- Preview panel (CSS-only, только на desktop) -->
+                    <div class="course-preview">
+                        <ul>
+                            {% if course.level %}
+                                <li>{{ course.level|capfirst }} уровень</li>
+                            {% endif %}
+                            {% if course.duration %}
+                                <li>{{ course.duration }} часов практики</li>
+                            {% endif %}
+                            <li>Пошаговые задания</li>
+                        </ul>
+                        <span class="preview-cta">Подробнее →</span>
+                    </div>
+
                 </a>
             {% empty %}
-                <p class="text-center text-lg">Курсы скоро появятся 🚀</p>
+                <div class="empty-courses" style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem;">
+                    <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin-bottom: 1rem;">
+                        Курсы скоро появятся 🚀
+                    </p>
+                    <a href="{% url 'courses_list' %}" class="btn btn-primary">Сбросить фильтры</a>
+                </div>
             {% endfor %}
-
         </div>
 
         {% if is_paginated %}
-            <div class="text-center mt-4">
+            <div class="pagination-container">
                 {% if page_obj.has_previous %}
-                    <a class="btn btn-outline"
+                    <a class="pagination-btn"
                        href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
                         ← Назад
                     </a>
                 {% endif %}
 
-                <span class="text-sm">
+                <span class="pagination-info">
                     Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
                 </span>
 
                 {% if page_obj.has_next %}
-                    <a class="btn btn-outline"
+                    <a class="pagination-btn"
                        href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
                         Вперёд →
                     </a>
@@ -138,4 +157,424 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ====== ОБЩИЕ СТИЛИ ====== */
+.courses-section {
+    padding: 2rem 1rem 4rem;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ====== ФИЛЬТРЫ ====== */
+.courses-filters {
+    position: sticky;
+    top: 80px;
+    z-index: 20;
+    margin-bottom: 32px;
+}
+
+.filters-row {
+    display: flex;
+    gap: 12px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid #e6e9ef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.filters-row select {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #dfe3eb;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 160px;
+    transition: all 0.2s ease;
+}
+
+.filters-row select:hover {
+    border-color: #c7d1e4;
+}
+
+.filters-row select:focus {
+    outline: none;
+    border-color: #2f5be7;
+    box-shadow: 0 0 0 3px rgba(47, 91, 231, 0.1);
+}
+
+/* ====== СЕТКА КАРТОЧЕК ====== */
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.course-card-academic {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    min-height: 260px;
+}
+
+/* Hover только на desktop с поддержкой мыши */
+@media (hover: hover) and (pointer: fine) {
+    .course-card-academic:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        border-color: #dbeafe;
+    }
+    
+    .course-card-academic:hover .course-card-title {
+        color: #1d4ed8;
+    }
+}
+
+/* ====== СОДЕРЖАНИЕ КАРТОЧКИ ====== */
+.course-category {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2f5be7;
+    margin-bottom: 10px;
+}
+
+.course-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+
+.badge-recommended {
+    background: #ecfeff;
+    color: #0369a1;
+}
+
+.badge-level {
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.badge-new {
+    background: #eef3ff;
+    color: #2f5be7;
+}
+
+.course-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 10px;
+    color: #111827;
+    transition: color 0.2s ease;
+}
+
+.course-card-text {
+    font-size: 14px;
+    line-height: 1.45;
+    color: #4b5563;
+    margin-bottom: 14px;
+    flex: 1;
+}
+
+.course-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 12px;
+}
+
+.course-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #374151;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.course-students {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.course-price {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* ====== ПРЕВЬЮ-ПАНЕЛЬ ====== */
+.course-preview {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    font-size: 12.5px;
+    color: #6b7280;
+    margin-top: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .course-card-academic:hover .course-preview {
+        opacity: 1;
+        max-height: 120px;
+        margin-top: 12px;
+    }
+}
+
+.course-preview ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px 0;
+}
+
+.course-preview li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 4px;
+}
+
+.course-preview li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #9ca3af;
+}
+
+.preview-cta {
+    display: inline-block;
+    color: #2f5be7;
+    font-weight: 500;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* ====== ПАГИНАЦИЯ ====== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* ====== ПУСТОЕ СОСТОЯНИЕ ====== */
+.empty-courses {
+    text-align: center;
+    padding: 4rem 1rem;
+    background: #f9fafb;
+    border-radius: 16px;
+}
+
+.empty-courses p {
+    color: #6b7280;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 768px) {
+    .courses-section {
+        padding: 1.5rem 1rem 3rem;
+    }
+    
+    .filters-row {
+        flex-direction: column;
+        padding: 12px;
+    }
+    
+    .filters-row select {
+        min-width: 100%;
+    }
+    
+    .courses-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .course-card-academic {
+        padding: 16px;
+    }
+    
+    .pagination-container {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+
+/* ====== ТЕМНАЯ ТЕМА ====== */
+:root.dark-theme .course-card-academic {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:root.dark-theme .course-card-title {
+    color: #f9fafb;
+}
+
+:root.dark-theme .course-card-text {
+    color: #d1d5db;
+}
+
+:root.dark-theme .course-footer {
+    border-top-color: #374151;
+    color: #d1d5db;
+}
+
+:root.dark-theme .filters-row {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:root.dark-theme .filters-row select {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+:root.dark-theme .filters-row select:focus {
+    border-color: #3b82f6;
+}
+
+:root.dark-theme .badge-recommended {
+    background: #0c4a6e;
+    color: #7dd3fc;
+}
+
+:root.dark-theme .badge-level {
+    background: #14532d;
+    color: #86efac;
+}
+
+:root.dark-theme .badge-new {
+    background: #1e3a8a;
+    color: #93c5fd;
+}
+
+:root.dark-theme .course-price {
+    color: #f9fafb;
+}
+
+:root.dark-theme .course-preview {
+    color: #9ca3af;
+}
+
+:root.dark-theme .preview-cta {
+    color: #93c5fd;
+}
+
+:root.dark-theme .pagination-btn {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+:root.dark-theme .pagination-btn:hover {
+    background: #4b5563;
+    border-color: #6b7280;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Плавная прокрутка при фильтрации
+document.addEventListener('DOMContentLoaded', function() {
+    const filters = document.querySelectorAll('.filters-row select');
+    filters.forEach(select => {
+        select.addEventListener('change', function() {
+            // Плавная прокрутка к началу секции курсов
+            document.querySelector('.courses-grid').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        });
+    });
+    
+    // Обработка кликов по карточкам в разработке (если нет URL)
+    document.querySelectorAll('.course-card-academic[href="#"]').forEach(card => {
+        card.addEventListener('click', function(e) {
+            e.preventDefault();
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-warning position-fixed';
+            notification.style.cssText = `
+                top: 20px;
+                right: 20px;
+                left: 20px;
+                max-width: 400px;
+                margin: 0 auto;
+                z-index: 9999;
+                padding: 12px 16px;
+                font-size: 0.9rem;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                background: #fffbeb;
+                color: #92400e;
+                border-radius: 8px;
+            `;
+            notification.textContent = 'Этот курс в разработке и скоро будет доступен!';
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        });
+    });
+});
+</script>
 {% endblock %}

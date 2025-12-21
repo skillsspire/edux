@@ -4,14 +4,306 @@
 {% block title %}SkillsSpire — Академическое онлайн-образование{% endblock %}
 
 {% block extra_css %}
-<!-- ТОЛЬКО эти 2 строки - НИКАКОГО inline CSS -->
-<link rel="stylesheet" href="{% static 'css/home.css' %}?v=1.0">
+<link rel="stylesheet" href="{% static 'css/home.css' %}?v=1.2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
+<style>
+:root {
+    --section-spacing: 3.5rem;
+    --container-max: 1080px;
+}
+
+.hero-positioning {
+    max-width: 720px;
+    margin: 1.2rem auto 1.6rem;
+    font-size: 16px;
+    line-height: 1.55;
+    color: #374151;
+}
+
+.market-diff {
+    text-align: center;
+    font-size: 14px;
+    color: #6b7280;
+    margin: 2rem auto;
+    max-width: 720px;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border-left: 3px solid #1d4ed8;
+}
+
+.trust-note {
+    max-width: 720px;
+    margin: 0 auto 2rem;
+    font-size: 14.5px;
+    color: #6b7280;
+    text-align: center;
+    font-style: italic;
+}
+
+.course-fit {
+    font-size: 12px;
+    color: #4b5563;
+    font-style: italic;
+    display: block;
+    margin-top: 4px;
+}
+
+.courses-grid-home {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 2rem;
+}
+
+.course-card-home {
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e6e9ef;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+    min-height: 200px;
+}
+
+.course-card-home:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    border-color: #dbeafe;
+}
+
+.course-card-category {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2f5be7;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.course-card-title-home {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 8px;
+    color: #111827;
+}
+
+.course-card-text-home {
+    font-size: 13.5px;
+    line-height: 1.4;
+    color: #4b5563;
+    flex: 1;
+}
+
+.course-card-meta-home {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.course-card-footer-home {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.secondary-section h2 {
+    font-size: 1.5rem !important;
+}
+
+.section-header-home {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.section-header-home h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.section-header-home p {
+    color: #6b7280;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.feature-card {
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+    border-color: #dbeafe;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+.stat {
+    text-align: center;
+    padding: 1rem;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    margin-bottom: 0.5rem;
+}
+
+.section-content {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.section-muted {
+    background: #f8fafc;
+    border-top: 1px solid #eef1f6;
+    border-bottom: 1px solid #eef1f6;
+}
+
+.section-light {
+    background: #ffffff;
+}
+
+.testimonials-swiper {
+    max-width: 800px;
+    margin: 2rem auto;
+}
+
+.testimonial-card {
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+}
+
+.btn-community, .btn-corporate, .btn-recommend {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+}
+
+.btn-community {
+    background: #1d4ed8;
+    color: white;
+}
+
+.btn-community:hover {
+    background: #1e40af;
+    transform: translateY(-1px);
+}
+
+.recommend-list {
+    max-width: 600px;
+    margin: 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.recommend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+
+.corporate-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 600px;
+}
+
+.corp-feature {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.partners-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem auto;
+    max-width: 600px;
+}
+
+.partner-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --section-spacing: 2.5rem;
+    }
+    
+    .courses-grid-home {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .hero-positioning {
+        font-size: 15px;
+        padding: 0 1rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- === HERO === -->
-<section class="course-hero text-center fade-up">
+<section class="course-hero text-center section-light">
   <div class="container">
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
 
@@ -20,11 +312,21 @@
       <span>для карьерного роста</span>
     </h1>
 
+    <p class="hero-positioning">
+      Для тех, кто устал от курсов с таймерами, скидками и обещаниями «быстро в профессию».
+      SkillsSpire — это системное обучение с фундаментом, без инфошума и агрессивных продаж.
+    </p>
+
     <div class="course-subtitle">
       <p><strong>Начните обучение бесплатно — без привязки карты.</strong></p>
       <p>Курсы от практиков и преподавателей с академическим опытом.</p>
       <p>Сертификаты об окончании обучения — для резюме и LinkedIn.</p>
     </div>
+
+    <p class="market-diff">
+      Без агрессивных продаж, без таймеров и без обещаний «быстро в профессию».
+      Только обучение, выстроенное как система.
+    </p>
 
     <form action="{% url 'courses_list' %}" method="get" class="hero-search">
       <input type="text" name="q" placeholder="Поиск курсов..." aria-label="Поиск курсов">
@@ -33,19 +335,26 @@
 
     <div class="hero-buttons">
       <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">
-        🚀 Начать обучение
+        🚀 Начать бесплатно
       </a>
-      <a href="#courses" class="hero-btn hero-btn-secondary">
-        📚 Смотреть все курсы
+      <a href="#courses" style="font-size: 0.95rem; color: #1d4ed8; text-decoration: none; margin-left: 1rem;">
+        📚 Изучить курсы →
       </a>
     </div>
   </div>
 </section>
 
-<!-- === Преимущества === -->
-<section class="features-section fade-up">
+<section class="features-section fade-up section-muted">
   <div class="container">
-    <h2>💡 Почему выбирают SkillsSpire</h2>
+    <div class="section-header-home">
+      <h2>💡 Почему выбирают SkillsSpire</h2>
+      <p class="trust-note">
+        Подходит для пилотных образовательных программ и выбирается преподавателями и практиками,
+        которым важна системность, а не маркетинговые обещания.
+      </p>
+      <p>Обучение построено на принципах академического образования с фокусом на практическую пользу</p>
+    </div>
+    
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">👩‍🏫</div>
@@ -66,10 +375,12 @@
   </div>
 </section>
 
-<!-- === Наш опыт в образовании === -->
-<section class="stats-section fade-up">
+<section class="stats-section fade-up section-light">
   <div class="container">
-    <h2>🏆 Наш опыт в образовании</h2>
+    <div class="section-header-home">
+      <h2>🏆 Наш опыт в образовании</h2>
+      <p>Мы строим обучение на основе академических стандартов и практического опыта</p>
+    </div>
 
     <div class="stats-grid">
       <div class="stat">
@@ -90,80 +401,94 @@
   </div>
 </section>
 
-<!-- === EMAIL-FIRST CTA === -->
-<section class="email-cta-section fade-up">
+<section class="email-cta-section fade-up section-muted">
   <div class="container">
-    <h2>Получите бесплатные материалы</h2>
-    <p>
-      Оставьте email — мы отправим подборку полезных материалов по выбранному направлению.
-    </p>
+    <div class="section-header-home">
+      <h2>Получите бесплатные материалы</h2>
+      <p class="section-content">
+        Оставьте email — мы отправим подборку полезных материалов по выбранному направлению.
+      </p>
+    </div>
 
-    <form method="post" action="#" id="email-subscribe-form">
+    <form method="post" action="#" id="email-subscribe-form" style="max-width: 400px; margin: 2rem auto;">
       {% csrf_token %}
       <input type="email" name="email" required placeholder="Ваш email" id="subscribe-email">
       <button type="submit">
-        Получить
+        Получить материалы
       </button>
     </form>
 
-    <p class="text-sm" style="font-size:0.85rem; opacity:.7; margin-top:1rem;">
+    <p class="text-sm" style="font-size:0.85rem; opacity:.7; margin-top:1rem; text-align:center;">
       Без спама. Мы не передаём данные третьим лицам.
     </p>
   </div>
 </section>
 
-<!-- === Популярные курсы === -->
-<section id="courses" class="courses-section fade-up">
+<section id="courses" class="courses-section fade-up section-light">
   <div class="container">
-    <div class="section-header">
+    <div class="section-header-home">
       <h2>🔥 Популярные курсы</h2>
-      <a href="{% url 'courses_list' %}" class="btn-view-all">Все курсы →</a>
+      <p>Актуальные программы, составленные с учетом требований современного рынка</p>
     </div>
     
-    <div class="courses-grid">
+    <div class="courses-grid-home">
       {% for course in popular_courses %}
         {% if course.course and course.course.slug %}
-          <!-- Карточка с ссылкой -->
-          <a href="{% url 'course_detail' course.course.slug %}" class="course-card-link">
-            <div class="course-card">
-              <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
-                   alt="{{ course.title }}"
-                   loading="lazy"
-                   width="400"
-                   height="225">
-              <div class="course-card-content">
-                <h3>{{ course.title }}</h3>
-                <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
-                <div class="course-meta">
-                  <span class="course-duration">⏱️ {{ course.duration|default:"8 недель" }}</span>
-                  <span class="course-level">{{ course.level|default:"Начальный" }}</span>
-                </div>
+          <a href="{% url 'course_detail' course.course.slug %}" class="course-card-home">
+            {% if course.category.name %}
+              <div class="course-card-category">{{ course.category.name }}</div>
+            {% endif %}
+            
+            <h3 class="course-card-title-home">{{ course.title }}</h3>
+            <p class="course-card-text-home">
+              {{ course.short_description|default:course.course.description|truncatechars:90 }}
+            </p>
+            
+            <div class="course-card-meta-home">
+              {% if course.duration %}
+                <span>⏱ {{ course.duration }} ч</span>
+              {% endif %}
+              <div class="course-card-footer-home">
+                <span>
+                  {% if course.price == 0 %}
+                    Бесплатно
+                  {% else %}
+                    {{ course.price }} ₸
+                  {% endif %}
+                </span>
+                <span class="course-fit">
+                  {% if course.price == 0 %}
+                    Подходит для знакомства
+                  {% elif course.level == "beginner" %}
+                    Для системного старта
+                  {% else %}
+                    Для повышения квалификации
+                  {% endif %}
+                </span>
               </div>
             </div>
           </a>
         {% else %}
-          <!-- Карточка без ссылки (в разработке) -->
-          <div class="course-card-link disabled" style="cursor: not-allowed;" title="Курс в разработке">
-            <div class="course-card">
-              <img src="{{ course.image_url|default:'/static/img/course-placeholder.png' }}" 
-                   alt="{{ course.title }}"
-                   loading="lazy"
-                   width="400"
-                   height="225">
-              <div class="course-card-content">
-                <h3>{{ course.title }}</h3>
-                <p>{{ course.short_description|default:course.course.description|truncatechars:120 }}</p>
-                <div class="course-meta">
-                  <span class="course-duration">⏱️ {{ course.duration|default:"8 недель" }}</span>
-                  <span class="course-level">{{ course.level|default:"Начальный" }}</span>
-                  <span class="badge bg-warning text-dark mt-1 d-inline-block">В разработке</span>
-                </div>
+          <div class="course-card-home disabled" style="cursor: not-allowed; opacity: 0.8;" title="Курс в разработке">
+            {% if course.category.name %}
+              <div class="course-card-category">{{ course.category.name }}</div>
+            {% endif %}
+            
+            <h3 class="course-card-title-home">{{ course.title }}</h3>
+            <p class="course-card-text-home">
+              {{ course.short_description|default:course.course.description|truncatechars:90 }}
+            </p>
+            
+            <div class="course-card-meta-home">
+              <div class="course-card-footer-home">
+                <span class="badge bg-warning text-dark">В разработке</span>
+                <span class="course-fit">Скоро будет доступен</span>
               </div>
             </div>
           </div>
         {% endif %}
       {% empty %}
-        <div class="no-courses" style="text-align: center; grid-column: 1 / -1; padding: 3rem 1rem;">
+        <div class="empty-courses" style="grid-column: 1 / -1; text-align: center; padding: 2rem 1rem;">
           <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin-bottom: 1rem;">
             Курсы пока не добавлены. Скоро здесь появятся интересные программы!
           </p>
@@ -171,59 +496,117 @@
         </div>
       {% endfor %}
     </div>
+    
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="{% url 'courses_list' %}" class="btn-view-all">Все курсы →</a>
+    </div>
   </div>
 </section>
 
-<!-- === Сообщество === -->
-<section class="community-section fade-up">
+<section class="community-section fade-up section-muted">
   <div class="container">
-    <h2>👥 Сообщество и поддержка студентов</h2>
-    <p style="max-width: 700px; margin: 0 auto 1.5rem;">Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.</p>
-    <a href="{% url 'signup' %}" class="btn btn-community">Присоединиться к комьюнити</a>
+    <div class="section-header-home">
+      <h2>👥 Сообщество и поддержка студентов</h2>
+      <p class="section-content">
+        Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.
+      </p>
+    </div>
+    <div style="text-align: center; margin-top: 1.5rem;">
+      <a href="{% url 'signup' %}" class="btn-community">Присоединиться к комьюнити</a>
+    </div>
   </div>
 </section>
 
-<!-- === Рекомендации === -->
-<section class="recommend-section fade-up">
+<section class="recommend-section fade-up section-light">
   <div class="container">
-    <h2>🧠 Не знаете, какой курс выбрать?</h2>
-    <p style="max-width: 700px; margin: 0 auto 1.5rem;"><strong>Пройдите короткий тест (2 минуты)</strong> и получите:</p>
+    <div class="section-header-home">
+      <h2>🧠 Не знаете, какой курс выбрать?</h2>
+      <p class="section-content">
+        <strong>Пройдите короткий тест (2 минуты)</strong> и получите персонализированные рекомендации
+      </p>
+    </div>
 
     <div class="recommend-list">
       <div class="recommend-item">
         <span>📋</span>
         <div>
           <strong>Подборку курсов под ваши цели</strong>
-          <p>Персональные рекомендации на основе ваших интересов</p>
+          <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Персональные рекомендации на основе ваших интересов</p>
         </div>
       </div>
       <div class="recommend-item">
         <span>🎁</span>
         <div>
           <strong>Доступ к бесплатным материалам</strong>
-          <p>Полезные ресурсы для старта обучения</p>
+          <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Полезные ресурсы для старта обучения</p>
         </div>
       </div>
       <div class="recommend-item">
         <span>📧</span>
         <div>
           <strong>Пояснения и рекомендации по email</strong>
-          <p>Детальный разбор ваших потребностей</p>
+          <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Детальный разбор ваших потребностей</p>
         </div>
       </div>
     </div>
 
-    <a href="#" id="openTest" class="btn btn-recommend">
-      🎯 Пройти тест и получить подборку
-    </a>
+    <div style="text-align: center; margin-top: 1.5rem;">
+      <a href="#" id="openTest" class="btn-recommend" style="background: #0ea5e9; color: white;">
+        🎯 Пройти тест и получить подборку
+      </a>
+    </div>
   </div>
 </section>
 
-<!-- === B2B === -->
-<section class="corporate-section fade-up">
+<section class="testimonials-section fade-up section-muted">
   <div class="container">
-    <h2>🏢 Обучение для компаний</h2>
-    <p style="max-width: 700px; margin: 0 auto 1.5rem;">SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.</p>
+    <div class="section-header-home">
+      <h2>💬 Отзывы участников обучения</h2>
+      <p class="section-content">
+        Что говорят студенты о наших курсах и формате обучения
+      </p>
+    </div>
+    
+    <div class="swiper testimonials-swiper">
+      <div class="swiper-wrapper">
+        {% for review in reviews %}
+        <div class="swiper-slide">
+          <div class="testimonial-card">
+            <div class="testimonial-avatar">
+              {% if review.user.first_name %}
+                {{ review.user.first_name|first }}{{ review.user.last_name|default:""|first }}
+              {% else %}
+                {{ review.user.username|first }}
+              {% endif %}
+            </div>
+            <h4 style="margin: 0.5rem 0;">{% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Аноним{% endif %}</h4>
+            <blockquote style="margin: 1rem 0 0; font-style: italic; color: #4b5563; font-size: 15px;">
+              "{{ review.comment|default:"Отличный курс!"|truncatechars:150 }}"
+            </blockquote>
+          </div>
+        </div>
+        {% empty %}
+        <div class="swiper-slide">
+          <div class="testimonial-card">
+            <p style="text-align: center; color: #6b7280;">Отзывы скоро появятся. Будьте первым!</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
+    </div>
+  </div>
+</section>
+
+<section class="corporate-section fade-up section-muted secondary-section">
+  <div class="container">
+    <div class="section-header-home">
+      <h2>🏢 Обучение для компаний</h2>
+      <p class="section-content">
+        SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.
+      </p>
+    </div>
     
     <div class="corporate-features">
       <div class="corp-feature">
@@ -244,14 +627,23 @@
       </div>
     </div>
     
-    <a href="/contact/" class="btn btn-corporate">📞 Оставить заявку</a>
+    <div style="text-align: center; margin-top: 1.5rem;">
+      <a href="/contact/" class="btn-corporate" style="background: #1e293b; color: white;">
+        📞 Оставить заявку
+      </a>
+    </div>
   </div>
 </section>
 
-<!-- === Партнёры === -->
-<section class="partners-section fade-up">
+<section class="partners-section fade-up section-light secondary-section">
   <div class="container">
-    <h2>🤝 Наши партнёры</h2>
+    <div class="section-header-home">
+      <h2>🤝 Наши партнёры</h2>
+      <p class="section-content">
+        Сотрудничаем с образовательными учреждениями и бизнес-компаниями
+      </p>
+    </div>
+    
     <div class="partners-grid">
       <div class="partner-card">
         <img src="{% static 'img/partners/suitt.png' %}" 
@@ -259,48 +651,13 @@
              loading="lazy"
              width="200"
              height="60">
-        <p><strong>Сургутский университет ИТ и технологий</strong></p>
-        <p class="partner-tagline">Академическое партнёрство</p>
+        <p style="margin: 1rem 0 0.5rem; font-weight: 600;">Сургутский университет ИТ и технологий</p>
+        <p style="font-size: 13px; color: #6b7280;">Академическое партнёрство</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- === Отзывы === -->
-<section class="testimonials-section fade-up">
-  <div class="container">
-    <h2>💬 Отзывы участников обучения</h2>
-    <div class="swiper testimonials-swiper">
-      <div class="swiper-wrapper">
-        {% for review in reviews %}
-        <div class="swiper-slide">
-          <div class="testimonial-card">
-            <div class="testimonial-avatar">
-              {% if review.user.first_name %}
-                {{ review.user.first_name|first }}{{ review.user.last_name|default:""|first }}
-              {% else %}
-                {{ review.user.username|first }}
-              {% endif %}
-            </div>
-            <h4>{% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Аноним{% endif %}</h4>
-            <blockquote>"{{ review.comment|default:"Отличный курс!"|truncatechars:150 }}"</blockquote>
-          </div>
-        </div>
-        {% empty %}
-        <div class="swiper-slide">
-          <div class="testimonial-card">
-            <p>Отзывы скоро появятся. Будьте первым!</p>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      <div class="swiper-button-next"></div>
-      <div class="swiper-button-prev"></div>
-    </div>
-  </div>
-</section>
-
-<!-- === Popup === -->
 <div class="popup-overlay" id="popupTest">
   <div class="popup">
     <button class="popup-close" id="closePopup">&times;</button>
@@ -312,20 +669,32 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- ТОЛЬКО эти 2 строки - НИКАКОГО inline JS -->
 <script defer src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
-<script defer src="{% static 'js/home.js' %}?v=1.0"></script>
+<script defer src="{% static 'js/home.js' %}?v=1.2"></script>
 
-<!-- Обработка кликов по карточкам в разработке -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Обработка кликов по карточкам в разработке
-  document.querySelectorAll('.course-card-link.disabled').forEach(function(card) {
+  if (document.querySelector('.testimonials-swiper')) {
+    new Swiper('.testimonials-swiper', {
+      slidesPerView: 1,
+      spaceBetween: 20,
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      breakpoints: {
+        768: {
+          slidesPerView: 2,
+        }
+      }
+    });
+  }
+  
+  document.querySelectorAll('.course-card-home.disabled').forEach(function(card) {
     card.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
       
-      // Создаем уведомление
       const notification = document.createElement('div');
       notification.className = 'alert alert-warning position-fixed';
       notification.style.cssText = `
@@ -339,12 +708,14 @@ document.addEventListener('DOMContentLoaded', function() {
         font-size: 0.9rem;
         text-align: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        background: #fffbeb;
+        color: #92400e;
+        border-radius: 8px;
       `;
       notification.textContent = 'Этот курс в разработке и скоро будет доступен!';
       
       document.body.appendChild(notification);
       
-      // Убираем уведомление через 3 секунды
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);
@@ -352,6 +723,28 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 3000);
     });
   });
+  
+  const openTestBtn = document.getElementById('openTest');
+  const popupTest = document.getElementById('popupTest');
+  const closePopup = document.getElementById('closePopup');
+  const closeBtn = document.getElementById('closeBtn');
+  
+  if (openTestBtn && popupTest) {
+    openTestBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      popupTest.style.display = 'flex';
+    });
+    
+    function closePopupFunc() {
+      popupTest.style.display = 'none';
+    }
+    
+    if (closePopup) closePopup.addEventListener('click', closePopupFunc);
+    if (closeBtn) closeBtn.addEventListener('click', closePopupFunc);
+    popupTest.addEventListener('click', function(e) {
+      if (e.target === popupTest) closePopupFunc();
+    });
+  }
 });
 </script>
 {% endblock %}
