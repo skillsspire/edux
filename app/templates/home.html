@@ -433,60 +433,40 @@
     
     <div class="courses-grid-home">
       {% for course in popular_courses %}
-        {% if course.course and course.course.slug %}
-          <a href="{% url 'course_detail' course.course.slug %}" class="course-card-home">
-            {% if course.category.name %}
-              <div class="course-card-category">{{ course.category.name }}</div>
+        <a href="{{ course.url }}" class="course-card-home">
+          {% if course.category.name %}
+            <div class="course-card-category">{{ course.category.name }}</div>
+          {% endif %}
+          
+          <h3 class="course-card-title-home">{{ course.title }}</h3>
+          <p class="course-card-text-home">
+            {{ course.short_description|truncatechars:90 }}
+          </p>
+          
+          <div class="course-card-meta-home">
+            {% if course.duration %}
+              <span>⏱ {{ course.duration }} ч</span>
             {% endif %}
-            
-            <h3 class="course-card-title-home">{{ course.title }}</h3>
-            <p class="course-card-text-home">
-              {{ course.short_description|default:course.course.description|truncatechars:90 }}
-            </p>
-            
-            <div class="course-card-meta-home">
-              {% if course.duration %}
-                <span>⏱ {{ course.duration }} ч</span>
-              {% endif %}
-              <div class="course-card-footer-home">
-                <span>
-                  {% if course.price == 0 %}
-                    Бесплатно
-                  {% else %}
-                    {{ course.price }} ₸
-                  {% endif %}
-                </span>
-                <span class="course-fit">
-                  {% if course.price == 0 %}
-                    Подходит для знакомства
-                  {% elif course.level == "beginner" %}
-                    Для системного старта
-                  {% else %}
-                    Для повышения квалификации
-                  {% endif %}
-                </span>
-              </div>
-            </div>
-          </a>
-        {% else %}
-          <div class="course-card-home disabled" style="cursor: not-allowed; opacity: 0.8;" title="Курс в разработке">
-            {% if course.category.name %}
-              <div class="course-card-category">{{ course.category.name }}</div>
-            {% endif %}
-            
-            <h3 class="course-card-title-home">{{ course.title }}</h3>
-            <p class="course-card-text-home">
-              {{ course.short_description|default:course.course.description|truncatechars:90 }}
-            </p>
-            
-            <div class="course-card-meta-home">
-              <div class="course-card-footer-home">
-                <span class="badge bg-warning text-dark">В разработке</span>
-                <span class="course-fit">Скоро будет доступен</span>
-              </div>
+            <div class="course-card-footer-home">
+              <span>
+                {% if course.price == 0 %}
+                  Бесплатно
+                {% else %}
+                  {{ course.price }} ₸
+                {% endif %}
+              </span>
+              <span class="course-fit">
+                {% if course.price == 0 %}
+                  Подходит для знакомства
+                {% elif course.level == "beginner" %}
+                  Для системного старта
+                {% else %}
+                  Для повышения квалификации
+                {% endif %}
+              </span>
             </div>
           </div>
-        {% endif %}
+        </a>
       {% empty %}
         <div class="empty-courses" style="grid-column: 1 / -1; text-align: center; padding: 2rem 1rem;">
           <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin-bottom: 1rem;">
