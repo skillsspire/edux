@@ -30,10 +30,11 @@ urlpatterns = [
     path("contact/", views.contact, name="contact"),
     path("pricing/", TemplateView.as_view(template_name="pricing.html"), name="pricing"),
     
-    # 3️⃣ КАТАЛОГ (единая точка входа)
+    # 3️⃣ КАТАЛОГ
     path("catalog/", views.catalog, name="catalog"),
     path("courses/", views.courses_list, name="courses_list"),
     path("courses/<slug:slug>/", views.course_detail, name="course_detail"),
+    path("courses/<slug:slug>/enroll/", views.enroll_course, name="enroll_course"),
     path("categories/<slug:slug>/", views.category_detail, name="category_detail"),
     
     # 4️⃣ ОБУЧЕНИЕ (LMS — отдельный контекст)
