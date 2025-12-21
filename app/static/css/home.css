@@ -1,14 +1,9 @@
-/* =========================================================
-   ВСЕ стили из inline CSS в home.html
-   ========================================================= */
-
-/* 1. Hero-секция (было в <style> в home.html) */
 .course-hero {
-  position: relative; /* Исправление №1 для кликабельности */
-  z-index: 1; /* Исправление №1 для кликабельности */
+  position: relative;
+  z-index: 1;
   padding: 3.5rem 1rem 2.5rem;
-  background: linear-gradient(135deg, #01349D, #002b7a);
-  color: white;
+  background: linear-gradient(135deg, #0f3cc9, #0a2a8f);
+  color: #ffffff;
   text-align: center;
 }
 
@@ -17,11 +12,10 @@
   padding: 8px 16px;
   font-size: 0.9rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   margin-bottom: 1.5rem;
   font-weight: 600;
-  backdrop-filter: blur(4px);
 }
 
 .course-title {
@@ -30,6 +24,11 @@
   max-width: 900px;
   margin: 0 auto 1rem;
   font-weight: 800;
+  color: #ffffff;
+}
+
+.course-title span {
+  color: #dbe7ff;
 }
 
 .course-subtitle {
@@ -37,22 +36,17 @@
   line-height: 1.5;
   max-width: 760px;
   margin: 0 auto 2rem;
-  opacity: 0.95;
-}
-
-.course-subtitle strong {
-  font-weight: 700;
-  color: #fff;
+  color: #e6edff;
 }
 
 .hero-search {
   margin: 1.5rem auto 0;
   max-width: 540px;
   display: flex;
-  background: #fff;
+  background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(15, 60, 201, 0.18);
 }
 
 .hero-search input {
@@ -61,33 +55,31 @@
   border: none;
   outline: none;
   font-size: 1rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .hero-search input:focus {
-  outline: 2px solid #01349D;
+  outline: 2px solid #0f3cc9;
   outline-offset: 2px;
 }
 
 .hero-search button {
   padding: 14px 24px;
   border: none;
-  background: #F6AD55;
-  color: #0B1020;
+  background: #fbbf24;
+  color: #0b1020;
   font-weight: 700;
   cursor: pointer;
   font-size: 1rem;
-  min-width: 100px;
 }
 
 .hero-search button:hover {
-  background: #ED8936;
+  background: #f59e0b;
 }
 
 .hero-buttons {
-  position: relative; /* Исправление №2 для кликабельности */
-  z-index: 2; /* Исправление №2 для кликабельности */
-  pointer-events: auto; /* Исправление №2 для кликабельности */
+  position: relative;
+  z-index: 2;
   margin-top: 2rem;
   display: flex;
   gap: 0.75rem;
@@ -96,49 +88,43 @@
 }
 
 .hero-btn {
-  position: relative; /* Исправление №2 для кликабельности */
-  z-index: 2; /* Исправление №2 для кликабельности */
-  pointer-events: auto; /* Исправление №2 для кликабельности */
+  position: relative;
+  z-index: 2;
   display: inline-block;
   padding: 12px 28px;
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
   font-weight: 700;
   font-size: 0.95rem;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .hero-btn-primary {
-  background: white;
-  color: #01349D;
+  background: #ffffff;
+  color: #0f3cc9;
 }
 
 .hero-btn-primary:hover {
-  background: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 24px rgba(255, 255, 255, 0.35);
 }
 
 .hero-btn-secondary {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .hero-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.28);
 }
 
-/* 2. Предотвращение сдвигов изображений */
 .course-card img {
-  aspect-ratio: 16/9;
+  aspect-ratio: 16 / 9;
   width: 100%;
-  height: auto;
   object-fit: cover;
 }
 
-/* 3. Стили из второго <style> внизу home.html */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -147,19 +133,19 @@
 }
 
 .btn-view-all {
-  color: #01349D;
+  color: #0f3cc9;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
   padding: 8px 16px;
-  border-radius: 6px;
-  border: 1px solid #01349D;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  border: 1px solid #0f3cc9;
+  transition: all 0.25s ease;
 }
 
 .btn-view-all:hover {
-  background: #01349D;
-  color: white;
+  background: #0f3cc9;
+  color: #ffffff;
 }
 
 .course-meta {
@@ -167,97 +153,14 @@
   gap: 1rem;
   margin-top: 0.75rem;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .course-level {
-  background: #f3f4f6;
+  background: #f1f5f9;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
-
-.recommend-list {
-  max-width: 600px;
-  margin: 2rem auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.recommend-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-}
-
-.corporate-features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin: 2rem 0;
-}
-
-.corp-feature {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-}
-
-.testimonial-avatar {
-  width: 50px;
-  height: 50px;
-  background: #01349D;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-  margin: 0 auto 1rem;
-}
-
-.popup-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.popup {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 90%;
-  position: relative;
-}
-
-.popup-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-/* =========================================================
-   Новые стили для "дорогого" дизайна
-   ========================================================= */
 
 .features-grid {
   display: grid;
@@ -267,16 +170,16 @@
 }
 
 .feature-card {
-  background: white;
-  border-radius: 16px;
+  background: #ffffff;
+  border-radius: 18px;
   padding: 2rem;
-  box-shadow: 0 12px 32px rgba(0,0,0,.06);
-  transition: transform .25s ease, box-shadow .25s ease;
+  box-shadow: 0 16px 40px rgba(15, 60, 201, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 45px rgba(0,0,0,.1);
+  transform: translateY(-6px);
+  box-shadow: 0 28px 60px rgba(15, 60, 201, 0.16);
 }
 
 .feature-icon {
@@ -287,19 +190,15 @@
 .feature-card h4 {
   font-size: 1.1rem;
   font-weight: 700;
-  margin-bottom: .5rem;
-  color: #1f2937;
+  margin-bottom: 0.5rem;
+  color: #0f172a;
 }
 
 .feature-card p {
-  font-size: .95rem;
+  font-size: 0.95rem;
   line-height: 1.6;
-  color: #6b7280;
+  color: #475569;
 }
-
-/* =========================================================
-   Fade-up анимации с исправлениями
-   ========================================================= */
 
 .fade-up {
   opacity: 1;
@@ -317,95 +216,6 @@
   transform: translateY(0);
 }
 
-/* Дополнительные исправления для всех fade-up элементов */
-.js-enabled .fade-up {
-  will-change: transform, opacity;
-}
-
-/* Гарантия кликабельности для всех интерактивных элементов внутри fade-up */
-.fade-up a,
-.fade-up button,
-.fade-up .hero-btn,
-.fade-up .btn-view-all,
-.fade-up .course-card,
-.fade-up .feature-card {
-  position: relative;
-  z-index: 2;
-}
-
-/* =========================================================
-   Остальные стили из вашего существующего home.css
-   ========================================================= */
-
-/* Базовые стили для улучшения визуальной иерархии */
-.section-title {
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 1rem;
-  color: #1f2937;
-}
-
-.section-subtitle {
-  font-size: 1.1rem;
-  color: #6b7280;
-  max-width: 600px;
-  margin: 0 auto 2rem;
-}
-
-/* Улучшенные стили для карточек курсов */
-.course-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.course-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
-}
-
-.course-card-content {
-  padding: 1.25rem;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.course-card h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  color: #1f2937;
-  line-height: 1.4;
-}
-
-.course-card p {
-  font-size: 0.9rem;
-  color: #6b7280;
-  line-height: 1.5;
-  margin-bottom: 1rem;
-  flex-grow: 1;
-}
-
-.course-card-footer {
-  margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.course-price {
-  font-weight: 700;
-  color: #01349D;
-  font-size: 1.1rem;
-}
-
-/* Стили для разделов */
 .section {
   padding: 4rem 1rem;
 }
@@ -414,73 +224,32 @@
   background: #f8fafc;
 }
 
-/* Контейнеры */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
   .section {
     padding: 3rem 1rem;
   }
-  
+
   .hero-buttons {
     flex-direction: column;
-    align-items: center;
   }
-  
+
   .hero-btn {
     width: 100%;
     max-width: 280px;
     text-align: center;
   }
-  
+
   .features-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
   }
-  
-  .section-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
+
   .course-title {
     font-size: 2rem;
   }
-}
-
-/* Анимации для плавного появления */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-.fade-up {
-  pointer-events: auto;
-}
-
-/* === FIX: контраст заголовка hero === */
-
-.course-hero .course-title {
-  color: #ffffff;
-}
-
-.course-hero .course-title span {
-  color: #e0ecff;     /* мягкий академический акцент */
-  background: none;  /* ❗ гарантированно убираем заливку */
 }
