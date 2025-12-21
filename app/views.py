@@ -49,6 +49,10 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
+# Константы
+CACHE_VERSION = 1
+ALLOWED_STATUSES = {"success", "failed", "pending"}
+
 def _has_field(model, name: str) -> bool:
     try:
         model._meta.get_field(name)
@@ -71,12 +75,15 @@ def first_nonempty(*vals):
             return v
     return None
 
-# ============================================================
-# DTO-функции для консистентности данных
-# ============================================================
+def user_has_course_access(user, course):
+    """Проверяет, имеет ли пользователь доступ к курсу."""
+    if not user.is_authenticated:
+        return False
+    if not course.price or float(course.price or 0) == 0:
+        return True
+    return Enrollment.objects.filter(user=user, course=course).exists()
 
 def article_card_dto(article, request=None):
-    """Универсальный DTO для карточек статей"""
     base_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
     
     return {
@@ -85,15 +92,12 @@ def article_card_dto(article, request=None):
         'slug': article.slug,
         'excerpt': article.excerpt or '',
         'created_at': article.created_at,
-        'category': article.category.name if article.category else None,
-        'category_slug': article.category.slug if article.category else None,
         'image_url': base_url,
         'url': reverse('article_detail', args=[article.slug]),
         'view_count': getattr(article, 'view_count', 0),
     }
 
 def course_card_dto(course, request=None):
-    """Универсальный DTO для карточек курсов"""
     base_url = f"{settings.STATIC_URL}img/courses/course-placeholder.jpg"
     
     return {
@@ -116,40 +120,72 @@ def course_card_dto(course, request=None):
 def kaspi_webhook(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=400)
+    
+    if request.content_type != "application/json":
+        return JsonResponse({"error": "Invalid content type"}, status=400)
 
     signature = request.headers.get("X-Kaspi-Signature") or ""
     body = request.body
     secret = getattr(settings, "KASPI_SECRET", None)
     if not secret:
+        logger.error("KASPI_SECRET is not set in settings")
         return JsonResponse({"error": "KASPI_SECRET is not set"}, status=500)
 
-    expected_signature = hmac.new(key=secret.encode(), msg=body, digestmod=hashlib.sha256).hexdigest()
-    if signature != expected_signature:
-        return JsonResponse({"error": "Invalid signature"}, status=403)
-
     try:
+        expected_signature = hmac.new(
+            key=secret.encode(), 
+            msg=body, 
+            digestmod=hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(signature, expected_signature):
+            logger.warning(f"Invalid signature received: {signature}")
+            return JsonResponse({"error": "Invalid signature"}, status=403)
+
         data = json.loads(body)
         invoice_id = data.get("invoiceId")
         status = data.get("status")
         amount = data.get("amount")
+        
+        if not invoice_id or not status:
+            return JsonResponse({"error": "Missing required fields"}, status=400)
+        
+        if status not in ALLOWED_STATUSES:
+            logger.warning(f"Invalid status received: {status}")
+            return JsonResponse({"error": "Invalid status"}, status=400)
+        
         payment = Payment.objects.get(kaspi_invoice_id=invoice_id)
-    except (Payment.DoesNotExist, json.JSONDecodeError, KeyError, TypeError):
-        return JsonResponse({"error": "Payment not found or invalid data"}, status=404)
+        
+        if amount is not None:
+            try:
+                amount_float = float(amount)
+                payment_amount_float = float(payment.amount or 0)
+                if amount_float < payment_amount_float:
+                    logger.warning(f"Amount mismatch: {amount_float} < {payment_amount_float}")
+                    return JsonResponse({"error": "Invalid amount"}, status=400)
+            except (TypeError, ValueError):
+                logger.error(f"Invalid amount format: {amount}")
+                return JsonResponse({"error": "Invalid amount format"}, status=400)
 
-    try:
-        if amount is not None and float(amount) < float(payment.amount or 0):
-            return JsonResponse({"error": "Invalid amount"}, status=400)
-    except (TypeError, ValueError):
-        return JsonResponse({"error": "Invalid amount format"}, status=400)
+        payment.status = status
+        payment.save(update_fields=["status"])
 
-    payment.status = status
-    payment.save(update_fields=["status"])
+        if status == "success":
+            Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
+            payment.course.students.add(payment.user)
+            logger.info(f"Payment {invoice_id} succeeded for user {payment.user.id}")
 
-    if status == "success":
-        Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
-        payment.course.students.add(payment.user)
-
-    return JsonResponse({"status": "ok"})
+        return JsonResponse({"status": "ok"})
+        
+    except Payment.DoesNotExist:
+        logger.error(f"Payment not found for invoice: {invoice_id}")
+        return JsonResponse({"error": "Payment not found"}, status=404)
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in webhook body")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error in kaspi_webhook: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 @csrf_protect
 def signup(request):
@@ -157,18 +193,22 @@ def signup(request):
         form = CustomUserCreationForm(request.POST)
         
         if form.is_valid():
-            user = form.save()
-            auth_user = authenticate(
-                request,
-                username=form.cleaned_data["username"],
-                password=form.cleaned_data["password1"],
-            )
-            if auth_user is not None:
-                login(request, auth_user)
-                messages.success(request, "Регистрация прошла успешно! Добро пожаловать!")
-                return redirect("home")
-            messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
-            return redirect("login")
+            try:
+                user = form.save()
+                auth_user = authenticate(
+                    request,
+                    username=form.cleaned_data["username"],
+                    password=form.cleaned_data["password1"],
+                )
+                if auth_user is not None:
+                    login(request, auth_user)
+                    messages.success(request, "Регистрация прошла успешно! Добро пожаловать!")
+                    return redirect("home")
+                messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
+                return redirect("login")
+            except Exception as e:
+                logger.error(f"Error during user registration: {str(e)}", exc_info=True)
+                messages.error(request, "Произошла ошибка при создании аккаунта")
         else:
             if 'captcha' in form.errors:
                 messages.error(request, "Пожалуйста, пройдите проверку reCAPTCHA.")
@@ -181,7 +221,7 @@ def signup(request):
 
 def home(request):
     language = get_language() or 'ru'
-    cache_key = f'home_page_{language}'
+    cache_key = f'home_page_v{CACHE_VERSION}_{language}'
     cached_data = cache.get(cache_key)
     
     if cached_data and not request.user.is_authenticated:
@@ -224,15 +264,22 @@ def home(request):
             'id', 'title', 'slug', 'excerpt', 'created_at'
         ).order_by('-created_at')[:3]
         
-        # Используем DTO-функции
         featured_courses = [course_card_dto(course) for course in featured_courses_qs]
         popular_courses = [course_card_dto(course) for course in popular_courses_qs]
         latest_articles = [article_card_dto(article) for article in latest_articles_qs]
         
         categories = []
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading home data: {str(e)}", exc_info=True)
+        featured_courses = []
+        popular_courses = []
+        categories = []
+        reviews = []
+        latest_articles = []
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки данных главной: {str(e)}", exc_info=True)
+        logger.error(f"Error loading home data: {str(e)}", exc_info=True)
         featured_courses = []
         popular_courses = []
         categories = []
@@ -263,22 +310,31 @@ def home(request):
 
 @login_required
 def toggle_wishlist(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, course=course)
+    try:
+        course = Course.objects.get(slug=slug)
+        wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, course=course)
 
-    if created:
-        message = "Курс добавлен в избранное"
-        in_wishlist = True
-    else:
-        wishlist_item.delete()
-        message = "Курс удален из избранного"
-        in_wishlist = False
+        if created:
+            message = "Курс добавлен в избранное"
+            in_wishlist = True
+        else:
+            wishlist_item.delete()
+            message = "Курс удален из избранного"
+            in_wishlist = False
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"success": True, "in_wishlist": in_wishlist, "message": message})
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "in_wishlist": in_wishlist, "message": message})
 
-    messages.success(request, message)
-    return redirect("course_detail", slug=slug)
+        messages.success(request, message)
+        return redirect("course_detail", slug=slug)
+        
+    except Course.DoesNotExist:
+        messages.error(request, "Курс не найден")
+        return redirect("courses_list")
+    except Exception as e:
+        logger.error(f"Error toggling wishlist: {str(e)}", exc_info=True)
+        messages.error(request, "Произошла ошибка")
+        return redirect("courses_list")
 
 def catalog(request):
     return redirect('courses_list')
@@ -300,7 +356,6 @@ def category_detail(request, slug):
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
         
-        # Используем DTO
         courses_with_images = [course_card_dto(course) for course in page_obj]
         
         context = {
@@ -312,8 +367,11 @@ def category_detail(request, slug):
         
     except Category.DoesNotExist:
         raise Http404("Категория не найдена")
+    except DatabaseError as e:
+        logger.error(f"Database error loading category {slug}: {str(e)}", exc_info=True)
+        raise Http404("Категория не найдена")
     except Exception as e:
-        logger.error(f"Ошибка загрузки категории {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading category {slug}: {str(e)}", exc_info=True)
         raise Http404("Категория не найдена")
     
     return render(request, "categories/detail.html", context)
@@ -326,98 +384,136 @@ def courses_list(request):
     
     params = f"{search_query}_{sort_by}_{price_filter}_{category_filter}"
     params_hash = hashlib.md5(params.encode()).hexdigest()[:8]
-    cache_key = f'courses_list_{params_hash}'
+    cache_key = f'courses_list_v{CACHE_VERSION}_{params_hash}'
     
     if not request.user.is_authenticated:
         cached_data = cache.get(cache_key)
         if cached_data:
             return render(request, "courses/list.html", cached_data)
     
-    courses_qs = Course.objects.filter(
-        status=Course.PUBLISHED,
-        is_deleted=False
-    ).select_related("category").only(
-        'id', 'title', 'slug', 'price', 'short_description',
-        'created_at', 'category_id',
-        'category__name', 'category__slug'
-    )
-
-    if search_query:
-        courses_qs = courses_qs.filter(
-            Q(title__icontains=search_query) |
-            Q(short_description__icontains=search_query)
+    try:
+        courses_qs = Course.objects.filter(
+            status=Course.PUBLISHED,
+            is_deleted=False
+        ).select_related("category").only(
+            'id', 'title', 'slug', 'price', 'short_description',
+            'created_at', 'category_id',
+            'category__name', 'category__slug'
         )
 
-    if category_filter:
-        courses_qs = courses_qs.filter(category__slug=category_filter)
+        if search_query:
+            courses_qs = courses_qs.filter(
+                Q(title__icontains=search_query) |
+                Q(short_description__icontains=search_query)
+            )
 
-    if price_filter == "free":
-        courses_qs = courses_qs.filter(price=0)
-    elif price_filter == "paid":
-        courses_qs = courses_qs.filter(price__gt=0)
+        if category_filter:
+            courses_qs = courses_qs.filter(category__slug=category_filter)
 
-    if sort_by == "popular":
-        courses_qs = courses_qs.annotate(
-            students_count=Count('enrollments', distinct=True)
-        ).order_by("-students_count", "-created_at")
-    elif sort_by == "rating":
-        courses_qs = courses_qs.order_by("-created_at")
-    elif sort_by == "price_low":
-        courses_qs = courses_qs.order_by("price", "-created_at")
-    elif sort_by == "price_high":
-        courses_qs = courses_qs.order_by("-price", "-created_at")
-    else:
-        courses_qs = courses_qs.order_by("-created_at")
+        if price_filter == "free":
+            courses_qs = courses_qs.filter(price=0)
+        elif price_filter == "paid":
+            courses_qs = courses_qs.filter(price__gt=0)
 
-    paginator = Paginator(courses_qs, 12)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+        if sort_by == "popular":
+            courses_qs = courses_qs.annotate(
+                students_count=Count('enrollments', distinct=True)
+            ).order_by("-students_count", "-created_at")
+        elif sort_by == "rating":
+            courses_qs = courses_qs.order_by("-created_at")
+        elif sort_by == "price_low":
+            courses_qs = courses_qs.order_by("price", "-created_at")
+        elif sort_by == "price_high":
+            courses_qs = courses_qs.order_by("-price", "-created_at")
+        else:
+            courses_qs = courses_qs.order_by("-created_at")
 
-    # Используем DTO
-    courses_with_images = [course_card_dto(course) for course in page_obj]
+        paginator = Paginator(courses_qs, 12)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
 
-    try:
-        categories = list(Category.objects.filter(
-            is_active=True
-        ).only('id', 'name', 'slug').values('id', 'name', 'slug'))
-    except Exception:
-        categories = []
+        courses_with_images = [course_card_dto(course) for course in page_obj]
 
-    context = {
-        "courses": courses_with_images,
-        "categories": categories,
-        "is_paginated": page_obj.has_other_pages(),
-        "page_obj": page_obj,
-        "q": search_query,
-        "sort_by": sort_by,
-    }
+        try:
+            categories = list(Category.objects.filter(
+                is_active=True
+            ).only('id', 'name', 'slug').values('id', 'name', 'slug'))
+        except Exception:
+            categories = []
+
+        context = {
+            "courses": courses_with_images,
+            "categories": categories,
+            "is_paginated": page_obj.has_other_pages(),
+            "page_obj": page_obj,
+            "q": search_query,
+            "sort_by": sort_by,
+        }
+        
+        if not request.user.is_authenticated:
+            cache.set(cache_key, context, 300)
     
-    if not request.user.is_authenticated:
-        cache.set(cache_key, context, 300)
+    except DatabaseError as e:
+        logger.error(f"Database error loading courses list: {str(e)}", exc_info=True)
+        context = {
+            "courses": [],
+            "categories": [],
+            "is_paginated": False,
+            "page_obj": None,
+            "q": search_query,
+            "sort_by": sort_by,
+        }
+        messages.error(request, "Временные проблемы с базой данных")
+    except Exception as e:
+        logger.error(f"Error loading courses list: {str(e)}", exc_info=True)
+        context = {
+            "courses": [],
+            "categories": [],
+            "is_paginated": False,
+            "page_obj": None,
+            "q": search_query,
+            "sort_by": sort_by,
+        }
     
     return render(request, "courses/list.html", context)
 
 def articles_list(request):
-    articles_qs = Article.objects.filter(
-        status='published'
-    ).select_related('category').order_by('-created_at')
+    try:
+        articles_qs = Article.objects.filter(
+            status='published'
+        ).order_by('-created_at')
 
-    # Используем DTO и корректно разделяем featured и остальные
-    articles_dto = [article_card_dto(article) for article in articles_qs]
-    
-    featured_article = articles_dto[0] if articles_dto else None
-    rest_articles = articles_dto[1:] if len(articles_dto) > 1 else []
+        articles_dto = [article_card_dto(article) for article in articles_qs]
+        
+        featured_article = articles_dto[0] if articles_dto else None
+        rest_articles = articles_dto[1:] if len(articles_dto) > 1 else []
 
-    context = {
-        "articles": articles_dto,  # Для обратной совместимости
-        "featured_article": featured_article,
-        "rest_articles": rest_articles,
-    }
+        context = {
+            "articles": articles_dto,
+            "featured_article": featured_article,
+            "rest_articles": rest_articles,
+        }
+        
+    except DatabaseError as e:
+        logger.error(f"Database error loading articles list: {str(e)}", exc_info=True)
+        context = {
+            "articles": [],
+            "featured_article": None,
+            "rest_articles": [],
+        }
+        messages.error(request, "Временные проблемы с базой данных")
+    except Exception as e:
+        logger.error(f"Error loading articles list: {str(e)}", exc_info=True)
+        context = {
+            "articles": [],
+            "featured_article": None,
+            "rest_articles": [],
+        }
     
     return render(request, "articles/list.html", context)
 
 def article_detail(request, slug):
-    cache_key = f'article_detail_{slug}'
+    cache_key = f'article_detail_v{CACHE_VERSION}_{slug}'
     
     if not request.user.is_authenticated:
         cached_data = cache.get(cache_key)
@@ -428,29 +524,24 @@ def article_detail(request, slug):
         article_obj = Article.objects.filter(
             slug=slug,
             status=Article.PUBLISHED
-        ).select_related('category').only(
-            'id', 'title', 'slug', 'body', 'excerpt', 
-            'created_at', 'author_id', 'category_id',
-            'category__name', 'category__slug'
+        ).only(
+            'id', 'title', 'slug', 'body', 'excerpt', 'created_at'
         ).order_by('id').first()
         
         if not article_obj:
             raise Http404("Статья не найдена")
         
-        # Создаем DTO для детальной статьи
         article_data = article_card_dto(article_obj)
         article_data.update({
             'body': article_obj.body or "",
-            'category_name': article_obj.category.name if article_obj.category else "",
-            'category_slug': article_obj.category.slug if article_obj.category else "",
         })
         
         latest_qs = Article.objects.filter(
             status=Article.PUBLISHED
         ).exclude(
             pk=article_obj.pk
-        ).select_related('category').only(
-            'id', 'title', 'slug', 'created_at', 'category__name'
+        ).only(
+            'id', 'title', 'slug', 'created_at'
         ).order_by('-created_at')[:4]
         
         latest_articles = [article_card_dto(article) for article in latest_qs]
@@ -465,46 +556,58 @@ def article_detail(request, slug):
         
     except Article.DoesNotExist:
         raise Http404("Статья не найдена")
+    except DatabaseError as e:
+        logger.error(f"Database error loading article {slug}: {str(e)}", exc_info=True)
+        raise Http404("Статья не найдена")
     except Exception as e:
-        logger.error(f"Ошибка загрузки статьи {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading article {slug}: {str(e)}", exc_info=True)
         raise Http404("Статья не найдена")
     
     return render(request, "articles/detail.html", context)
 
 def materials_list(request):
-    cache_key = 'materials_list_all'
+    cache_key = f'materials_list_v{CACHE_VERSION}_all'
     
     if not request.user.is_authenticated:
         cached_data = cache.get(cache_key)
         if cached_data:
             return render(request, "materials/list.html", cached_data)
     
-    qs = Material.objects.filter(
-        is_public=True
-    ).only(
-        'id', 'title', 'slug', 'description', 'created_at'
-    ).order_by('-created_at')[:50]
+    try:
+        qs = Material.objects.filter(
+            is_public=True
+        ).only(
+            'id', 'title', 'slug', 'description', 'created_at'
+        ).order_by('-created_at')[:50]
+        
+        materials = []
+        for material in qs:
+            materials.append({
+                'id': material.id,
+                'title': material.title,
+                'slug': material.slug,
+                'description': material.description[:150] if material.description else '',
+                'image_url': f"{settings.STATIC_URL}img/materials/material-placeholder.jpg",
+                'url': f"/materials/{material.slug}/",
+            })
+        
+        context = {"materials": materials}
+        
+        if not request.user.is_authenticated:
+            cache.set(cache_key, context, 900)
     
-    materials = []
-    for material in qs:
-        materials.append({
-            'id': material.id,
-            'title': material.title,
-            'slug': material.slug,
-            'description': material.description[:150] if material.description else '',
-            'image_url': f"{settings.STATIC_URL}img/materials/material-placeholder.jpg",
-            'url': f"/materials/{material.slug}/",
-        })
-    
-    context = {"materials": materials}
-    
-    if not request.user.is_authenticated:
-        cache.set(cache_key, context, 900)
+    except DatabaseError as e:
+        logger.error(f"Database error loading materials list: {str(e)}", exc_info=True)
+        context = {"materials": []}
+        messages.error(request, "Временные проблемы с базой данных")
+    except Exception as e:
+        logger.error(f"Error loading materials list: {str(e)}", exc_info=True)
+        context = {"materials": []}
     
     return render(request, "materials/list.html", context)
 
 def course_detail(request, slug):
-    cache_key = f'course_detail_{slug}'
+    cache_key = f'course_detail_v{CACHE_VERSION}_{slug}'
     
     if not request.user.is_authenticated:
         cached_data = cache.get(cache_key)
@@ -539,10 +642,7 @@ def course_detail(request, slug):
         has_access = False
         is_in_wishlist = False
         if request.user.is_authenticated:
-            has_access = Enrollment.objects.filter(
-                user=request.user, 
-                course=course_obj
-            ).exists()
+            has_access = user_has_course_access(request.user, course_obj)
             is_in_wishlist = Wishlist.objects.filter(
                 user=request.user, 
                 course=course_obj
@@ -593,8 +693,11 @@ def course_detail(request, slug):
         
     except Course.DoesNotExist:
         raise Http404("Курс не найден")
+    except DatabaseError as e:
+        logger.error(f"Database error loading course {slug}: {str(e)}", exc_info=True)
+        raise Http404("Курс не найден")
     except Exception as e:
-        logger.error(f"Ошибка загрузки курса {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading course {slug}: {str(e)}", exc_info=True)
         raise Http404("Курс не найден")
     
     return render(request, "courses/detail.html", context)
@@ -621,7 +724,7 @@ def _enrich_course_data(cached_data, user):
             result['is_in_wishlist'] = is_in_wishlist
             
     except Exception as e:
-        logger.error(f"Ошибка обогащения данных курса: {str(e)}", exc_info=True)
+        logger.error(f"Error enriching course data: {str(e)}", exc_info=True)
     
     return result
 
@@ -631,7 +734,7 @@ def course_learn(request, course_slug):
             slug=course_slug,
             status=Course.PUBLISHED,
             is_deleted=False
-        ).only('id', 'title', 'slug').order_by('id').first()
+        ).only('id', 'title', 'slug', 'price').order_by('id').first()
         
         if not course_obj:
             raise Http404("Курс не найден")
@@ -640,14 +743,9 @@ def course_learn(request, course_slug):
             messages.error(request, "Для доступа к курсу необходимо авторизоваться")
             return redirect('login')
         
-        if course_obj.price and float(course_obj.price or 0) > 0:
-            has_access = Enrollment.objects.filter(
-                user=request.user, 
-                course=course_obj
-            ).exists()
-            if not has_access:
-                messages.error(request, "У вас нет доступа к этому курсу")
-                return redirect("course_detail", slug=course_slug)
+        if not user_has_course_access(request.user, course_obj):
+            messages.error(request, "У вас нет доступа к этому курсу")
+            return redirect("course_detail", slug=course_slug)
         
         first_lesson = Lesson.objects.filter(
             module__course=course_obj,
@@ -660,8 +758,14 @@ def course_learn(request, course_slug):
         messages.info(request, "В курсе пока нет уроков")
         return redirect("course_detail", slug=course_slug)
         
+    except Course.DoesNotExist:
+        raise Http404("Курс не найден")
+    except DatabaseError as e:
+        logger.error(f"Database error loading course for learning {course_slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect("course_detail", slug=course_slug)
     except Exception as e:
-        logger.error(f"Ошибка загрузки курса для обучения {course_slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading course for learning {course_slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке курса")
         return redirect("course_detail", slug=course_slug)
 
@@ -680,14 +784,9 @@ def lesson_detail(request, course_slug, lesson_slug):
         if not course_obj:
             raise Http404("Курс не найден")
         
-        if course_obj.price and float(course_obj.price or 0) > 0:
-            has_access = Enrollment.objects.filter(
-                user=request.user, 
-                course=course_obj
-            ).exists()
-            if not has_access:
-                messages.error(request, "У вас нет доступа к этому уроку")
-                return redirect("course_detail", slug=course_slug)
+        if not user_has_course_access(request.user, course_obj):
+            messages.error(request, "У вас нет доступа к этому уроку")
+            return redirect("course_detail", slug=course_slug)
         
         course_data = course_card_dto(course_obj)
 
@@ -742,8 +841,7 @@ def lesson_detail(request, course_slug, lesson_slug):
                         }
                     )
         except Exception as e:
-            logger.error(f"Ошибка создания прогресса для урока {lesson.id}: {str(e)}", exc_info=True)
-            pass
+            logger.error(f"Error creating progress for lesson {lesson.id}: {str(e)}", exc_info=True)
 
         enrollment = Enrollment.objects.filter(
             user=request.user, 
@@ -760,59 +858,68 @@ def lesson_detail(request, course_slug, lesson_slug):
         
     except Http404:
         raise
+    except DatabaseError as e:
+        logger.error(f"Database error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect("courses_list")
     except Exception as e:
-        logger.error(f"Ошибка загрузки урока {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке урока")
         return redirect("courses_list")
 
 @login_required
 def update_progress(request):
-    if request.method == "POST":
-        try:
-            lesson_id = request.POST.get("lesson_id")
-            progress = request.POST.get("progress", 0)
-            
-            if not lesson_id:
-                return JsonResponse({"error": "lesson_id required"}, status=400)
-            
-            try:
-                progress = int(progress)
-                progress = max(0, min(100, progress))
-            except ValueError:
-                return JsonResponse({"error": "Invalid progress value"}, status=400)
-            
-            lesson = Lesson.objects.get(id=lesson_id)
-            
-            block = LessonBlock.objects.filter(lesson=lesson, is_deleted=False).first()
-            if block:
-                block_progress, created = BlockProgress.objects.update_or_create(
-                    user=request.user,
-                    block=block,
-                    defaults={
-                        "progress_percent": progress,
-                        "is_completed": progress >= 100,
-                        "last_accessed": timezone.now(),
-                    }
-                )
-                
-                if progress >= 100:
-                    _check_course_completion(request.user, lesson.module.course)
-                
-                return JsonResponse({
-                    "success": True,
-                    "progress": progress,
-                    "is_completed": progress >= 100,
-                })
-            else:
-                return JsonResponse({"error": "No blocks found for this lesson"}, status=404)
-                
-        except Lesson.DoesNotExist:
-            return JsonResponse({"error": "Lesson not found"}, status=404)
-        except Exception as e:
-            logger.error(f"Ошибка обновления прогресса: {str(e)}", exc_info=True)
-            return JsonResponse({"error": str(e)}, status=500)
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
     
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        lesson_id = request.POST.get("lesson_id")
+        progress = request.POST.get("progress", 0)
+        
+        if not lesson_id:
+            return JsonResponse({"error": "lesson_id required"}, status=400)
+        
+        try:
+            progress = int(progress)
+            progress = max(0, min(100, progress))
+        except ValueError:
+            return JsonResponse({"error": "Invalid progress value"}, status=400)
+        
+        lesson = Lesson.objects.get(id=lesson_id)
+        
+        block = LessonBlock.objects.filter(lesson=lesson, is_deleted=False).first()
+        if block:
+            block_progress, created = BlockProgress.objects.update_or_create(
+                user=request.user,
+                block=block,
+                defaults={
+                    "progress_percent": progress,
+                    "is_completed": progress >= 100,
+                    "last_accessed": timezone.now(),
+                }
+            )
+            
+            if progress >= 100:
+                _check_course_completion(request.user, lesson.module.course)
+            
+            return JsonResponse({
+                "success": True,
+                "progress": progress,
+                "is_completed": progress >= 100,
+            })
+        else:
+            return JsonResponse({"error": "No blocks found for this lesson"}, status=404)
+            
+    except Lesson.DoesNotExist:
+        return JsonResponse({"error": "Lesson not found"}, status=404)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except DatabaseError as e:
+        logger.error(f"Database error updating progress: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Database error"}, status=500)
+    except Exception as e:
+        logger.error(f"Error updating progress: {str(e)}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=500)
 
 def _check_course_completion(user, course):
     try:
@@ -838,8 +945,10 @@ def _check_course_completion(user, course):
                 enrollment.completed_at = timezone.now()
                 enrollment.save()
                 
+    except Enrollment.DoesNotExist:
+        logger.warning(f"Enrollment not found for user {user.id} and course {course.id}")
     except Exception as e:
-        logger.error(f"Ошибка проверки завершения курса: {str(e)}", exc_info=True)
+        logger.error(f"Error checking course completion: {str(e)}", exc_info=True)
 
 @login_required
 def enroll_course(request, slug):
@@ -848,13 +957,14 @@ def enroll_course(request, slug):
             slug=slug,
             status=Course.PUBLISHED,
             is_deleted=False
-        ).only('id', 'slug').order_by('id').first()
+        ).only('id', 'slug', 'price').order_by('id').first()
         
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
         
-        Enrollment.objects.get_or_create(user=request.user, course=course)
+        if not user_has_course_access(request.user, course):
+            Enrollment.objects.get_or_create(user=request.user, course=course)
         
         first_lesson = Lesson.objects.filter(
             module__course=course,
@@ -867,8 +977,15 @@ def enroll_course(request, slug):
             messages.success(request, "Вы успешно записались на курс!")
             return redirect("course_detail", slug=slug)
             
+    except Course.DoesNotExist:
+        messages.error(request, "Курс не найден")
+        return redirect("courses_list")
+    except DatabaseError as e:
+        logger.error(f"Database error enrolling in course {slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect("course_detail", slug=slug)
     except Exception as e:
-        logger.error(f"Ошибка записи на курс {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error enrolling in course {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при записи на курс")
         return redirect("course_detail", slug=slug)
 
@@ -882,7 +999,7 @@ def create_payment(request, slug):
             slug=slug,
             status=Course.PUBLISHED,
             is_deleted=False
-        ).only('id', 'title', 'slug', 'price').order_by('id').first()
+        ).only('id', 'title', 'slug', 'price', 'discount_price').order_by('id').first()
         
         if not course:
             messages.error(request, "Курс не найден")
@@ -907,8 +1024,15 @@ def create_payment(request, slug):
             "payment": payment,
         })
         
+    except Course.DoesNotExist:
+        messages.error(request, "Курс не найден")
+        return redirect("courses_list")
+    except DatabaseError as e:
+        logger.error(f"Database error creating payment for {slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect("course_detail", slug=slug)
     except Exception as e:
-        logger.error(f"Ошибка создания платежа {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error creating payment for {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при создании платежа")
         return redirect("course_detail", slug=slug)
 
@@ -948,8 +1072,15 @@ def payment_claim(request, slug):
             "payment": payment,
         })
         
+    except Course.DoesNotExist:
+        messages.error(request, "Курс не найден")
+        return redirect("courses_list")
+    except DatabaseError as e:
+        logger.error(f"Database error confirming payment {slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect("course_detail", slug=slug)
     except Exception as e:
-        logger.error(f"Ошибка подтверждения платежа {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error confirming payment {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка")
         return redirect("course_detail", slug=slug)
 
@@ -971,8 +1102,11 @@ def payment_thanks(request, slug):
             },
         })
         
+    except Course.DoesNotExist:
+        messages.error(request, "Курс не найден")
+        return redirect("courses_list")
     except Exception as e:
-        logger.error(f"Ошибка страницы благодарности {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading thanks page {slug}: {str(e)}", exc_info=True)
         return redirect("courses_list")
 
 @login_required
@@ -1009,8 +1143,15 @@ def my_courses(request):
             "completed": completed,
         })
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading my courses: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return render(request, "courses/my_courses.html", {
+            "in_progress": [],
+            "completed": [],
+        })
     except Exception as e:
-        logger.error(f"Ошибка загрузки моих курсов: {str(e)}", exc_info=True)
+        logger.error(f"Error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке курсов")
         return render(request, "courses/my_courses.html", {
             "in_progress": [],
@@ -1061,8 +1202,18 @@ def dashboard(request):
             "recent_courses": recent_courses,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading dashboard: {str(e)}", exc_info=True)
+        context = {
+            "total_courses": 0,
+            "completed_courses": 0,
+            "total_blocks": 0,
+            "completed_blocks": 0,
+            "recent_courses": [],
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка дашборда: {str(e)}", exc_info=True)
+        logger.error(f"Error loading dashboard: {str(e)}", exc_info=True)
         context = {
             "total_courses": 0,
             "completed_courses": 0,
@@ -1078,24 +1229,33 @@ def learning_dashboard(request):
 
 @login_required
 def profile_settings(request):
-    profile, created = UserProfile.objects.get_or_create(
-        user=request.user,
-        defaults={
-            'phone': '',
-            'city': '',
-            'balance': 0,
-            'role': 'student',
-            'bio': '',
-            'company': '',
-            'position': '',
-            'website': '',
-            'country': '',
-            'email_notifications': True,
-            'course_updates': True,
-            'newsletter': False,
-            'push_reminders': True,
-        }
-    )
+    try:
+        profile, created = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'phone': '',
+                'city': '',
+                'balance': 0,
+                'role': 'student',
+                'bio': '',
+                'company': '',
+                'position': '',
+                'website': '',
+                'country': '',
+                'email_notifications': True,
+                'course_updates': True,
+                'newsletter': False,
+                'push_reminders': True,
+            }
+        )
+    except DatabaseError as e:
+        logger.error(f"Database error loading profile: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect('dashboard')
+    except Exception as e:
+        logger.error(f"Error loading profile: {str(e)}", exc_info=True)
+        messages.error(request, "Произошла ошибка при загрузке профиля")
+        return redirect('dashboard')
     
     user = request.user
     
@@ -1127,8 +1287,11 @@ def profile_settings(request):
                     
                     user.save()
                     messages.success(request, 'Настройки профиля успешно обновлены!')
+                except DatabaseError as e:
+                    logger.error(f"Database error updating profile: {str(e)}", exc_info=True)
+                    messages.error(request, 'Временные проблемы с базой данных')
                 except Exception as e:
-                    logger.error(f"Ошибка обновления профиля: {str(e)}", exc_info=True)
+                    logger.error(f"Error updating profile: {str(e)}", exc_info=True)
                     messages.error(request, 'Произошла ошибка при обновлении профиля')
                 
                 active_tab = 'profile'
@@ -1152,8 +1315,11 @@ def profile_settings(request):
                             messages.error(request, 'Новые пароли не совпадают')
                     else:
                         messages.error(request, 'Текущий пароль неверен')
+                except DatabaseError as e:
+                    logger.error(f"Database error changing password: {str(e)}", exc_info=True)
+                    messages.error(request, 'Временные проблемы с базой данных')
                 except Exception as e:
-                    logger.error(f"Ошибка смены пароля: {str(e)}", exc_info=True)
+                    logger.error(f"Error changing password: {str(e)}", exc_info=True)
                     messages.error(request, 'Произошла ошибка при смене пароля')
                 
                 active_tab = 'security'
@@ -1166,8 +1332,11 @@ def profile_settings(request):
                     profile.push_reminders = 'push_reminders' in request.POST
                     profile.save()
                     messages.success(request, 'Настройки уведомлений сохранены!')
+                except DatabaseError as e:
+                    logger.error(f"Database error updating notifications: {str(e)}", exc_info=True)
+                    messages.error(request, 'Временные проблемы с базой данных')
                 except Exception as e:
-                    logger.error(f"Ошибка обновления настроек уведомлений: {str(e)}", exc_info=True)
+                    logger.error(f"Error updating notifications: {str(e)}", exc_info=True)
                     messages.error(request, 'Произошла ошибка при сохранении настроек уведомлений')
                 
                 active_tab = 'notifications'
@@ -1175,7 +1344,7 @@ def profile_settings(request):
             return redirect(f'{request.path}?tab={active_tab}')
             
         except Exception as e:
-            logger.error(f"Общая ошибка обработки формы профиля: {str(e)}", exc_info=True)
+            logger.error(f"Error processing profile form: {str(e)}", exc_info=True)
             messages.error(request, 'Произошла ошибка при сохранении настроек')
     
     active_tab = request.GET.get('tab', 'profile')
@@ -1204,12 +1373,7 @@ def add_review(request, slug):
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
 
-        has_access = Enrollment.objects.filter(
-            user=request.user, 
-            course=course
-        ).exists()
-        
-        if not has_access:
+        if not user_has_course_access(request.user, course):
             messages.error(request, "Только студенты курса могут оставлять отзывы")
             return redirect("course_detail", slug=slug)
 
@@ -1237,8 +1401,15 @@ def add_review(request, slug):
             "form": form,
         })
         
+    except Course.DoesNotExist:
+        messages.error(request, "Курс не найден")
+        return redirect("courses_list")
+    except DatabaseError as e:
+        logger.error(f"Database error adding review {slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect("course_detail", slug=slug)
     except Exception as e:
-        logger.error(f"Ошибка добавления отзыва {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error adding review {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка")
         return redirect("course_detail", slug=slug)
 
@@ -1287,8 +1458,17 @@ def instructor_dashboard(request):
             'total_revenue': total_revenue,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading instructor dashboard: {str(e)}", exc_info=True)
+        context = {
+            'courses': [],
+            'total_courses': 0,
+            'total_students': 0,
+            'total_revenue': 0,
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки дашборда инструктора: {str(e)}", exc_info=True)
+        logger.error(f"Error loading instructor dashboard: {str(e)}", exc_info=True)
         context = {
             'courses': [],
             'total_courses': 0,
@@ -1333,8 +1513,14 @@ def instructor_courses(request):
             'courses': courses_with_stats,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading instructor courses: {str(e)}", exc_info=True)
+        context = {
+            'courses': [],
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки курсов инструктора: {str(e)}", exc_info=True)
+        logger.error(f"Error loading instructor courses: {str(e)}", exc_info=True)
         context = {
             'courses': [],
         }
@@ -1394,8 +1580,12 @@ def instructor_course_detail(request, slug):
         
     except Course.DoesNotExist:
         raise Http404("Курс не найден")
+    except DatabaseError as e:
+        logger.error(f"Database error loading instructor course details {slug}: {str(e)}", exc_info=True)
+        messages.error(request, "Временные проблемы с базой данных")
+        return redirect('instructor_courses')
     except Exception as e:
-        logger.error(f"Ошибка загрузки деталей курса инструктора {slug}: {str(e)}", exc_info=True)
+        logger.error(f"Error loading instructor course details {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке данных курса")
         return redirect('instructor_courses')
     
@@ -1453,8 +1643,18 @@ def instructor_analytics(request):
             'months_data': months_data,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading instructor analytics: {str(e)}", exc_info=True)
+        context = {
+            'total_courses': 0,
+            'total_enrollments': 0,
+            'total_revenue': 0,
+            'total_reviews': 0,
+            'months_data': [],
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки аналитики инструктора: {str(e)}", exc_info=True)
+        logger.error(f"Error loading instructor analytics: {str(e)}", exc_info=True)
         context = {
             'total_courses': 0,
             'total_enrollments': 0,
@@ -1526,8 +1726,14 @@ def instructor_students(request):
             'students': students_data,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading instructor students: {str(e)}", exc_info=True)
+        context = {
+            'students': [],
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки студентов инструктора: {str(e)}", exc_info=True)
+        logger.error(f"Error loading instructor students: {str(e)}", exc_info=True)
         context = {
             'students': [],
         }
@@ -1558,8 +1764,14 @@ def api_courses(request):
             'courses': courses_list,
         })
         
+    except DatabaseError as e:
+        logger.error(f"Database error in API courses: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Database error',
+        }, status=500)
     except Exception as e:
-        logger.error(f"Ошибка API курсов: {str(e)}", exc_info=True)
+        logger.error(f"Error in API courses: {str(e)}", exc_info=True)
         return JsonResponse({
             'status': 'error',
             'message': 'Internal server error',
@@ -1608,8 +1820,14 @@ def api_enroll(request):
             'enrolled': True,
         })
         
+    except DatabaseError as e:
+        logger.error(f"Database error in API enroll: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Database error',
+        }, status=500)
     except Exception as e:
-        logger.error(f"Ошибка API записи: {str(e)}", exc_info=True)
+        logger.error(f"Error in API enroll: {str(e)}", exc_info=True)
         return JsonResponse({
             'status': 'error',
             'message': 'Internal server error',
@@ -1652,8 +1870,14 @@ def api_reviews(request):
             'reviews': reviews_list,
         })
         
+    except DatabaseError as e:
+        logger.error(f"Database error in API reviews: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Database error',
+        }, status=500)
     except Exception as e:
-        logger.error(f"Ошибка API отзывов: {str(e)}", exc_info=True)
+        logger.error(f"Error in API reviews: {str(e)}", exc_info=True)
         return JsonResponse({
             'status': 'error',
             'message': 'Internal server error',
@@ -1701,8 +1925,25 @@ def crm_dashboard(request):
             'conversion_rate_month': conversion_rate_month,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading CRM dashboard: {str(e)}", exc_info=True)
+        context = {
+            'new_leads_today': 0,
+            'new_leads_week': 0,
+            'new_leads_month': 0,
+            'converted_leads_today': 0,
+            'converted_leads_week': 0,
+            'converted_leads_month': 0,
+            'payments_today': 0,
+            'payments_week': 0,
+            'payments_month': 0,
+            'conversion_rate_today': 0,
+            'conversion_rate_week': 0,
+            'conversion_rate_month': 0,
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки CRM дашборда: {str(e)}", exc_info=True)
+        logger.error(f"Error loading CRM dashboard: {str(e)}", exc_info=True)
         context = {
             'new_leads_today': 0,
             'new_leads_week': 0,
@@ -1751,8 +1992,16 @@ def crm_leads(request):
             'search_query': search_query or '',
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading CRM leads: {str(e)}", exc_info=True)
+        context = {
+            'leads': [],
+            'status_filter': '',
+            'search_query': '',
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки лидов CRM: {str(e)}", exc_info=True)
+        logger.error(f"Error loading CRM leads: {str(e)}", exc_info=True)
         context = {
             'leads': [],
             'status_filter': '',
@@ -1800,8 +2049,19 @@ def crm_payments(request):
             'failed_payments': failed_payments,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading CRM payments: {str(e)}", exc_info=True)
+        context = {
+            'payments': [],
+            'status_filter': '',
+            'search_query': '',
+            'total_revenue': 0,
+            'pending_payments': 0,
+            'failed_payments': 0,
+        }
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки платежей CRM: {str(e)}", exc_info=True)
+        logger.error(f"Error loading CRM payments: {str(e)}", exc_info=True)
         context = {
             'payments': [],
             'status_filter': '',
@@ -1814,7 +2074,7 @@ def crm_payments(request):
     return render(request, "crm/payments.html", context)
 
 def about(request):
-    cache_key = 'about_page_data'
+    cache_key = f'about_page_v{CACHE_VERSION}_data'
     
     cached_data = cache.get(cache_key)
     if cached_data:
@@ -1839,8 +2099,13 @@ def about(request):
             "total_instructors": total_instructors,
         }
         
+    except DatabaseError as e:
+        logger.error(f"Database error loading about page: {str(e)}", exc_info=True)
+        instructors = []
+        stats = {"total_courses": 0, "total_students": 0, "total_instructors": 0}
+        messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
-        logger.error(f"Ошибка загрузки страницы 'О нас': {str(e)}", exc_info=True)
+        logger.error(f"Error loading about page: {str(e)}", exc_info=True)
         instructors = []
         stats = {"total_courses": 0, "total_students": 0, "total_instructors": 0}
 
@@ -1860,8 +2125,11 @@ def contact(request):
             try:
                 form.save()
                 messages.success(request, "Ваше сообщение успешно отправлено!")
+            except DatabaseError as e:
+                logger.error(f"Database error saving contact: {str(e)}", exc_info=True)
+                messages.error(request, "Временные проблемы с базой данных")
             except Exception as e:
-                logger.error(f"Ошибка сохранения контакта: {str(e)}", exc_info=True)
+                logger.error(f"Error saving contact: {str(e)}", exc_info=True)
                 messages.error(request, "Произошла ошибка при отправке сообщения")
             return redirect("contact")
     else:
@@ -1870,7 +2138,7 @@ def contact(request):
     return render(request, "contact.html", {"form": form})
 
 def design_wireframe(request):
-    cache_key = 'design_wireframe_data'
+    cache_key = f'design_wireframe_v{CACHE_VERSION}_data'
     
     cached_data = cache.get(cache_key)
     if cached_data:
@@ -1906,6 +2174,13 @@ def health_check(request):
             'cache': 'ok',
         })
         
+    except DatabaseError as e:
+        logger.error(f"Database health check failed: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'unhealthy',
+            'timestamp': timezone.now().isoformat(),
+            'error': 'Database error',
+        }, status=500)
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}", exc_info=True)
         return JsonResponse({
@@ -1959,7 +2234,7 @@ def sitemap(request):
         xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 '''
-        
+        articles_list
         for url in urls:
             xml_content += f'''  <url>
     <loc>{request.scheme}://{request.get_host()}{url['loc']}</loc>
@@ -1975,8 +2250,11 @@ def sitemap(request):
         
         return HttpResponse(xml_content, content_type='application/xml')
         
+    except DatabaseError as e:
+        logger.error(f"Database error generating sitemap: {str(e)}", exc_info=True)
+        return HttpResponse(status=500)
     except Exception as e:
-        logger.error(f"Ошибка генерации sitemap: {str(e)}", exc_info=True)
+        logger.error(f"Error generating sitemap: {str(e)}", exc_info=True)
         return HttpResponse(status=500)
 
 def handler404(request, exception):
