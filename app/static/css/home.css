@@ -469,3 +469,18 @@
 .fade-in {
   animation: fadeIn 0.5s ease forwards;
 }
+
+.fade-up {
+  pointer-events: auto;
+}
+
+/* === FIX: контраст заголовка hero === */
+
+.course-hero .course-title {
+  color: #ffffff;
+}
+
+.course-hero .course-title span {
+  color: #e0ecff;     /* мягкий академический акцент */
+  background: none;  /* ❗ гарантированно убираем заливку */
+}
