@@ -1,12 +1,43 @@
+/* === BASE === */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #ffffff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* === HEADER === */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff;
+}
+
+/* === HERO === */
 .course-hero {
   position: relative;
-  z-index: 1;
-  padding: 3.5rem 1rem 2.5rem;
-  min-height: 100vh;
+
+  /* ВАЖНО */
+  min-height: calc(100vh - 72px); /* высота header */
+  padding: 5rem 1rem 3rem;
+
   background: linear-gradient(135deg, #0f3cc9, #0a2a8f);
   color: #ffffff;
   text-align: center;
+
+  display: flex;
+  align-items: center;
 }
+
+.course-hero .container {
+  width: 100%;
+}
+
+/* === TEXT === */
 .course-badge {
   display: inline-block;
   padding: 8px 16px;
@@ -39,6 +70,7 @@
   color: #e6edff;
 }
 
+/* === SEARCH === */
 .hero-search {
   margin: 1.5rem auto 0;
   max-width: 540px;
@@ -55,31 +87,18 @@
   border: none;
   outline: none;
   font-size: 1rem;
-  color: #0f172a;
-}
-
-.hero-search input:focus {
-  outline: 2px solid #0f3cc9;
-  outline-offset: 2px;
 }
 
 .hero-search button {
   padding: 14px 24px;
   border: none;
   background: #fbbf24;
-  color: #0b1020;
   font-weight: 700;
   cursor: pointer;
-  font-size: 1rem;
 }
 
-.hero-search button:hover {
-  background: #f59e0b;
-}
-
+/* === BUTTONS === */
 .hero-buttons {
-  position: relative;
-  z-index: 2;
   margin-top: 2rem;
   display: flex;
   gap: 0.75rem;
@@ -88,25 +107,15 @@
 }
 
 .hero-btn {
-  position: relative;
-  z-index: 2;
-  display: inline-block;
   padding: 12px 28px;
   border-radius: 10px;
-  text-decoration: none;
   font-weight: 700;
-  font-size: 0.95rem;
-  transition: all 0.25s ease;
+  text-decoration: none;
 }
 
 .hero-btn-primary {
   background: #ffffff;
   color: #0f3cc9;
-}
-
-.hero-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(255, 255, 255, 0.35);
 }
 
 .hero-btn-secondary {
@@ -115,124 +124,17 @@
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.hero-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-
-.course-card img {
-  aspect-ratio: 16 / 9;
-  width: 100%;
-  object-fit: cover;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.btn-view-all {
-  color: #0f3cc9;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid #0f3cc9;
-  transition: all 0.25s ease;
-}
-
-.btn-view-all:hover {
-  background: #0f3cc9;
-  color: #ffffff;
-}
-
-.course-meta {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.course-level {
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 2rem;
-  margin-top: 3rem;
-}
-
-.feature-card {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 2rem;
-  box-shadow: 0 16px 40px rgba(15, 60, 201, 0.08);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 28px 60px rgba(15, 60, 201, 0.16);
-}
-
-.feature-icon {
-  font-size: 2.2rem;
-  margin-bottom: 1rem;
-}
-
-.feature-card h4 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #0f172a;
-}
-
-.feature-card p {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: #475569;
-}
-
-.fade-up {
-  opacity: 1;
-  transform: none;
-}
-
-.js-enabled .fade-up {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-
-.js-enabled .fade-up.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.section {
-  padding: 4rem 1rem;
-}
-
-.section-bg {
-  background: #f8fafc;
-}
-
+/* === CONTAINER === */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
+/* === MOBILE === */
 @media (max-width: 768px) {
-  .section {
-    padding: 3rem 1rem;
+  .course-hero {
+    padding: 4rem 1rem 2.5rem;
   }
 
   .hero-buttons {
@@ -242,14 +144,5 @@
   .hero-btn {
     width: 100%;
     max-width: 280px;
-    text-align: center;
-  }
-
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .course-title {
-    font-size: 2rem;
   }
 }
