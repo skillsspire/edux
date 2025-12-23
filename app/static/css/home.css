@@ -2,8 +2,9 @@
   position: relative;
   z-index: 1;
   padding: 3.5rem 1rem 2.5rem;
+  min-height: 100vh;
   background: linear-gradient(135deg, #0f3cc9, #0a2a8f);
-  color: #0f3cc9;
+  color: #ffffff;
   text-align: center;
 }
 
