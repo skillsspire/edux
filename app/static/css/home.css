@@ -3,7 +3,7 @@
   z-index: 1;
   padding: 3.5rem 1rem 2.5rem;
   background: linear-gradient(135deg, #0f3cc9, #0a2a8f);
-  color: #ffffff;
+  color: #0f3cc9;
   text-align: center;
 }
 
@@ -12,8 +12,8 @@
   padding: 8px 16px;
   font-size: 0.9rem;
   border-radius: 999px;
-  background: rgb(15, 60, 201);
-  border: 1px solid rgb(10, 42, 143);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   margin-bottom: 1.5rem;
   font-weight: 600;
 }
