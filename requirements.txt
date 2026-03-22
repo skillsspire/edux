@@ -72,3 +72,4 @@ python-dotenv==1.0.1
 dj-database-url==3.0.1
 django-recaptcha==4.1.0
 django-cors-headers==4.6.0
+psycopg2-binary
