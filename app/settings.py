@@ -4,6 +4,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 
+if 'VERCEL' in os.environ:
+    DEBUG = True
+    
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
