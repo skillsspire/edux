@@ -10,6 +10,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+# Определяем окружение
+IS_VERCEL = 'VERCEL' in os.environ
+IS_RENDER = 'RENDER' in os.environ
+IS_LOCAL = not IS_VERCEL and not IS_RENDER
+
 # Supabase configuration
 SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID', 'pyttzlcuxyfkhrwggrwi')
 SUPABASE_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co"
@@ -20,28 +25,31 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-123')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Для дебага на Render временно включаем DEBUG
-if 'RENDER' in os.environ:
-    DEBUG = True  # Временно для отладки
-
+# ALLOWED_HOSTS - обновлено для Vercel
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'skillsspire.com',
     'www.skillsspire.com',
-    '.onrender.com',
+    '.vercel.app',  # Добавлено для Vercel
 ]
 
+# Добавляем хост из переменной окружения, если есть (для Render)
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
+# CSRF_TRUSTED_ORIGINS - обновлено для Vercel
 CSRF_TRUSTED_ORIGINS = [
     'https://*.skillsspire.com',
-    'https://*.onrender.com',
+    'https://*.vercel.app',  # Добавлено для Vercel
     'http://localhost:8000',
     'http://127.0.0.1:8000',
 ]
+
+# Добавляем для Render, если нужно
+if IS_RENDER:
+    CSRF_TRUSTED_ORIGINS.append('https://*.onrender.com')
 
 # Security settings
 if not DEBUG:
@@ -85,7 +93,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise всегда в middleware
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -192,21 +200,21 @@ STATICFILES_DIRS = [
     BASE_DIR / 'app' / 'static',
 ]
 
-# Настройки WhiteNoise
-if 'RENDER' in os.environ:
-    # На Render используем WhiteNoise
+# Настройки WhiteNoise - работает на Vercel и Render, но не на локальной разработке
+# Используем WhiteNoise для продакшена (Vercel, Render) и отключаем для локальной разработки
+if not DEBUG or IS_VERCEL or IS_RENDER:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     WHITENOISE_MANIFEST_STRICT = False  # Не падать если файл не найден
 else:
-    # Локально
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Media files
-if DEBUG:
+if DEBUG and IS_LOCAL:
+    # Локальная разработка - файлы на диске
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
 else:
-    # Используем Supabase Storage для медиафайлов
+    # Продакшен (Vercel/Render) - используем Supabase Storage
     SUPABASE_BUCKET = 'media'
     MEDIA_URL = f'{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/'
     
@@ -334,7 +342,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 PHONENUMBER_DEFAULT_REGION = 'KZ'
 PHONENUMBER_DEFAULT_FORMAT = 'INTERNATIONAL'
 
-# Logging
+# Logging - настройки для разных окружений
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -350,7 +358,7 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG' if 'RENDER' in os.environ else 'INFO',
+            'level': 'DEBUG' if (IS_VERCEL or IS_RENDER) else 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
             'stream': sys.stdout,
@@ -358,17 +366,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG' if 'RENDER' in os.environ else 'WARNING',
+        'level': 'DEBUG' if (IS_VERCEL or IS_RENDER) else 'WARNING',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG' if 'RENDER' in os.environ else 'INFO',
+            'level': 'DEBUG' if (IS_VERCEL or IS_RENDER) else 'INFO',
             'propagate': False,
         },
         'app': {
             'handlers': ['console'],
-            'level': 'DEBUG' if 'RENDER' in os.environ else 'INFO',
+            'level': 'DEBUG' if (IS_VERCEL or IS_RENDER) else 'INFO',
             'propagate': False,
         },
     },
