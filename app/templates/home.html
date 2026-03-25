@@ -12,33 +12,49 @@
     --container-max: 1080px;
 }
 
-.hero-positioning {
-    max-width: 720px;
-    margin: 1.2rem auto 1.6rem;
-    font-size: 16px;
-    line-height: 1.55;
-    color: #374151;
+/* === HERO с фоновым изображением + градиент === */
+.course-hero {
+    position: relative;
+    overflow: hidden;
+    background: #1e3a8a; /* fallback */
 }
 
+.course-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: 
+        linear-gradient(135deg, rgba(15, 60, 201, 0.85), rgba(10, 42, 143, 0.95)),
+        url("{% static 'img/hero-student.jpg' %}");
+    background-size: cover;
+    background-position: center 30%;
+    z-index: 0;
+}
+
+/* контент поверх фона */
+.course-hero .container {
+    position: relative;
+    z-index: 2;
+}
+
+/* дополнительные улучшения читаемости */
+.course-hero .course-title,
+.course-hero .course-subtitle p,
+.course-hero .course-badge,
+.course-hero .hero-search input::placeholder,
+.course-hero .hero-search button {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.course-hero .hero-search input {
+    background: rgba(255,255,255,0.95);
+}
+
+/* удаляем старые классы, которые больше не используются */
+.hero-positioning,
 .market-diff {
-    text-align: center;
-    font-size: 14px;
-    color: #6b7280;
-    margin: 2rem auto;
-    max-width: 720px;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 10px;
-    border-left: 3px solid #1d4ed8;
-}
-
-.trust-note {
-    max-width: 720px;
-    margin: 0 auto 2rem;
-    font-size: 14.5px;
-    color: #6b7280;
-    text-align: center;
-    font-style: italic;
+    display: none;
 }
 
 .course-fit {
@@ -293,23 +309,17 @@
     .stats-grid {
         grid-template-columns: 1fr;
     }
-    
-    .hero-positioning {
-        font-size: 15px;
-        padding: 0 1rem;
-    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <section class="course-hero text-center">
-<div class="container">
+  <div class="container">
     <span class="course-badge">🎓 Академическое онлайн-образование</span>
 
     <h1 class="course-title">
-      Академическое онлайн-образование<br>
-      <span>для карьерного роста</span>
+      Освой востребованные навыки и получи сертификат для работы<br>
     </h1>
 
     <div class="course-subtitle">
@@ -320,16 +330,18 @@
 
     <form action="{% url 'courses_list' %}" method="get" class="hero-search">
       <input type="text" name="q" placeholder="Поиск бесплатных курсов..." aria-label="Поиск курсов">
+      <button type="submit">Поиск</button>
     </form>
 
     <div class="hero-buttons">
       <a href="{% url 'courses_list' %}" class="hero-btn hero-btn-primary">
-        🚀 Начать бесплатно
+        Выбрать курс бесплатно
       </a>
     </div>
   </div>
 </section>
 
+<!-- Остальные секции без изменений -->
 <section class="features-section fade-up section-muted">
   <div class="container">
     <div class="section-header-home">
