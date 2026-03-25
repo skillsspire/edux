@@ -221,35 +221,6 @@
     border: 1px solid #f1f5f9;
 }
 
-.btn-recommend {
-    display: inline-block;
-    padding: 0.8rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    margin-top: 1rem;
-    background: #0ea5e9;
-    color: white;
-}
-
-.recommend-list {
-    max-width: 600px;
-    margin: 2rem auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.recommend-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 10px;
-}
-
 .partners-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -431,47 +402,6 @@
   </div>
 </section>
 
-<section class="recommend-section fade-up section-light">
-  <div class="container">
-    <div class="section-header-home">
-      <h2>🧠 Не знаете, какой курс выбрать?</h2>
-      <p class="section-content">
-        <strong>Пройдите короткий тест (2 минуты)</strong> и получите персонализированные рекомендации
-      </p>
-    </div>
-
-    <div class="recommend-list">
-      <div class="recommend-item">
-        <span>📋</span>
-        <div>
-          <strong>Подборку курсов под ваши цели</strong>
-          <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Персональные рекомендации на основе ваших интересов</p>
-        </div>
-      </div>
-      <div class="recommend-item">
-        <span>🎁</span>
-        <div>
-          <strong>Доступ к бесплатным материалам</strong>
-          <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Полезные ресурсы для старта обучения</p>
-        </div>
-      </div>
-      <div class="recommend-item">
-        <span>📧</span>
-        <div>
-          <strong>Пояснения и рекомендации по email</strong>
-          <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Детальный разбор ваших потребностей</p>
-        </div>
-      </div>
-    </div>
-
-    <div style="text-align: center; margin-top: 1.5rem;">
-      <a href="#" id="openTest" class="btn-recommend">
-        🎯 Пройти тест и получить подборку
-      </a>
-    </div>
-  </div>
-</section>
-
 <section class="testimonials-section fade-up section-muted">
   <div class="container">
     <div class="section-header-home">
@@ -535,15 +465,6 @@
     </div>
   </div>
 </section>
-
-<div class="popup-overlay" id="popupTest">
-  <div class="popup">
-    <button class="popup-close" id="closePopup">&times;</button>
-    <h3>Подбор курса</h3>
-    <p>В разработке. Скоро вы сможете пройти короткий тест и получить рекомендации!</p>
-    <button id="closeBtn" class="btn">Закрыть</button>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -601,28 +522,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 3000);
     });
   });
-  
-  const openTestBtn = document.getElementById('openTest');
-  const popupTest = document.getElementById('popupTest');
-  const closePopup = document.getElementById('closePopup');
-  const closeBtn = document.getElementById('closeBtn');
-  
-  if (openTestBtn && popupTest) {
-    openTestBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      popupTest.style.display = 'flex';
-    });
-    
-    function closePopupFunc() {
-      popupTest.style.display = 'none';
-    }
-    
-    if (closePopup) closePopup.addEventListener('click', closePopupFunc);
-    if (closeBtn) closeBtn.addEventListener('click', closePopupFunc);
-    popupTest.addEventListener('click', function(e) {
-      if (e.target === popupTest) closePopupFunc();
-    });
-  }
 });
 </script>
 {% endblock %}
