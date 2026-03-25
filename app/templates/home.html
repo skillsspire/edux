@@ -221,7 +221,7 @@
     border: 1px solid #f1f5f9;
 }
 
-.btn-community, .btn-corporate, .btn-recommend {
+.btn-recommend {
     display: inline-block;
     padding: 0.8rem 1.5rem;
     border-radius: 10px;
@@ -229,16 +229,8 @@
     text-decoration: none;
     transition: all 0.2s ease;
     margin-top: 1rem;
-}
-
-.btn-community {
-    background: #1d4ed8;
+    background: #0ea5e9;
     color: white;
-}
-
-.btn-community:hover {
-    background: #1e40af;
-    transform: translateY(-1px);
 }
 
 .recommend-list {
@@ -256,24 +248,6 @@
     padding: 1rem;
     background: #f8fafc;
     border-radius: 10px;
-}
-
-.corporate-features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 2rem auto;
-    max-width: 600px;
-}
-
-.corp-feature {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background: #f8fafc;
-    border-radius: 8px;
-    font-size: 14px;
 }
 
 .partners-grid {
@@ -341,7 +315,6 @@
   </div>
 </section>
 
-<!-- Остальные секции без изменений -->
 <section class="features-section fade-up section-muted">
   <div class="container">
     <div class="section-header-home">
@@ -396,29 +369,6 @@
         <div>направлений обучения</div>
       </div>
     </div>
-  </div>
-</section>
-
-<section class="email-cta-section fade-up section-muted">
-  <div class="container">
-    <div class="section-header-home">
-      <h2>Получите бесплатные материалы</h2>
-      <p class="section-content">
-        Оставьте email — мы отправим подборку полезных материалов по выбранному направлению.
-      </p>
-    </div>
-
-    <form method="post" action="#" id="email-subscribe-form" style="max-width: 400px; margin: 2rem auto;">
-      {% csrf_token %}
-      <input type="email" name="email" required placeholder="Ваш email" id="subscribe-email">
-      <button type="submit">
-        Получить материалы
-      </button>
-    </form>
-
-    <p class="text-sm" style="font-size:0.85rem; opacity:.7; margin-top:1rem; text-align:center;">
-      Без спама. Мы не передаём данные третьим лицам.
-    </p>
   </div>
 </section>
 
@@ -481,20 +431,6 @@
   </div>
 </section>
 
-<section class="community-section fade-up section-muted">
-  <div class="container">
-    <div class="section-header-home">
-      <h2>👥 Сообщество и поддержка студентов</h2>
-      <p class="section-content">
-        Наставники и кураторы помогают разбираться в сложных темах. Онлайн-чаты и проекты делают обучение интересным.
-      </p>
-    </div>
-    <div style="text-align: center; margin-top: 1.5rem;">
-      <a href="{% url 'signup' %}" class="btn-community">Присоединиться к комьюнити</a>
-    </div>
-  </div>
-</section>
-
 <section class="recommend-section fade-up section-light">
   <div class="container">
     <div class="section-header-home">
@@ -529,7 +465,7 @@
     </div>
 
     <div style="text-align: center; margin-top: 1.5rem;">
-      <a href="#" id="openTest" class="btn-recommend" style="background: #0ea5e9; color: white;">
+      <a href="#" id="openTest" class="btn-recommend">
         🎯 Пройти тест и получить подборку
       </a>
     </div>
@@ -573,42 +509,6 @@
       </div>
       <div class="swiper-button-next"></div>
       <div class="swiper-button-prev"></div>
-    </div>
-  </div>
-</section>
-
-<section class="corporate-section fade-up section-muted secondary-section">
-  <div class="container">
-    <div class="section-header-home">
-      <h2>🏢 Обучение для компаний</h2>
-      <p class="section-content">
-        SkillsSpire предлагает корпоративное онлайн-обучение для бизнеса любого масштаба.
-      </p>
-    </div>
-    
-    <div class="corporate-features">
-      <div class="corp-feature">
-        <span>✅</span>
-        <p>Программы под задачи компании</p>
-      </div>
-      <div class="corp-feature">
-        <span>✅</span>
-        <p>Онлайн-обучение сотрудников</p>
-      </div>
-      <div class="corp-feature">
-        <span>✅</span>
-        <p>Отчёты и аналитика прогресса</p>
-      </div>
-      <div class="corp-feature">
-        <span>✅</span>
-        <p>Сопровождение на всех этапах</p>
-      </div>
-    </div>
-    
-    <div style="text-align: center; margin-top: 1.5rem;">
-      <a href="/contact/" class="btn-corporate" style="background: #1e293b; color: white;">
-        📞 Оставить заявку
-      </a>
     </div>
   </div>
 </section>
