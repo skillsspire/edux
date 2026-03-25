@@ -178,11 +178,6 @@
                 <a href="{% url 'signup' %}" class="btn btn-primary">Регистрация</a>
               </div>
             {% endif %}
-
-            <!-- Theme toggle -->
-            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
-              🌙
-            </button>
           </div>
         </div>
       </div>
@@ -291,36 +286,24 @@
 
   <!-- Critical inline JavaScript -->
   <script>
-    // Минимальный JS для базовой функциональности до загрузки main.js
     (function() {
       'use strict';
       
-      // Функция для скрытия прелоадера с учетом кэша браузера
       function hidePreloader() {
         var preloader = document.getElementById('preloader');
         if (!preloader) return;
-        
         preloader.style.transition = 'opacity 0.3s ease';
         preloader.style.opacity = '0';
         preloader.style.pointerEvents = 'none';
-        
         setTimeout(function() {
           preloader.style.display = 'none';
         }, 300);
       }
       
-      // Обычная загрузка страницы
       document.addEventListener('DOMContentLoaded', hidePreloader);
-      
-      // Back/Forward cache - ОБЯЗАТЕЛЬНО для браузерного кэша
       window.addEventListener('pageshow', function(event) {
-        // Если страница загружена из кэша (bfcache)
-        if (event.persisted) {
-          hidePreloader();
-        }
+        if (event.persisted) hidePreloader();
       });
-      
-      // Дублируем на всякий случай
       window.addEventListener('load', hidePreloader);
       
       // Закрытие алертов
@@ -331,72 +314,38 @@
             alert.style.transition = 'opacity 0.3s ease';
             alert.style.opacity = '0';
             setTimeout(function() {
-              if (alert.parentNode) {
-                alert.parentNode.removeChild(alert);
-              }
+              if (alert.parentNode) alert.parentNode.removeChild(alert);
             }, 300);
           }
         }
       });
       
-      // Авто-скрытие алертов
       setTimeout(function() {
         var alerts = document.querySelectorAll('.alert[data-autohide="true"]');
         alerts.forEach(function(alert) {
           alert.style.transition = 'opacity 0.3s ease';
           alert.style.opacity = '0';
           setTimeout(function() {
-            if (alert.parentNode) {
-              alert.parentNode.removeChild(alert);
-            }
+            if (alert.parentNode) alert.parentNode.removeChild(alert);
           }, 300);
         });
       }, 5000);
       
-      // Простая навигация
+      // Навигация
       var navToggle = document.getElementById('navToggle');
       var navMenu = document.getElementById('navMenu');
-      
       if (navToggle && navMenu) {
         navToggle.addEventListener('click', function() {
           var isExpanded = this.getAttribute('aria-expanded') === 'true';
           this.setAttribute('aria-expanded', !isExpanded);
           navMenu.classList.toggle('active');
         });
-        
-        // Закрытие при клике вне меню
         document.addEventListener('click', function(e) {
           if (!navMenu.contains(e.target) && !navToggle.contains(e.target) && navMenu.classList.contains('active')) {
             navToggle.setAttribute('aria-expanded', 'false');
             navMenu.classList.remove('active');
           }
         });
-      }
-      
-      // Простая смена темы
-      var themeToggle = document.getElementById('themeToggle');
-      if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-          var html = document.documentElement;
-          var current = html.getAttribute('data-theme') || 'light';
-          var next = current === 'light' ? 'dark' : 'light';
-          html.setAttribute('data-theme', next);
-          try {
-            localStorage.setItem('theme', next);
-          } catch(e) {}
-          this.textContent = next === 'dark' ? '☀️' : '🌙';
-          this.setAttribute('aria-label', next === 'dark' ? 'Переключить на светлую тему' : 'Переключить на темную тему');
-        });
-        
-        // Восстановление темы
-        try {
-          var saved = localStorage.getItem('theme');
-          if (saved) {
-            document.documentElement.setAttribute('data-theme', saved);
-            themeToggle.textContent = saved === 'dark' ? '☀️' : '🌙';
-            themeToggle.setAttribute('aria-label', saved === 'dark' ? 'Переключить на светлую тему' : 'Переключить на темную тему');
-          }
-        } catch(e) {}
       }
     })();
   </script>
