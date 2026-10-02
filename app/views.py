@@ -41,7 +41,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog
@@ -774,98 +774,196 @@ def lesson_view(request, course_slug, lesson_slug):
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
-    try:
-        course_obj = Course.objects.filter(
-            slug=course_slug,
-            status=Course.PUBLISHED,
-            is_deleted=False
-        ).only('id', 'title', 'slug', 'price').order_by('id').first()
-        
-        if not course_obj:
-            raise Http404("Курс не найден")
-        
-        if not user_has_course_access(request.user, course_obj):
-            messages.error(request, "У вас нет доступа к этому уроку")
-            return redirect("course_detail", slug=course_slug)
-        
-        course_data = course_card_dto(course_obj)
+    course_obj = get_object_or_404(
+        Course,
+        slug=course_slug,
+        status=Course.PUBLISHED,
+        is_deleted=False,
+    )
 
-        try:
-            lesson = Lesson.objects.filter(
-                slug=lesson_slug, 
-                module__course=course_obj, 
-                is_active=True
-            ).select_related("module").only(
-                'id', 'title', 'slug', 'content', 'video_url', 'duration',
-                'module_id', 'module__title', 'module__order'
-            ).order_by('id').first()
-            
-            if not lesson:
-                raise Http404("Урок не найден")
-                
-        except Lesson.DoesNotExist:
-            raise Http404("Урок не найден")
-        except Exception:
-            messages.error(request, "Урок недоступен")
-            return redirect("course_detail", slug=course_slug)
+    if not user_has_course_access(request.user, course_obj):
+        messages.error(request, "У вас нет доступа к этому уроку")
+        return redirect("course_detail", slug=course_slug)
 
-        try:
-            lessons_qs = Lesson.objects.filter(
-                module__course=course_obj, 
-                is_active=True
-            ).select_related("module").only(
-                'id', 'title', 'slug', 'module__order', 'order'
-            ).order_by("module__order", "order")
-            
-            lessons_list = list(lessons_qs)
-            current_index = next((i for i, l in enumerate(lessons_list) if l.id == lesson.id), 0)
-            
-            previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
-            next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
-            
-        except Exception:
-            previous_lesson = None
-            next_lesson = None
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("module"),
+        slug=lesson_slug,
+        module__course=course_obj,
+        is_active=True,
+        is_deleted=False,
+    )
 
-        try:
-            blocks = LessonBlock.objects.filter(lesson=lesson, is_deleted=False)
-            if blocks.exists():
-                for block in blocks:
-                    BlockProgress.objects.update_or_create(
-                        user=request.user,
-                        block=block,
-                        defaults={
-                            "progress_percent": 0,
-                            "is_completed": False,
-                            "last_accessed": timezone.now(),
-                        }
-                    )
-        except Exception as e:
-            logger.error(f"Error creating progress for lesson {lesson.id}: {str(e)}", exc_info=True)
+    lessons_list = list(
+        Lesson.objects.filter(
+            module__course=course_obj,
+            is_active=True,
+            is_deleted=False,
+        ).select_related("module").order_by("module__order", "order", "id")
+    )
+    current_index = next((i for i, item in enumerate(lessons_list) if item.id == lesson.id), 0)
+    previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
+    next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-        enrollment = Enrollment.objects.filter(
-            user=request.user, 
-            course=course_obj
-        ).first()
+    blocks = list(
+        LessonBlock.objects.filter(
+            lesson=lesson,
+            is_deleted=False,
+        ).select_related("quiz", "assignment").order_by("order", "id")
+    )
 
-        return render(request, "courses/lesson_detail.html", {
-            "course": course_data,
-            "lesson": lesson,
-            "prev_lesson": previous_lesson,
-            "next_lesson": next_lesson,
-            "enrollment": enrollment,
-        })
-        
-    except Http404:
-        raise
-    except DatabaseError as e:
-        logger.error(f"Database error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
-        messages.error(request, "Временные проблемы с базой данных")
-        return redirect("courses_list")
-    except Exception as e:
-        logger.error(f"Error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
-        messages.error(request, "Произошла ошибка при загрузке урока")
-        return redirect("courses_list")
+    block_progress = {
+        p.block_id: p
+        for p in BlockProgress.objects.filter(user=request.user, block__in=blocks)
+    }
+    for block in blocks:
+        if block.id not in block_progress:
+            block_progress[block.id] = BlockProgress.objects.create(
+                user=request.user,
+                block=block,
+                progress_percent=0,
+                is_completed=False,
+            )
+
+    quiz_ids = [block.quiz_id for block in blocks if block.quiz_id]
+    best_scores = {}
+    if quiz_ids:
+        attempts = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz_id__in=quiz_ids,
+        ).order_by("quiz_id", "-score_percent", "-completed_at")
+        for attempt in attempts:
+            best_scores.setdefault(attempt.quiz_id, attempt.score_percent)
+
+    enrollment = Enrollment.objects.filter(user=request.user, course=course_obj).first()
+
+    required_blocks = LessonBlock.objects.filter(
+        lesson__module__course=course_obj,
+        is_required=True,
+        is_deleted=False,
+    )
+    required_count = required_blocks.count()
+    completed_count = BlockProgress.objects.filter(
+        user=request.user,
+        block__in=required_blocks,
+        is_completed=True,
+    ).count()
+    course_progress = round((completed_count / required_count) * 100) if required_count else 0
+
+    return render(request, "courses/lesson_detail.html", {
+        "course": course_obj,
+        "lesson": lesson,
+        "blocks": blocks,
+        "block_progress": block_progress,
+        "best_scores": best_scores,
+        "prev_lesson": previous_lesson,
+        "next_lesson": next_lesson,
+        "enrollment": enrollment,
+        "course_progress": course_progress,
+    })
+
+
+@login_required
+def submit_quiz(request, quiz_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    quiz = get_object_or_404(
+        Quiz.objects.select_related("lesson__module__course"),
+        id=quiz_id,
+        is_active=True,
+    )
+    course_obj = quiz.lesson.module.course
+
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    previous_attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz)
+    attempts_count = previous_attempts.count()
+    if not quiz.unlimited_attempts and attempts_count >= quiz.attempts_allowed:
+        return JsonResponse({
+            "error": "Лимит попыток исчерпан",
+            "attempts_used": attempts_count,
+        }, status=400)
+
+    questions = list(
+        quiz.questions.prefetch_related("answers").order_by("order", "id")
+    )
+    points_total = sum(max(1, q.points) for q in questions)
+    points_earned = 0
+    answer_log = {}
+
+    for question in questions:
+        field_name = f"question_{question.id}"
+        submitted_values = request.POST.getlist(field_name)
+        submitted_clean = [str(v).strip() for v in submitted_values if str(v).strip()]
+        correct_answers = list(question.answers.filter(is_correct=True))
+
+        is_correct = False
+        if question.question_type == "multiple":
+            correct_ids = {str(a.id) for a in correct_answers}
+            is_correct = set(submitted_clean) == correct_ids
+        elif question.question_type == "single":
+            correct_ids = {str(a.id) for a in correct_answers}
+            is_correct = len(submitted_clean) == 1 and submitted_clean[0] in correct_ids
+        elif question.question_type == "text":
+            expected = ""
+            if correct_answers:
+                expected = (correct_answers[0].correct_answer or correct_answers[0].text or "").strip()
+            received = submitted_clean[0] if submitted_clean else ""
+            is_correct = bool(expected) and received.casefold() == expected.casefold()
+
+        if is_correct:
+            points_earned += max(1, question.points)
+
+        answer_log[str(question.id)] = {
+            "submitted": submitted_clean,
+            "correct": is_correct,
+        }
+
+    score_percent = round((points_earned / points_total) * 100) if points_total else 0
+    attempt = QuizAttempt.objects.create(
+        user=request.user,
+        quiz=quiz,
+        attempt_number=attempts_count + 1,
+        score_percent=score_percent,
+        points_earned=points_earned,
+        points_total=points_total,
+        answers=answer_log,
+    )
+
+    best_score = QuizAttempt.objects.filter(
+        user=request.user,
+        quiz=quiz,
+    ).order_by("-score_percent", "-completed_at").values_list("score_percent", flat=True).first() or 0
+
+    quiz_blocks = LessonBlock.objects.filter(
+        quiz=quiz,
+        lesson=quiz.lesson,
+        is_deleted=False,
+    )
+    if attempt.passed:
+        for block in quiz_blocks:
+            BlockProgress.objects.update_or_create(
+                user=request.user,
+                block=block,
+                defaults={
+                    "progress_percent": 100,
+                    "is_completed": True,
+                    "completed_at": timezone.now(),
+                },
+            )
+
+    _check_course_completion(request.user, course_obj)
+
+    return JsonResponse({
+        "success": True,
+        "score": score_percent,
+        "best_score": best_score,
+        "passing_score": quiz.passing_score,
+        "passed": attempt.passed,
+        "attempt_number": attempt.attempt_number,
+        "unlimited_attempts": quiz.unlimited_attempts,
+    })
 
 @login_required
 def update_progress(request):
