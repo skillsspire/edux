@@ -882,13 +882,14 @@
               </a>
             {% endif %}
             
-            <a href="{% url 'toggle_wishlist' course.slug %}" class="btn-wishlist btn-enroll">
-              {% if is_in_wishlist %}
-                Удалить из избранного
-              {% else %}
-                Добавить в избранное
-              {% endif %}
-            </a>
+            {% if user.is_authenticated %}
+              <form action="{% url 'toggle_wishlist' course.slug %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-wishlist btn-enroll" style="width:100%;">
+                  {% if is_in_wishlist %}Удалить из избранного{% else %}Добавить в избранное{% endif %}
+                </button>
+              </form>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -1061,10 +1062,10 @@
         <div class="review-card">
           <div class="review-header">
             <div class="reviewer-avatar">
-              {{ review.user.first_name|first|default:review.name|first|default:"A" }}
+              {{ review.user.first_name|first|default:review.user.username|first|default:"A" }}
             </div>
             <div class="reviewer-info">
-              <h4>{{ review.name|default:"Аноним" }}</h4>
+              <h4>{{ review.user.get_full_name|default:review.user.username|default:"Аноним" }}</h4>
               <div class="date">{{ review.created_at|date:"d M Y" }}</div>
             </div>
           </div>
