@@ -965,6 +965,11 @@ class Payment(TimestampedModel):
             self.refunded_at = timezone.now()
             
         super().save(*args, **kwargs)
+
+        # Любой подтверждённый платёж открывает доступ к курсу независимо
+        # от того, подтверждён он webhook-ом или вручную администратором.
+        if self.status == self.SUCCESS:
+            Enrollment.objects.get_or_create(user=self.user, course=self.course)
     
     def soft_delete(self):
         self.is_deleted = True
