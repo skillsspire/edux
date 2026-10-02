@@ -20,7 +20,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog,
@@ -418,6 +418,13 @@ class CertificateAdmin(admin.ModelAdmin):
     list_filter = ['is_revoked', 'course', 'issued_at']
     search_fields = ['user__username', 'course__title', 'certificate_id']
     readonly_fields = ['certificate_id', 'issued_at']
+
+@admin.register(CertificateRequest)
+class CertificateRequestAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'period_mode', 'period_start', 'period_end', 'status', 'external_number', 'created_at']
+    list_filter = ['status', 'period_mode', 'course', 'created_at']
+    search_fields = ['user__username', 'user__email', 'course__title', 'external_number']
+    readonly_fields = ['user', 'course', 'period_start', 'period_end', 'created_at', 'updated_at']
 
 @admin.register(Interaction)
 class InteractionAdmin(admin.ModelAdmin):
