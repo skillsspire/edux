@@ -173,7 +173,6 @@ def kaspi_webhook(request):
 
         if status == "success":
             Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
-            payment.course.students.add(payment.user)
             logger.info(f"Payment {invoice_id} succeeded for user {payment.user.id}")
 
         return JsonResponse({"status": "ok"})
@@ -1366,8 +1365,9 @@ def dashboard(request):
         user = request.user
         
         my_courses_qs = Course.objects.filter(
-            students__id=user.id
-        ).only('id', 'title', 'slug', 'created_at')[:10]
+            enrollments__user=user,
+            enrollments__is_deleted=False,
+        ).distinct().only('id', 'title', 'slug', 'created_at')[:10]
         
         my_courses = []
         for course in my_courses_qs:
