@@ -26,6 +26,7 @@ from typing import Optional
 from datetime import timedelta
 
 from .forms import ContactForm, CustomUserCreationForm, ReviewForm
+from .certificate_sync import CertificateRegistryError, sync_certificate_request
 from .models import (
     Category,
     Course,
@@ -1433,10 +1434,26 @@ def certificate_options(request, course_slug):
                 },
             )
             cert_request.save()
-            messages.success(
-                request,
-                "Данные для сертификата сохранены. Повторно вводить ФИО, курс, часы и даты не требуется."
-            )
+            try:
+                sync_certificate_request(cert_request)
+                messages.success(
+                    request,
+                    "Заявка на сертификат автоматически передана в реестр SkillsSpire. "
+                    "Повторно вводить ФИО, курс, часы и даты не требуется."
+                )
+            except CertificateRegistryError as exc:
+                cert_request.sync_error = str(exc)
+                cert_request.save(update_fields=["sync_error", "updated_at"])
+                logger.warning(
+                    "Certificate registry sync failed for request %s: %s",
+                    cert_request.pk,
+                    exc,
+                )
+                messages.info(
+                    request,
+                    "Выбор сертификата сохранён. Автоматическая передача в реестр пока не настроена; "
+                    "заявка не потеряна и может быть отправлена после подключения реестра."
+                )
             return redirect("certificate_options", course_slug=course_slug)
 
     return render(request, "certificates/options.html", {
