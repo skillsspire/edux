@@ -808,7 +808,9 @@ def lesson_detail(request, course_slug, lesson_slug):
         LessonBlock.objects.filter(
             lesson=lesson,
             is_deleted=False,
-        ).select_related("quiz", "assignment").order_by("order", "id")
+        ).select_related("quiz", "assignment").prefetch_related(
+            "quiz__questions__answers"
+        ).order_by("order", "id")
     )
 
     block_progress = {
@@ -833,6 +835,10 @@ def lesson_detail(request, course_slug, lesson_slug):
         ).order_by("quiz_id", "-score_percent", "-completed_at")
         for attempt in attempts:
             best_scores.setdefault(attempt.quiz_id, attempt.score_percent)
+
+    for block in blocks:
+        block.user_progress = block_progress.get(block.id)
+        block.best_score = best_scores.get(block.quiz_id, 0) if block.quiz_id else 0
 
     enrollment = Enrollment.objects.filter(user=request.user, course=course_obj).first()
 
@@ -964,6 +970,50 @@ def submit_quiz(request, quiz_id):
         "attempt_number": attempt.attempt_number,
         "unlimited_attempts": quiz.unlimited_attempts,
     })
+
+@login_required
+def complete_block(request, block_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    block = get_object_or_404(
+        LessonBlock.objects.select_related("lesson__module__course", "quiz"),
+        id=block_id,
+        is_deleted=False,
+    )
+    course_obj = block.lesson.module.course
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    if block.block_type == "quiz" and block.quiz_id:
+        best_score = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz=block.quiz,
+        ).order_by("-score_percent").values_list("score_percent", flat=True).first() or 0
+        if best_score < block.quiz.passing_score:
+            return JsonResponse({
+                "error": "Сначала пройдите тест",
+                "best_score": best_score,
+                "passing_score": block.quiz.passing_score,
+            }, status=400)
+
+    progress, _ = BlockProgress.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={
+            "progress_percent": 100,
+            "is_completed": True,
+            "completed_at": timezone.now(),
+        },
+    )
+    _check_course_completion(request.user, course_obj)
+
+    return JsonResponse({
+        "success": True,
+        "block_id": block.id,
+        "progress": progress.progress_percent,
+    })
+
 
 @login_required
 def update_progress(request):
