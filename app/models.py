@@ -991,6 +991,11 @@ class Quiz(TimestampedModel):
     passing_score = models.PositiveIntegerField("Проходной балл", default=70)
     time_limit = models.PositiveIntegerField("Лимит времени (мин)", null=True, blank=True)
     attempts_allowed = models.PositiveIntegerField("Попыток разрешено", default=1)
+    unlimited_attempts = models.BooleanField(
+        "Неограниченные попытки",
+        default=False,
+        help_text="Если включено, числовое ограничение attempts_allowed не применяется."
+    )
     is_active = models.BooleanField("Активен", default=True)
     
     description = models.TextField("Описание", blank=True)
@@ -1051,6 +1056,46 @@ class Answer(TimestampedModel):
 
     def __str__(self):
         return f"{self.question.text[:30]} - {self.text[:30]}"
+
+
+class QuizAttempt(TimestampedModel):
+    """Одна завершённая попытка прохождения тематического теста."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quiz_attempts",
+        verbose_name="Пользователь"
+    )
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name="Тест"
+    )
+    attempt_number = models.PositiveIntegerField("Номер попытки", default=1)
+    score_percent = models.PositiveIntegerField("Результат, %", default=0)
+    points_earned = models.PositiveIntegerField("Набрано баллов", default=0)
+    points_total = models.PositiveIntegerField("Всего баллов", default=0)
+    passed = models.BooleanField("Пройден", default=False)
+    answers = models.JSONField("Ответы", default=dict, blank=True)
+    completed_at = models.DateTimeField("Завершена", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Попытка теста"
+        verbose_name_plural = "Попытки тестов"
+        ordering = ["-completed_at", "-id"]
+        indexes = [
+            models.Index(fields=["user", "quiz"]),
+            models.Index(fields=["quiz", "passed"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.quiz} — {self.score_percent}%"
+
+    def save(self, *args, **kwargs):
+        self.score_percent = max(0, min(100, int(self.score_percent or 0)))
+        self.passed = self.score_percent >= self.quiz.passing_score
+        super().save(*args, **kwargs)
 
 
 class Assignment(TimestampedModel):
