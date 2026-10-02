@@ -56,6 +56,11 @@
             <a href="{% url 'course_detail' c.slug %}" class="btn btn-primary btn-full">
               {% if e.completed %}{% trans "View course" %}{% else %}{% trans "Continue learning" %}{% endif %}
             </a>
+            {% if e.completed and c.certificate %}
+              <a href="{% url 'certificate_options' c.slug %}" class="btn btn-outline btn-full mt-2">
+                Сертификат
+              </a>
+            {% endif %}
           </div>
         </div>
         {% endwith %}
