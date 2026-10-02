@@ -84,6 +84,11 @@ class UserProfile(TimestampedModel):
     course_updates = models.BooleanField("Обновления курсов", default=True)
     newsletter = models.BooleanField("Рассылка", default=False)
     push_reminders = models.BooleanField("Напоминания", default=True)
+
+    offer_accepted_at = models.DateTimeField("Оферта принята", null=True, blank=True)
+    privacy_accepted_at = models.DateTimeField("Согласие на обработку ПД", null=True, blank=True)
+    offer_version = models.CharField("Версия оферты", max_length=50, blank=True)
+    privacy_version = models.CharField("Версия согласия", max_length=50, blank=True)
     
     is_deleted = models.BooleanField("Удалён", default=False)
     deleted_at = models.DateTimeField("Удалён", null=True, blank=True)
