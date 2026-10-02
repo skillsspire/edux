@@ -1236,6 +1236,56 @@ def payment_claim(request, slug):
 def payment_webhook(request):
     return kaspi_webhook(request)
 
+
+@csrf_exempt
+def certificate_registry_callback(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    expected_token = getattr(settings, "CERTIFICATE_REGISTRY_TOKEN", "") or ""
+    received_token = str(data.get("token") or "")
+    if not expected_token or not hmac.compare_digest(received_token, expected_token):
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    request_id = str(data.get("local_request_id") or "").strip()
+    if not request_id.isdigit():
+        return JsonResponse({"error": "Invalid local_request_id"}, status=400)
+
+    cert_request = CertificateRequest.objects.filter(pk=int(request_id)).first()
+    if not cert_request:
+        return JsonResponse({"error": "Certificate request not found"}, status=404)
+
+    status = str(data.get("status") or "").strip().lower()
+    if status == "issued":
+        cert_request.status = CertificateRequest.ISSUED
+        cert_request.external_number = str(data.get("certificate_number") or "").strip()
+        cert_request.pdf_url = str(data.get("pdf_url") or "").strip()
+        cert_request.verify_url = str(data.get("verify_url") or "").strip()
+        cert_request.issued_at = timezone.now()
+        cert_request.sync_error = ""
+    elif status == "rejected":
+        cert_request.status = CertificateRequest.REJECTED
+        cert_request.sync_error = str(data.get("error") or "Заявка отклонена реестром.")
+    else:
+        cert_request.status = CertificateRequest.PENDING
+
+    cert_request.save(update_fields=[
+        "status",
+        "external_number",
+        "pdf_url",
+        "verify_url",
+        "issued_at",
+        "sync_error",
+        "updated_at",
+    ])
+
+    return JsonResponse({"ok": True, "local_request_id": request_id})
+
 @login_required
 def payment_thanks(request, slug):
     try:
