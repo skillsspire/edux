@@ -1414,9 +1414,11 @@ def certificate_options(request, course_slug):
 
     min_days = probe.minimum_training_days
     actual_days = probe.actual_training_days
-    period_allowed = actual_days >= min_days
+    period_allowed = probe.period_is_allowed
+    period_eligible_date = probe.period_eligible_date
     start_date = enrollment.enrolled_at.date()
     completion_date = enrollment.completed_at.date()
+    certificate_period_end = probe.certificate_period_end
 
     if request.method == "POST":
         mode = request.POST.get("period_mode", CertificateRequest.WITHOUT_PERIOD)
@@ -1426,9 +1428,10 @@ def certificate_options(request, course_slug):
         if mode == CertificateRequest.WITH_PERIOD and not period_allowed:
             messages.error(
                 request,
-                f"Период обучения нельзя указать: для курса объёмом {course_obj.duration_hours or 0} "
-                f"академических часов требуется не менее {min_days} календарных дней. "
-                f"Фактический период — {actual_days} дн. Выберите сертификат без периода."
+                f"Период обучения пока нельзя указать: для курса объёмом {course_obj.duration_hours or 0} "
+                f"академических часов требуется не менее {min_days} календарных дней с даты регистрации. "
+                f"Сертификат с периодом будет доступен {period_eligible_date:%d.%m.%Y}. "
+                f"Сейчас можно выбрать сертификат без периода."
             )
         else:
             cert_request, _ = CertificateRequest.objects.update_or_create(
@@ -1454,6 +1457,8 @@ def certificate_options(request, course_slug):
         "min_days": min_days,
         "actual_days": actual_days,
         "period_allowed": period_allowed,
+        "period_eligible_date": period_eligible_date,
+        "certificate_period_end": certificate_period_end,
         "start_date": start_date,
         "completion_date": completion_date,
     })
