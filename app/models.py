@@ -1,4 +1,5 @@
 from decimal import Decimal
+import math
 import logging
 from typing import Optional
 import uuid
@@ -660,6 +661,111 @@ class Enrollment(TimestampedModel):
         self.is_deleted = True
         self.deleted_at = timezone.now()
         self.save()
+
+
+class CertificateRequest(TimestampedModel):
+    WITH_PERIOD = "with_period"
+    WITHOUT_PERIOD = "without_period"
+    PERIOD_CHOICES = [
+        (WITH_PERIOD, "С периодом обучения"),
+        (WITHOUT_PERIOD, "Без периода обучения"),
+    ]
+
+    PENDING = "pending"
+    ISSUED = "issued"
+    REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (PENDING, "На проверке"),
+        (ISSUED, "Выдан"),
+        (REJECTED, "Отклонён"),
+    ]
+
+    enrollment = models.OneToOneField(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="certificate_request",
+        verbose_name="Зачисление",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="certificate_requests",
+        verbose_name="Пользователь",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="certificate_requests",
+        verbose_name="Курс",
+    )
+    period_mode = models.CharField(
+        "Период на сертификате",
+        max_length=20,
+        choices=PERIOD_CHOICES,
+    )
+    period_start = models.DateField("Дата начала", null=True, blank=True)
+    period_end = models.DateField("Дата окончания", null=True, blank=True)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=PENDING)
+
+    external_number = models.CharField("Номер сертификата", max_length=100, blank=True)
+    pdf_url = models.URLField("Ссылка на PDF", blank=True)
+    verify_url = models.URLField("Ссылка проверки", blank=True)
+    issued_at = models.DateTimeField("Выдан", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Заявка на сертификат"
+        verbose_name_plural = "Заявки на сертификаты"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} — {self.course} — {self.get_period_mode_display()}"
+
+    @property
+    def minimum_training_days(self):
+        hours = int(self.course.duration_hours or 0)
+        return max(1, math.ceil(hours / 8)) if hours else 1
+
+    @property
+    def actual_training_days(self):
+        if not self.enrollment.completed_at:
+            return 0
+        start = self.enrollment.enrolled_at.date()
+        end = self.enrollment.completed_at.date()
+        return (end - start).days + 1
+
+    @property
+    def period_is_allowed(self):
+        return (
+            self.enrollment.completed
+            and self.enrollment.completed_at is not None
+            and self.actual_training_days >= self.minimum_training_days
+        )
+
+    def clean(self):
+        if not self.enrollment.completed or not self.enrollment.completed_at:
+            raise ValidationError("Сертификат доступен только после завершения курса.")
+
+        self.user = self.enrollment.user
+        self.course = self.enrollment.course
+
+        if self.period_mode == self.WITH_PERIOD:
+            if not self.period_is_allowed:
+                raise ValidationError(
+                    f"Период обучения нельзя указать: для курса объёмом "
+                    f"{self.course.duration_hours or 0} часов требуется не менее "
+                    f"{self.minimum_training_days} календарных дней."
+                )
+            self.period_start = self.enrollment.enrolled_at.date()
+            self.period_end = self.enrollment.completed_at.date()
+        else:
+            self.period_start = None
+            self.period_end = None
+
+    def save(self, *args, **kwargs):
+        self.user = self.enrollment.user
+        self.course = self.enrollment.course
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Review(TimestampedModel):
