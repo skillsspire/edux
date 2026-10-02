@@ -71,6 +71,7 @@ urlpatterns = [
     path("checkout/<slug:slug>/", views.checkout, name="checkout"),
     path("checkout/<slug:slug>/confirm/", views.checkout_confirm, name="checkout_confirm"),
     path("payment/webhook/", views.payment_webhook, name="payment_webhook"),
+    path("api/certificates/registry-callback/", views.certificate_registry_callback, name="certificate_registry_callback"),
     
     # 8️⃣ API (только по необходимости)
     path("api/courses/", views.api_courses, name="api_courses"),
