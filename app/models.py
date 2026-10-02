@@ -734,12 +734,25 @@ class CertificateRequest(TimestampedModel):
         return (end - start).days + 1
 
     @property
+    def period_eligible_date(self):
+        """Первая календарная дата, когда сертификат с периодом становится допустим."""
+        start = self.enrollment.enrolled_at.date()
+        return start + timezone.timedelta(days=self.minimum_training_days - 1)
+
+    @property
     def period_is_allowed(self):
         return (
             self.enrollment.completed
             and self.enrollment.completed_at is not None
-            and self.actual_training_days >= self.minimum_training_days
+            and timezone.localdate() >= self.period_eligible_date
         )
+
+    @property
+    def certificate_period_end(self):
+        if not self.enrollment.completed_at:
+            return None
+        completion_date = self.enrollment.completed_at.date()
+        return max(completion_date, self.period_eligible_date)
 
     def clean(self):
         if not self.enrollment.completed or not self.enrollment.completed_at:
@@ -751,12 +764,12 @@ class CertificateRequest(TimestampedModel):
         if self.period_mode == self.WITH_PERIOD:
             if not self.period_is_allowed:
                 raise ValidationError(
-                    f"Период обучения нельзя указать: для курса объёмом "
+                    f"Период обучения пока нельзя указать: для курса объёмом "
                     f"{self.course.duration_hours or 0} часов требуется не менее "
-                    f"{self.minimum_training_days} календарных дней."
+                    f"{self.minimum_training_days} календарных дней с даты регистрации."
                 )
             self.period_start = self.enrollment.enrolled_at.date()
-            self.period_end = self.enrollment.completed_at.date()
+            self.period_end = self.certificate_period_end
         else:
             self.period_start = None
             self.period_end = None
