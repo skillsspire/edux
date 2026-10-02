@@ -44,6 +44,7 @@ def build_certificate_payload(cert_request):
         "end_date": end_date,
         "completed_at": enrollment.completed_at.isoformat() if enrollment.completed_at else "",
         "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else "",
+        "callback_url": getattr(settings, "CERTIFICATE_CALLBACK_URL", "").strip(),
     }
 
 
