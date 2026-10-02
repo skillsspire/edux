@@ -713,6 +713,10 @@ class CertificateRequest(TimestampedModel):
     verify_url = models.URLField("Ссылка проверки", blank=True)
     issued_at = models.DateTimeField("Выдан", null=True, blank=True)
 
+    external_request_id = models.CharField("ID заявки во внешней системе", max_length=120, blank=True)
+    synced_at = models.DateTimeField("Передано в реестр", null=True, blank=True)
+    sync_error = models.TextField("Ошибка синхронизации", blank=True)
+
     class Meta:
         verbose_name = "Заявка на сертификат"
         verbose_name_plural = "Заявки на сертификаты"
