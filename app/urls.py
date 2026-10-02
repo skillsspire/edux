@@ -28,6 +28,8 @@ urlpatterns = [
     # 2️⃣ ПУБЛИЧНЫЕ СТРАНИЦЫ
     path("", views.home, name="home"),
     path("about/", TemplateView.as_view(template_name="about.html"), name="about"),
+    path("terms/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
+    path("privacy/", TemplateView.as_view(template_name="legal/privacy.html"), name="privacy"),
     path("contact/", views.contact, name="contact"),
     path("pricing/", TemplateView.as_view(template_name="pricing.html"), name="pricing"),
     
