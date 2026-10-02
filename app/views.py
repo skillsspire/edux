@@ -8,7 +8,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import DatabaseError, ProgrammingError
-from django.db.models import Q, Avg, Count, Sum
+from django.db.models import Q, Avg, Count, Sum, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -26,6 +26,7 @@ from typing import Optional
 from datetime import timedelta
 
 from .forms import ContactForm, CustomUserCreationForm, ReviewForm
+from .certificate_sync import CertificateRegistryError, sync_certificate_request
 from .models import (
     Category,
     Course,
@@ -41,7 +42,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog
@@ -172,7 +173,6 @@ def kaspi_webhook(request):
 
         if status == "success":
             Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
-            payment.course.students.add(payment.user)
             logger.info(f"Payment {invoice_id} succeeded for user {payment.user.id}")
 
         return JsonResponse({"status": "ok"})
@@ -607,100 +607,76 @@ def materials_list(request):
     return render(request, "materials/list.html", context)
 
 def course_detail(request, slug):
-    cache_key = f'course_detail_v{CACHE_VERSION}_{slug}'
-    
-    if not request.user.is_authenticated:
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            if request.user.is_authenticated:
-                cached_data = _enrich_course_data(cached_data, request.user)
-            return render(request, "courses/detail.html", cached_data)
-    
     try:
-        course_obj = Course.objects.filter(
+        course_obj = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
             slug=slug,
             status=Course.PUBLISHED,
-            is_deleted=False
-        ).select_related("category", "instructor").only(
-            'id', 'title', 'slug', 'price', 'short_description', 'description',
-            'category_id', 'category__name', 'category__slug',
-            'instructor_id', 'instructor__first_name', 'instructor__last_name',
-            'created_at'
-        ).order_by('id').first()
-        
-        if not course_obj:
-            raise Http404("Курс не найден")
-        
-        course_data = course_card_dto(course_obj)
-        course_data.update({
-            'description': course_obj.description or "",
-            'instructor': {
-                'name': f"{course_obj.instructor.first_name or ''} {course_obj.instructor.last_name or ''}".strip() if course_obj.instructor else "",
-            },
-        })
+            is_deleted=False,
+        )
 
-        has_access = False
-        is_in_wishlist = False
-        if request.user.is_authenticated:
-            has_access = user_has_course_access(request.user, course_obj)
-            is_in_wishlist = Wishlist.objects.filter(
-                user=request.user, 
-                course=course_obj
-            ).exists()
+        lesson_qs = Lesson.objects.filter(
+            is_active=True,
+            is_deleted=False,
+        ).order_by("order", "id")
 
-        try:
-            modules = list(Module.objects.filter(
-                course=course_obj, 
-                is_active=True
-            ).only(
-                'id', 'title', 'order', 'is_active'
-            ).order_by("order")[:20])
-        except Exception:
-            modules = []
+        modules = list(
+            Module.objects.filter(
+                course=course_obj,
+                is_active=True,
+                is_deleted=False,
+            ).prefetch_related(
+                Prefetch("lessons", queryset=lesson_qs)
+            ).order_by("order", "id")
+        )
 
-        related_courses_qs = Course.objects.filter(
+        lessons = []
+        for module in modules:
+            module_lessons = list(module.lessons.all())
+            module.total_duration = sum((lesson.duration_minutes or 0) for lesson in module_lessons)
+            lessons.extend(module_lessons)
+
+        first_lesson = lessons[0] if lessons else None
+
+        has_access = user_has_course_access(request.user, course_obj)
+        is_in_wishlist = (
+            request.user.is_authenticated
+            and Wishlist.objects.filter(user=request.user, course=course_obj).exists()
+        )
+
+        teacher_profile = None
+        if course_obj.instructor_id:
+            teacher_profile = InstructorProfile.objects.filter(
+                user_id=course_obj.instructor_id,
+                is_deleted=False,
+            ).first()
+
+        reviews = Review.objects.filter(
+            course=course_obj,
+            is_active=True,
+        ).select_related("user").order_by("-created_at")[:10]
+
+        related_courses = Course.objects.filter(
             category=course_obj.category,
             status=Course.PUBLISHED,
-            is_deleted=False
-        ).exclude(id=course_obj.id).only(
-            'id', 'title', 'slug', 'price', 'short_description'
-        )[:4]
-        
-        related_courses = [course_card_dto(course) for course in related_courses_qs]
+            is_deleted=False,
+        ).exclude(id=course_obj.id).select_related("category")[:4]
 
-        reviews = list(Review.objects.filter(
-            course=course_obj, 
-            is_active=True
-        ).select_related('user').only(
-            'rating', 'comment', 'created_at',
-            'user__first_name', 'user__last_name'
-        )[:10].values(
-            'rating', 'comment', 'created_at',
-            'user__first_name', 'user__last_name'
-        ))
-
-        context = {
-            "course": course_data,
+        return render(request, "courses/detail.html", {
+            "course": course_obj,
             "has_access": has_access,
             "is_in_wishlist": is_in_wishlist,
             "modules": modules,
-            "related_courses": related_courses,
+            "lessons": lessons,
+            "first_lesson": first_lesson,
+            "teacher_profile": teacher_profile,
             "reviews": reviews,
-        }
-        
-        if not request.user.is_authenticated:
-            cache.set(cache_key, context, 600)
-        
-    except Course.DoesNotExist:
-        raise Http404("Курс не найден")
+            "related_courses": related_courses,
+        })
+
     except DatabaseError as e:
         logger.error(f"Database error loading course {slug}: {str(e)}", exc_info=True)
-        raise Http404("Курс не найден")
-    except Exception as e:
-        logger.error(f"Error loading course {slug}: {str(e)}", exc_info=True)
-        raise Http404("Курс не найден")
-    
-    return render(request, "courses/detail.html", context)
+        raise Http404("Курс временно недоступен")
 
 def _enrich_course_data(cached_data, user):
     if not user.is_authenticated:
@@ -774,98 +750,254 @@ def lesson_view(request, course_slug, lesson_slug):
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
-    try:
-        course_obj = Course.objects.filter(
-            slug=course_slug,
-            status=Course.PUBLISHED,
-            is_deleted=False
-        ).only('id', 'title', 'slug', 'price').order_by('id').first()
-        
-        if not course_obj:
-            raise Http404("Курс не найден")
-        
-        if not user_has_course_access(request.user, course_obj):
-            messages.error(request, "У вас нет доступа к этому уроку")
-            return redirect("course_detail", slug=course_slug)
-        
-        course_data = course_card_dto(course_obj)
+    course_obj = get_object_or_404(
+        Course,
+        slug=course_slug,
+        status=Course.PUBLISHED,
+        is_deleted=False,
+    )
 
-        try:
-            lesson = Lesson.objects.filter(
-                slug=lesson_slug, 
-                module__course=course_obj, 
-                is_active=True
-            ).select_related("module").only(
-                'id', 'title', 'slug', 'content', 'video_url', 'duration',
-                'module_id', 'module__title', 'module__order'
-            ).order_by('id').first()
-            
-            if not lesson:
-                raise Http404("Урок не найден")
-                
-        except Lesson.DoesNotExist:
-            raise Http404("Урок не найден")
-        except Exception:
-            messages.error(request, "Урок недоступен")
-            return redirect("course_detail", slug=course_slug)
+    if not user_has_course_access(request.user, course_obj):
+        messages.error(request, "У вас нет доступа к этому уроку")
+        return redirect("course_detail", slug=course_slug)
 
-        try:
-            lessons_qs = Lesson.objects.filter(
-                module__course=course_obj, 
-                is_active=True
-            ).select_related("module").only(
-                'id', 'title', 'slug', 'module__order', 'order'
-            ).order_by("module__order", "order")
-            
-            lessons_list = list(lessons_qs)
-            current_index = next((i for i, l in enumerate(lessons_list) if l.id == lesson.id), 0)
-            
-            previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
-            next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
-            
-        except Exception:
-            previous_lesson = None
-            next_lesson = None
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("module"),
+        slug=lesson_slug,
+        module__course=course_obj,
+        is_active=True,
+        is_deleted=False,
+    )
 
-        try:
-            blocks = LessonBlock.objects.filter(lesson=lesson, is_deleted=False)
-            if blocks.exists():
-                for block in blocks:
-                    BlockProgress.objects.update_or_create(
-                        user=request.user,
-                        block=block,
-                        defaults={
-                            "progress_percent": 0,
-                            "is_completed": False,
-                            "last_accessed": timezone.now(),
-                        }
-                    )
-        except Exception as e:
-            logger.error(f"Error creating progress for lesson {lesson.id}: {str(e)}", exc_info=True)
+    lessons_list = list(
+        Lesson.objects.filter(
+            module__course=course_obj,
+            is_active=True,
+            is_deleted=False,
+        ).select_related("module").order_by("module__order", "order", "id")
+    )
+    current_index = next((i for i, item in enumerate(lessons_list) if item.id == lesson.id), 0)
+    previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
+    next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-        enrollment = Enrollment.objects.filter(
-            user=request.user, 
-            course=course_obj
-        ).first()
+    blocks = list(
+        LessonBlock.objects.filter(
+            lesson=lesson,
+            is_deleted=False,
+        ).select_related("quiz", "assignment").prefetch_related(
+            "quiz__questions__answers"
+        ).order_by("order", "id")
+    )
 
-        return render(request, "courses/lesson_detail.html", {
-            "course": course_data,
-            "lesson": lesson,
-            "prev_lesson": previous_lesson,
-            "next_lesson": next_lesson,
-            "enrollment": enrollment,
+    block_progress = {
+        p.block_id: p
+        for p in BlockProgress.objects.filter(user=request.user, block__in=blocks)
+    }
+    for block in blocks:
+        if block.id not in block_progress:
+            block_progress[block.id] = BlockProgress.objects.create(
+                user=request.user,
+                block=block,
+                progress_percent=0,
+                is_completed=False,
+            )
+
+    quiz_ids = [block.quiz_id for block in blocks if block.quiz_id]
+    best_scores = {}
+    if quiz_ids:
+        attempts = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz_id__in=quiz_ids,
+        ).order_by("quiz_id", "-score_percent", "-completed_at")
+        for attempt in attempts:
+            best_scores.setdefault(attempt.quiz_id, attempt.score_percent)
+
+    for block in blocks:
+        block.user_progress = block_progress.get(block.id)
+        block.best_score = best_scores.get(block.quiz_id, 0) if block.quiz_id else 0
+
+    enrollment = Enrollment.objects.filter(user=request.user, course=course_obj).first()
+
+    required_blocks = LessonBlock.objects.filter(
+        lesson__module__course=course_obj,
+        is_required=True,
+        is_deleted=False,
+    )
+    required_count = required_blocks.count()
+    completed_count = BlockProgress.objects.filter(
+        user=request.user,
+        block__in=required_blocks,
+        is_completed=True,
+    ).count()
+    course_progress = round((completed_count / required_count) * 100) if required_count else 0
+
+    return render(request, "courses/lesson_detail.html", {
+        "course": course_obj,
+        "lesson": lesson,
+        "blocks": blocks,
+        "block_progress": block_progress,
+        "best_scores": best_scores,
+        "prev_lesson": previous_lesson,
+        "next_lesson": next_lesson,
+        "enrollment": enrollment,
+        "course_progress": course_progress,
+    })
+
+
+@login_required
+def submit_quiz(request, quiz_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    quiz = get_object_or_404(
+        Quiz.objects.select_related("lesson__module__course"),
+        id=quiz_id,
+        is_active=True,
+    )
+    course_obj = quiz.lesson.module.course
+
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    previous_attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz)
+    attempts_count = previous_attempts.count()
+    if not quiz.unlimited_attempts and attempts_count >= quiz.attempts_allowed:
+        return JsonResponse({
+            "error": "Лимит попыток исчерпан",
+            "attempts_used": attempts_count,
+        }, status=400)
+
+    questions = list(
+        quiz.questions.prefetch_related("answers").order_by("order", "id")
+    )
+    points_total = sum(max(1, q.points) for q in questions)
+    points_earned = 0
+    answer_log = {}
+    feedback = []
+
+    for question in questions:
+        field_name = f"question_{question.id}"
+        submitted_values = request.POST.getlist(field_name)
+        submitted_clean = [str(v).strip() for v in submitted_values if str(v).strip()]
+        correct_answers = list(question.answers.filter(is_correct=True))
+
+        is_correct = False
+        if question.question_type == "multiple":
+            correct_ids = {str(a.id) for a in correct_answers}
+            is_correct = set(submitted_clean) == correct_ids
+        elif question.question_type == "single":
+            correct_ids = {str(a.id) for a in correct_answers}
+            is_correct = len(submitted_clean) == 1 and submitted_clean[0] in correct_ids
+        elif question.question_type == "text":
+            expected = ""
+            if correct_answers:
+                expected = (correct_answers[0].correct_answer or correct_answers[0].text or "").strip()
+            received = submitted_clean[0] if submitted_clean else ""
+            is_correct = bool(expected) and received.casefold() == expected.casefold()
+
+        if is_correct:
+            points_earned += max(1, question.points)
+
+        answer_log[str(question.id)] = {
+            "submitted": submitted_clean,
+            "correct": is_correct,
+        }
+        feedback.append({
+            "question_id": question.id,
+            "correct": is_correct,
+            "explanation": question.explanation or "",
+            "correct_answers": [answer.text for answer in correct_answers],
         })
-        
-    except Http404:
-        raise
-    except DatabaseError as e:
-        logger.error(f"Database error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
-        messages.error(request, "Временные проблемы с базой данных")
-        return redirect("courses_list")
-    except Exception as e:
-        logger.error(f"Error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
-        messages.error(request, "Произошла ошибка при загрузке урока")
-        return redirect("courses_list")
+
+    score_percent = round((points_earned / points_total) * 100) if points_total else 0
+    attempt = QuizAttempt.objects.create(
+        user=request.user,
+        quiz=quiz,
+        attempt_number=attempts_count + 1,
+        score_percent=score_percent,
+        points_earned=points_earned,
+        points_total=points_total,
+        answers=answer_log,
+    )
+
+    best_score = QuizAttempt.objects.filter(
+        user=request.user,
+        quiz=quiz,
+    ).order_by("-score_percent", "-completed_at").values_list("score_percent", flat=True).first() or 0
+
+    quiz_blocks = LessonBlock.objects.filter(
+        quiz=quiz,
+        lesson=quiz.lesson,
+        is_deleted=False,
+    )
+    if attempt.passed:
+        for block in quiz_blocks:
+            BlockProgress.objects.update_or_create(
+                user=request.user,
+                block=block,
+                defaults={
+                    "progress_percent": 100,
+                    "is_completed": True,
+                    "completed_at": timezone.now(),
+                },
+            )
+
+    _check_course_completion(request.user, course_obj)
+
+    return JsonResponse({
+        "success": True,
+        "score": score_percent,
+        "best_score": best_score,
+        "passing_score": quiz.passing_score,
+        "passed": attempt.passed,
+        "attempt_number": attempt.attempt_number,
+        "unlimited_attempts": quiz.unlimited_attempts,
+        "feedback": feedback,
+    })
+
+@login_required
+def complete_block(request, block_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    block = get_object_or_404(
+        LessonBlock.objects.select_related("lesson__module__course", "quiz"),
+        id=block_id,
+        is_deleted=False,
+    )
+    course_obj = block.lesson.module.course
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    if block.block_type == "quiz" and block.quiz_id:
+        best_score = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz=block.quiz,
+        ).order_by("-score_percent").values_list("score_percent", flat=True).first() or 0
+        if best_score < block.quiz.passing_score:
+            return JsonResponse({
+                "error": "Сначала пройдите тест",
+                "best_score": best_score,
+                "passing_score": block.quiz.passing_score,
+            }, status=400)
+
+    progress, _ = BlockProgress.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={
+            "progress_percent": 100,
+            "is_completed": True,
+            "completed_at": timezone.now(),
+        },
+    )
+    _check_course_completion(request.user, course_obj)
+
+    return JsonResponse({
+        "success": True,
+        "block_id": block.id,
+        "progress": progress.progress_percent,
+    })
+
 
 @login_required
 def update_progress(request):
@@ -1087,6 +1219,56 @@ def payment_claim(request, slug):
 def payment_webhook(request):
     return kaspi_webhook(request)
 
+
+@csrf_exempt
+def certificate_registry_callback(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    expected_token = getattr(settings, "CERTIFICATE_REGISTRY_TOKEN", "") or ""
+    received_token = str(data.get("token") or "")
+    if not expected_token or not hmac.compare_digest(received_token, expected_token):
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    request_id = str(data.get("local_request_id") or "").strip()
+    if not request_id.isdigit():
+        return JsonResponse({"error": "Invalid local_request_id"}, status=400)
+
+    cert_request = CertificateRequest.objects.filter(pk=int(request_id)).first()
+    if not cert_request:
+        return JsonResponse({"error": "Certificate request not found"}, status=404)
+
+    status = str(data.get("status") or "").strip().lower()
+    if status == "issued":
+        cert_request.status = CertificateRequest.ISSUED
+        cert_request.external_number = str(data.get("certificate_number") or "").strip()
+        cert_request.pdf_url = str(data.get("pdf_url") or "").strip()
+        cert_request.verify_url = str(data.get("verify_url") or "").strip()
+        cert_request.issued_at = timezone.now()
+        cert_request.sync_error = ""
+    elif status == "rejected":
+        cert_request.status = CertificateRequest.REJECTED
+        cert_request.sync_error = str(data.get("error") or "Заявка отклонена реестром.")
+    else:
+        cert_request.status = CertificateRequest.PENDING
+
+    cert_request.save(update_fields=[
+        "status",
+        "external_number",
+        "pdf_url",
+        "verify_url",
+        "issued_at",
+        "sync_error",
+        "updated_at",
+    ])
+
+    return JsonResponse({"ok": True, "local_request_id": request_id})
+
 @login_required
 def payment_thanks(request, slug):
     try:
@@ -1112,50 +1294,53 @@ def payment_thanks(request, slug):
 @login_required
 def my_courses(request):
     try:
-        enrollments = Enrollment.objects.filter(
-            user=request.user
-        ).select_related("course").only(
-            'id', 'completed', 'progress', 'created_at',
-            'course_id', 'course__title', 'course__slug', 'course__short_description'
-        ).order_by('-created_at')
-        
-        courses_with_images = []
+        enrollments = list(
+            Enrollment.objects.filter(
+                user=request.user,
+                is_deleted=False,
+            ).select_related(
+                "course",
+                "course__category",
+                "course__instructor",
+            ).order_by("-created_at")
+        )
+
+        progress_map = {}
         for enrollment in enrollments:
-            courses_with_images.append({
-                'id': enrollment.course.id,
-                'title': enrollment.course.title,
-                'slug': enrollment.course.slug,
-                'short_description': enrollment.course.short_description[:100] if enrollment.course.short_description else '',
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{enrollment.course.slug}/",
-                'enrollment': {
-                    'completed': enrollment.completed,
-                    'progress': enrollment.progress,
-                    'created_at': enrollment.created_at,
-                },
-            })
-        
-        in_progress = [c for c in courses_with_images if not c["enrollment"]['completed']]
-        completed = [c for c in courses_with_images if c["enrollment"]['completed']]
-        
+            required_blocks = LessonBlock.objects.filter(
+                lesson__module__course=enrollment.course,
+                is_required=True,
+                is_deleted=False,
+            )
+            required_count = required_blocks.count()
+            completed_count = BlockProgress.objects.filter(
+                user=request.user,
+                block__in=required_blocks,
+                is_completed=True,
+            ).count()
+            progress_map[enrollment.course_id] = (
+                round((completed_count / required_count) * 100)
+                if required_count else 0
+            )
+
         return render(request, "courses/my_courses.html", {
-            "in_progress": in_progress,
-            "completed": completed,
+            "enrollments": enrollments,
+            "progress_map": progress_map,
         })
-        
+
     except DatabaseError as e:
         logger.error(f"Database error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
         return render(request, "courses/my_courses.html", {
-            "in_progress": [],
-            "completed": [],
+            "enrollments": [],
+            "progress_map": {},
         })
     except Exception as e:
         logger.error(f"Error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке курсов")
         return render(request, "courses/my_courses.html", {
-            "in_progress": [],
-            "completed": [],
+            "enrollments": [],
+            "progress_map": {},
         })
 
 @login_required
@@ -1164,8 +1349,9 @@ def dashboard(request):
         user = request.user
         
         my_courses_qs = Course.objects.filter(
-            students__id=user.id
-        ).only('id', 'title', 'slug', 'created_at')[:10]
+            enrollments__user=user,
+            enrollments__is_deleted=False,
+        ).distinct().only('id', 'title', 'slug', 'created_at')[:10]
         
         my_courses = []
         for course in my_courses_qs:
@@ -1226,6 +1412,96 @@ def dashboard(request):
 
 def learning_dashboard(request):
     return dashboard(request)
+
+
+@login_required
+def certificate_options(request, course_slug):
+    course_obj = get_object_or_404(Course, slug=course_slug, is_deleted=False)
+    enrollment = get_object_or_404(
+        Enrollment,
+        user=request.user,
+        course=course_obj,
+        is_deleted=False,
+    )
+
+    if not enrollment.completed or not enrollment.completed_at:
+        messages.error(request, "Сертификат станет доступен после завершения курса.")
+        return redirect("my_courses")
+
+    existing_request = CertificateRequest.objects.filter(enrollment=enrollment).first()
+    probe = existing_request or CertificateRequest(
+        enrollment=enrollment,
+        user=request.user,
+        course=course_obj,
+        period_mode=CertificateRequest.WITHOUT_PERIOD,
+    )
+
+    min_days = probe.minimum_training_days
+    actual_days = probe.actual_training_days
+    period_allowed = probe.period_is_allowed
+    period_eligible_date = probe.period_eligible_date
+    start_date = enrollment.enrolled_at.date()
+    completion_date = enrollment.completed_at.date()
+    certificate_period_end = probe.certificate_period_end
+
+    if request.method == "POST":
+        mode = request.POST.get("period_mode", CertificateRequest.WITHOUT_PERIOD)
+        if mode not in {CertificateRequest.WITH_PERIOD, CertificateRequest.WITHOUT_PERIOD}:
+            mode = CertificateRequest.WITHOUT_PERIOD
+
+        if mode == CertificateRequest.WITH_PERIOD and not period_allowed:
+            messages.error(
+                request,
+                f"Период обучения пока нельзя указать: для курса объёмом {course_obj.duration_hours or 0} "
+                f"академических часов требуется не менее {min_days} календарных дней с даты регистрации. "
+                f"Сертификат с периодом будет доступен {period_eligible_date:%d.%m.%Y}. "
+                f"Сейчас можно выбрать сертификат без периода."
+            )
+        else:
+            cert_request, _ = CertificateRequest.objects.update_or_create(
+                enrollment=enrollment,
+                defaults={
+                    "user": request.user,
+                    "course": course_obj,
+                    "period_mode": mode,
+                    "status": CertificateRequest.PENDING,
+                },
+            )
+            cert_request.save()
+            try:
+                sync_certificate_request(cert_request)
+                messages.success(
+                    request,
+                    "Заявка на сертификат автоматически передана в реестр SkillsSpire. "
+                    "Повторно вводить ФИО, курс, часы и даты не требуется."
+                )
+            except CertificateRegistryError as exc:
+                cert_request.sync_error = str(exc)
+                cert_request.save(update_fields=["sync_error", "updated_at"])
+                logger.warning(
+                    "Certificate registry sync failed for request %s: %s",
+                    cert_request.pk,
+                    exc,
+                )
+                messages.info(
+                    request,
+                    "Выбор сертификата сохранён. Автоматическая передача в реестр пока не настроена; "
+                    "заявка не потеряна и может быть отправлена после подключения реестра."
+                )
+            return redirect("certificate_options", course_slug=course_slug)
+
+    return render(request, "certificates/options.html", {
+        "course": course_obj,
+        "enrollment": enrollment,
+        "certificate_request": existing_request,
+        "min_days": min_days,
+        "actual_days": actual_days,
+        "period_allowed": period_allowed,
+        "period_eligible_date": period_eligible_date,
+        "certificate_period_end": certificate_period_end,
+        "start_date": start_date,
+        "completion_date": completion_date,
+    })
 
 @login_required
 def profile_settings(request):

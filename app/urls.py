@@ -20,6 +20,7 @@ urlpatterns = [
     # 👤 ЛИЧНЫЙ КАБИНЕТ
     path("dashboard/", views.dashboard, name="dashboard"),
     path("my-courses/", views.my_courses, name="my_courses"),
+    path("certificates/<slug:course_slug>/", views.certificate_options, name="certificate_options"),
 
     # 1️⃣ АДМИНКА (стандартная) — точка управления
     path("admin/", admin.site.urls),
@@ -27,6 +28,8 @@ urlpatterns = [
     # 2️⃣ ПУБЛИЧНЫЕ СТРАНИЦЫ
     path("", views.home, name="home"),
     path("about/", TemplateView.as_view(template_name="about.html"), name="about"),
+    path("terms/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
+    path("privacy/", TemplateView.as_view(template_name="legal/privacy.html"), name="privacy"),
     path("contact/", views.contact, name="contact"),
     path("pricing/", TemplateView.as_view(template_name="pricing.html"), name="pricing"),
     
@@ -42,6 +45,8 @@ urlpatterns = [
     path("learn/<slug:course_slug>/", views.course_learn, name="course_learn"),
     path("learn/<slug:course_slug>/<slug:lesson_slug>/", views.lesson_view, name="lesson_view"),
     path("api/progress/", views.update_progress, name="update_progress"),
+    path("api/blocks/<int:block_id>/complete/", views.complete_block, name="complete_block"),
+    path("api/quizzes/<int:quiz_id>/submit/", views.submit_quiz, name="submit_quiz"),
     
     # 5️⃣ ИНСТРУКТОР (отдельная панель — НЕ Django Admin)
     path("instructor/", views.instructor_dashboard, name="instructor_dashboard"),
@@ -66,6 +71,7 @@ urlpatterns = [
     path("checkout/<slug:slug>/", views.checkout, name="checkout"),
     path("checkout/<slug:slug>/confirm/", views.checkout_confirm, name="checkout_confirm"),
     path("payment/webhook/", views.payment_webhook, name="payment_webhook"),
+    path("api/certificates/registry-callback/", views.certificate_registry_callback, name="certificate_registry_callback"),
     
     # 8️⃣ API (только по необходимости)
     path("api/courses/", views.api_courses, name="api_courses"),

@@ -1,4 +1,6 @@
 from decimal import Decimal
+from datetime import timedelta
+import math
 import logging
 from typing import Optional
 import uuid
@@ -82,6 +84,11 @@ class UserProfile(TimestampedModel):
     course_updates = models.BooleanField("Обновления курсов", default=True)
     newsletter = models.BooleanField("Рассылка", default=False)
     push_reminders = models.BooleanField("Напоминания", default=True)
+
+    offer_accepted_at = models.DateTimeField("Оферта принята", null=True, blank=True)
+    privacy_accepted_at = models.DateTimeField("Согласие на обработку ПД", null=True, blank=True)
+    offer_version = models.CharField("Версия оферты", max_length=50, blank=True)
+    privacy_version = models.CharField("Версия согласия", max_length=50, blank=True)
     
     is_deleted = models.BooleanField("Удалён", default=False)
     deleted_at = models.DateTimeField("Удалён", null=True, blank=True)
@@ -662,6 +669,128 @@ class Enrollment(TimestampedModel):
         self.save()
 
 
+class CertificateRequest(TimestampedModel):
+    WITH_PERIOD = "with_period"
+    WITHOUT_PERIOD = "without_period"
+    PERIOD_CHOICES = [
+        (WITH_PERIOD, "С периодом обучения"),
+        (WITHOUT_PERIOD, "Без периода обучения"),
+    ]
+
+    PENDING = "pending"
+    ISSUED = "issued"
+    REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (PENDING, "На проверке"),
+        (ISSUED, "Выдан"),
+        (REJECTED, "Отклонён"),
+    ]
+
+    enrollment = models.OneToOneField(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="certificate_request",
+        verbose_name="Зачисление",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="certificate_requests",
+        verbose_name="Пользователь",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="certificate_requests",
+        verbose_name="Курс",
+    )
+    period_mode = models.CharField(
+        "Период на сертификате",
+        max_length=20,
+        choices=PERIOD_CHOICES,
+    )
+    period_start = models.DateField("Дата начала", null=True, blank=True)
+    period_end = models.DateField("Дата окончания", null=True, blank=True)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=PENDING)
+
+    external_number = models.CharField("Номер сертификата", max_length=100, blank=True)
+    pdf_url = models.URLField("Ссылка на PDF", blank=True)
+    verify_url = models.URLField("Ссылка проверки", blank=True)
+    issued_at = models.DateTimeField("Выдан", null=True, blank=True)
+
+    external_request_id = models.CharField("ID заявки во внешней системе", max_length=120, blank=True)
+    synced_at = models.DateTimeField("Передано в реестр", null=True, blank=True)
+    sync_error = models.TextField("Ошибка синхронизации", blank=True)
+
+    class Meta:
+        verbose_name = "Заявка на сертификат"
+        verbose_name_plural = "Заявки на сертификаты"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} — {self.course} — {self.get_period_mode_display()}"
+
+    @property
+    def minimum_training_days(self):
+        hours = int(self.course.duration_hours or 0)
+        return max(1, math.ceil(hours / 8)) if hours else 1
+
+    @property
+    def actual_training_days(self):
+        if not self.enrollment.completed_at:
+            return 0
+        start = self.enrollment.enrolled_at.date()
+        end = self.enrollment.completed_at.date()
+        return (end - start).days + 1
+
+    @property
+    def period_eligible_date(self):
+        """Первая календарная дата, когда сертификат с периодом становится допустим."""
+        start = self.enrollment.enrolled_at.date()
+        return start + timedelta(days=self.minimum_training_days - 1)
+
+    @property
+    def period_is_allowed(self):
+        return (
+            self.enrollment.completed
+            and self.enrollment.completed_at is not None
+            and timezone.localdate() >= self.period_eligible_date
+        )
+
+    @property
+    def certificate_period_end(self):
+        if not self.enrollment.completed_at:
+            return None
+        completion_date = self.enrollment.completed_at.date()
+        return max(completion_date, self.period_eligible_date)
+
+    def clean(self):
+        if not self.enrollment.completed or not self.enrollment.completed_at:
+            raise ValidationError("Сертификат доступен только после завершения курса.")
+
+        self.user = self.enrollment.user
+        self.course = self.enrollment.course
+
+        if self.period_mode == self.WITH_PERIOD:
+            if not self.period_is_allowed:
+                raise ValidationError(
+                    f"Период обучения пока нельзя указать: для курса объёмом "
+                    f"{self.course.duration_hours or 0} часов требуется не менее "
+                    f"{self.minimum_training_days} календарных дней с даты регистрации."
+                )
+            self.period_start = self.enrollment.enrolled_at.date()
+            self.period_end = self.certificate_period_end
+        else:
+            self.period_start = None
+            self.period_end = None
+
+    def save(self, *args, **kwargs):
+        self.user = self.enrollment.user
+        self.course = self.enrollment.course
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
 class Review(TimestampedModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews", verbose_name="Курс")
     user = models.ForeignKey(
@@ -836,6 +965,11 @@ class Payment(TimestampedModel):
             self.refunded_at = timezone.now()
             
         super().save(*args, **kwargs)
+
+        # Любой подтверждённый платёж открывает доступ к курсу независимо
+        # от того, подтверждён он webhook-ом или вручную администратором.
+        if self.status == self.SUCCESS:
+            Enrollment.objects.get_or_create(user=self.user, course=self.course)
     
     def soft_delete(self):
         self.is_deleted = True
@@ -991,6 +1125,11 @@ class Quiz(TimestampedModel):
     passing_score = models.PositiveIntegerField("Проходной балл", default=70)
     time_limit = models.PositiveIntegerField("Лимит времени (мин)", null=True, blank=True)
     attempts_allowed = models.PositiveIntegerField("Попыток разрешено", default=1)
+    unlimited_attempts = models.BooleanField(
+        "Неограниченные попытки",
+        default=False,
+        help_text="Если включено, числовое ограничение attempts_allowed не применяется."
+    )
     is_active = models.BooleanField("Активен", default=True)
     
     description = models.TextField("Описание", blank=True)
@@ -1051,6 +1190,46 @@ class Answer(TimestampedModel):
 
     def __str__(self):
         return f"{self.question.text[:30]} - {self.text[:30]}"
+
+
+class QuizAttempt(TimestampedModel):
+    """Одна завершённая попытка прохождения тематического теста."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quiz_attempts",
+        verbose_name="Пользователь"
+    )
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name="Тест"
+    )
+    attempt_number = models.PositiveIntegerField("Номер попытки", default=1)
+    score_percent = models.PositiveIntegerField("Результат, %", default=0)
+    points_earned = models.PositiveIntegerField("Набрано баллов", default=0)
+    points_total = models.PositiveIntegerField("Всего баллов", default=0)
+    passed = models.BooleanField("Пройден", default=False)
+    answers = models.JSONField("Ответы", default=dict, blank=True)
+    completed_at = models.DateTimeField("Завершена", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Попытка теста"
+        verbose_name_plural = "Попытки тестов"
+        ordering = ["-completed_at", "-id"]
+        indexes = [
+            models.Index(fields=["user", "quiz"]),
+            models.Index(fields=["quiz", "passed"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.quiz} — {self.score_percent}%"
+
+    def save(self, *args, **kwargs):
+        self.score_percent = max(0, min(100, int(self.score_percent or 0)))
+        self.passed = self.score_percent >= self.quiz.passing_score
+        super().save(*args, **kwargs)
 
 
 class Assignment(TimestampedModel):

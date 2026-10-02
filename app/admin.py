@@ -5,6 +5,8 @@ from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
 
+from .certificate_sync import CertificateRegistryError, sync_certificate_request
+
 from .models import (
     Category,
     Course,
@@ -20,7 +22,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog,
@@ -365,6 +367,14 @@ class AnswerAdmin(admin.ModelAdmin):
     search_fields = ['text', 'question__text']
     ordering = ['question', 'order']
 
+@admin.register(QuizAttempt)
+class QuizAttemptAdmin(admin.ModelAdmin):
+    list_display = ['user', 'quiz', 'attempt_number', 'score_percent', 'passed', 'completed_at']
+    list_filter = ['passed', 'quiz__lesson__module__course', 'completed_at']
+    search_fields = ['user__username', 'user__email', 'quiz__title']
+    readonly_fields = ['attempt_number', 'score_percent', 'points_earned', 'points_total', 'passed', 'answers', 'completed_at', 'created_at', 'updated_at']
+    ordering = ['-completed_at']
+
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'due_date', 'max_points', 'is_active']
@@ -410,6 +420,32 @@ class CertificateAdmin(admin.ModelAdmin):
     list_filter = ['is_revoked', 'course', 'issued_at']
     search_fields = ['user__username', 'course__title', 'certificate_id']
     readonly_fields = ['certificate_id', 'issued_at']
+
+@admin.action(description="Передать выбранные заявки в реестр сертификатов")
+def sync_certificate_requests(modeladmin, request, queryset):
+    success = 0
+    failed = 0
+    for cert_request in queryset.select_related("user", "course", "enrollment"):
+        try:
+            sync_certificate_request(cert_request)
+            success += 1
+        except CertificateRegistryError as exc:
+            cert_request.sync_error = str(exc)
+            cert_request.save(update_fields=["sync_error", "updated_at"])
+            failed += 1
+    modeladmin.message_user(
+        request,
+        f"Передано в реестр: {success}. Ошибок: {failed}."
+    )
+
+
+@admin.register(CertificateRequest)
+class CertificateRequestAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'period_mode', 'period_start', 'period_end', 'status', 'external_number', 'synced_at', 'created_at']
+    list_filter = ['status', 'period_mode', 'course', 'created_at']
+    search_fields = ['user__username', 'user__email', 'course__title', 'external_number', 'external_request_id']
+    readonly_fields = ['user', 'course', 'period_start', 'period_end', 'external_request_id', 'synced_at', 'sync_error', 'created_at', 'updated_at']
+    actions = [sync_certificate_requests]
 
 @admin.register(Interaction)
 class InteractionAdmin(admin.ModelAdmin):

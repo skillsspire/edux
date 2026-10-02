@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Сертификат — {{ course.title }} — SkillsSpire{% endblock %}
+
+{% block content %}
+<style>
+.cert-wrap{max-width:820px;margin:40px auto;padding:0 20px}
+.cert-card{background:#fff;border:1px solid #e4e9f2;border-radius:20px;padding:28px}
+.cert-card h1{margin-top:0}
+.cert-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}
+.cert-meta div{background:#f7f9fc;border-radius:12px;padding:14px}
+.cert-choice{display:block;border:1px solid #dfe5ee;border-radius:14px;padding:16px;margin:12px 0}
+.cert-choice.disabled{opacity:.55}
+.cert-note{padding:14px;border-radius:12px;background:#f5f7fb;margin:16px 0}
+.cert-warning{background:#fff5f2}
+.cert-success{background:#eef8f1}
+.cert-submit{border:0;background:#01349D;color:#fff;padding:12px 18px;border-radius:10px;cursor:pointer}
+@media(max-width:700px){.cert-meta{grid-template-columns:1fr}}
+</style>
+
+<div class="cert-wrap">
+    <div class="cert-card">
+        <h1>Сертификат по курсу</h1>
+        <p><strong>{{ course.title }}</strong></p>
+
+        <div class="cert-meta">
+            <div><small>Объём курса</small><br><strong>{{ course.duration_hours }} академических часов</strong></div>
+            <div><small>Дата начала</small><br><strong>{{ start_date|date:"d.m.Y" }}</strong></div>
+            <div><small>Дата завершения</small><br><strong>{{ completion_date|date:"d.m.Y" }}</strong></div>
+            <div><small>Фактический период</small><br><strong>{{ actual_days }} календарных дн.</strong></div>
+        </div>
+
+        <p>ФИО, название курса, количество часов и даты система берёт автоматически. Повторно вводить эти данные не нужно.</p>
+
+        {% if certificate_request and certificate_request.status == "issued" %}
+            <div class="cert-note cert-success">
+                Сертификат уже выдан.
+                {% if certificate_request.external_number %}<br>№ {{ certificate_request.external_number }}{% endif %}
+                {% if certificate_request.pdf_url %}<br><a href="{{ certificate_request.pdf_url }}" target="_blank" rel="noopener">Открыть PDF</a>{% endif %}
+            </div>
+        {% else %}
+            <form method="post">
+                {% csrf_token %}
+
+                <label class="cert-choice">
+                    <input type="radio" name="period_mode" value="without_period"
+                        {% if not certificate_request or certificate_request.period_mode == "without_period" %}checked{% endif %}>
+                    <strong>Получить сертификат без периода обучения</strong><br>
+                    <span>На сертификате будут указаны 72 академических часа, дата выдачи, номер и QR-код, но без строки «Период обучения».</span>
+                </label>
+
+                <label class="cert-choice {% if not period_allowed %}disabled{% endif %}">
+                    <input type="radio" name="period_mode" value="with_period"
+                        {% if not period_allowed %}disabled{% endif %}
+                        {% if certificate_request and certificate_request.period_mode == "with_period" %}checked{% endif %}>
+                    <strong>Указать период обучения</strong><br>
+                    <span>Период будет сформирован автоматически: {{ start_date|date:"d.m.Y" }} — {{ certificate_period_end|date:"d.m.Y" }}.</span>
+                </label>
+
+                {% if not period_allowed %}
+                    <div class="cert-note cert-warning">
+                        Для курса объёмом {{ course.duration_hours }} академических часов период обучения на сертификате можно указывать не ранее чем через {{ min_days }} календарных дней с даты регистрации, из расчёта не более 8 академических часов в день.
+                        Сертификат с периодом станет доступен {{ period_eligible_date|date:"d.m.Y" }}. До этой даты можно получить сертификат без периода обучения.
+                    </div>
+                {% endif %}
+
+                <button class="cert-submit" type="submit">Сохранить вариант сертификата</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
