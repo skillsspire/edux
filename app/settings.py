@@ -392,3 +392,7 @@ KASPI_WEBHOOK_SECRET = os.environ.get('KASPI_WEBHOOK_SECRET', '')
 
 # Supabase realtime
 SUPABASE_REALTIME_URL = f"wss://{SUPABASE_PROJECT_ID}.supabase.co/realtime/v1"
+
+# Certificate registry integration (Google Apps Script Web App)
+CERTIFICATE_REGISTRY_ENDPOINT = os.environ.get("CERTIFICATE_REGISTRY_ENDPOINT", "")
+CERTIFICATE_REGISTRY_TOKEN = os.environ.get("CERTIFICATE_REGISTRY_TOKEN", "")
