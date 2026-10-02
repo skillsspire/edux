@@ -1261,14 +1261,28 @@ def payment_thanks(request, slug):
 def my_courses(request):
     try:
         enrollments = Enrollment.objects.filter(
-            user=request.user
+            user=request.user,
+            is_deleted=False,
         ).select_related("course").only(
-            'id', 'completed', 'progress', 'created_at',
+            'id', 'completed', 'completed_at', 'created_at',
             'course_id', 'course__title', 'course__slug', 'course__short_description'
         ).order_by('-created_at')
         
         courses_with_images = []
         for enrollment in enrollments:
+            required_blocks = LessonBlock.objects.filter(
+                lesson__module__course=enrollment.course,
+                is_required=True,
+                is_deleted=False,
+            )
+            required_count = required_blocks.count()
+            completed_count = BlockProgress.objects.filter(
+                user=request.user,
+                block__in=required_blocks,
+                is_completed=True,
+            ).count()
+            progress_percent = round((completed_count / required_count) * 100) if required_count else 0
+
             courses_with_images.append({
                 'id': enrollment.course.id,
                 'title': enrollment.course.title,
@@ -1278,7 +1292,7 @@ def my_courses(request):
                 'url': f"/courses/{enrollment.course.slug}/",
                 'enrollment': {
                     'completed': enrollment.completed,
-                    'progress': enrollment.progress,
+                    'progress': progress_percent,
                     'created_at': enrollment.created_at,
                 },
             })
