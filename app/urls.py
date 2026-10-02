@@ -42,6 +42,8 @@ urlpatterns = [
     path("learn/<slug:course_slug>/", views.course_learn, name="course_learn"),
     path("learn/<slug:course_slug>/<slug:lesson_slug>/", views.lesson_view, name="lesson_view"),
     path("api/progress/", views.update_progress, name="update_progress"),
+    path("api/blocks/<int:block_id>/complete/", views.complete_block, name="complete_block"),
+    path("api/quizzes/<int:quiz_id>/submit/", views.submit_quiz, name="submit_quiz"),
     
     # 5️⃣ ИНСТРУКТОР (отдельная панель — НЕ Django Admin)
     path("instructor/", views.instructor_dashboard, name="instructor_dashboard"),
