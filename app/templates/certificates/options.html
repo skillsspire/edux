@@ -54,13 +54,13 @@
                         {% if not period_allowed %}disabled{% endif %}
                         {% if certificate_request and certificate_request.period_mode == "with_period" %}checked{% endif %}>
                     <strong>Указать период обучения</strong><br>
-                    <span>Период будет сформирован автоматически: {{ start_date|date:"d.m.Y" }} — {{ completion_date|date:"d.m.Y" }}.</span>
+                    <span>Период будет сформирован автоматически: {{ start_date|date:"d.m.Y" }} — {{ certificate_period_end|date:"d.m.Y" }}.</span>
                 </label>
 
                 {% if not period_allowed %}
                     <div class="cert-note cert-warning">
-                        Для курса объёмом {{ course.duration_hours }} академических часов период обучения на сертификате можно указывать только при продолжительности не менее {{ min_days }} календарных дней из расчёта не более 8 академических часов в день.
-                        Ваш фактический период — {{ actual_days }} дн. Поэтому сейчас доступен сертификат без периода обучения.
+                        Для курса объёмом {{ course.duration_hours }} академических часов период обучения на сертификате можно указывать не ранее чем через {{ min_days }} календарных дней с даты регистрации, из расчёта не более 8 академических часов в день.
+                        Сертификат с периодом станет доступен {{ period_eligible_date|date:"d.m.Y" }}. До этой даты можно получить сертификат без периода обучения.
                     </div>
                 {% endif %}
 
