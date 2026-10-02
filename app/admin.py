@@ -20,7 +20,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog,
@@ -364,6 +364,14 @@ class AnswerAdmin(admin.ModelAdmin):
     list_filter = ['is_correct', 'question__quiz']
     search_fields = ['text', 'question__text']
     ordering = ['question', 'order']
+
+@admin.register(QuizAttempt)
+class QuizAttemptAdmin(admin.ModelAdmin):
+    list_display = ['user', 'quiz', 'attempt_number', 'score_percent', 'passed', 'completed_at']
+    list_filter = ['passed', 'quiz__lesson__module__course', 'completed_at']
+    search_fields = ['user__username', 'user__email', 'quiz__title']
+    readonly_fields = ['attempt_number', 'score_percent', 'points_earned', 'points_total', 'passed', 'answers', 'completed_at', 'created_at', 'updated_at']
+    ordering = ['-completed_at']
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
