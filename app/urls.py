@@ -20,6 +20,7 @@ urlpatterns = [
     # 👤 ЛИЧНЫЙ КАБИНЕТ
     path("dashboard/", views.dashboard, name="dashboard"),
     path("my-courses/", views.my_courses, name="my_courses"),
+    path("certificates/<slug:course_slug>/", views.certificate_options, name="certificate_options"),
 
     # 1️⃣ АДМИНКА (стандартная) — точка управления
     path("admin/", admin.site.urls),
