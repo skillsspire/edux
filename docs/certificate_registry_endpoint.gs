@@ -29,6 +29,11 @@ function doPost(e) {
     const course = String(payload.course || '').trim();
     const hours = Number(payload.hours || 0);
     const periodMode = String(payload.period_mode || 'without_period').trim();
+    const callbackUrl = String(payload.callback_url || '').trim();
+
+    if (callbackUrl) {
+      PropertiesService.getScriptProperties().setProperty('SKILLSSPIRE_CALLBACK_URL', callbackUrl);
+    }
 
     if (!localRequestId || !email || !course || !hours) {
       return jsonResponse_({ ok: false, error: 'Missing required fields' });
@@ -109,19 +114,61 @@ function jsonResponse_(obj) {
 
 
 /**
- * REQUIRED CHANGE inside createCertificate_()
+ * Call this after a certificate created from a SITE-* registry row is issued.
+ * The Django site will then show the PDF/number in the learner cabinet.
+ */
+function notifySiteCertificateIssued_(requestId, regNumber, pdfUrl, verifyUrl) {
+  const requestText = String(requestId || '').trim();
+  if (requestText.indexOf('SITE-') !== 0) return;
+
+  const localRequestId = requestText.substring(5);
+  if (!localRequestId) return;
+
+  const props = PropertiesService.getScriptProperties();
+  const callbackUrl = String(props.getProperty('SKILLSSPIRE_CALLBACK_URL') || '').trim();
+  const token = String(props.getProperty('CERTIFICATE_REGISTRY_TOKEN') || '').trim();
+
+  if (!callbackUrl || !token) {
+    console.warn('SkillsSpire callback URL/token is not configured.');
+    return;
+  }
+
+  try {
+    UrlFetchApp.fetch(callbackUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      muteHttpExceptions: true,
+      payload: JSON.stringify({
+        token: token,
+        local_request_id: localRequestId,
+        status: 'issued',
+        certificate_number: String(regNumber || ''),
+        pdf_url: String(pdfUrl || ''),
+        verify_url: String(verifyUrl || '')
+      })
+    });
+  } catch (err) {
+    console.error('SkillsSpire callback failed: ' + err.message);
+  }
+}
+
+
+/**
+ * REQUIRED PATCHES IN THE EXISTING v10 SCRIPT
  *
- * Replace the current unconditional period validation:
+ * 1) OPTIONAL PERIOD
+ *
+ * In createCertificate_() replace:
  *
  *   if (!startDate || !endDate) {
- *     throw new Error('Перед выдачей заполните ...');
+ *     throw new Error('Перед выдачей заполните в Реестре «Дата начала» и «Дата окончания».');
  *   }
  *
  * with:
  *
  *   const hasPeriod = Boolean(startDate && endDate);
  *
- * Then replace:
+ * Replace:
  *
  *   const period = formatDate_(startDate) + ' — ' + formatDate_(endDate);
  *
@@ -131,14 +178,50 @@ function jsonResponse_(obj) {
  *     ? formatDate_(startDate) + ' — ' + formatDate_(endDate)
  *     : '';
  *
- * Existing line:
+ * Keep:
  *
  *   pres.replaceAllText('{{ПЕРИОД}}', period);
  *
- * can stay unchanged. For a certificate without a period, the placeholder
- * becomes an empty string.
+ * For the no-period certificate the placeholder becomes empty.
  *
- * This preserves the existing manual approval, numbering, PDF, QR and email
- * workflow while allowing website listeners to request a certificate without
- * a training-period line.
+ *
+ * 2) CALLBACK TO THE WEBSITE AFTER ISSUE/REGENERATION
+ *
+ * In createCertificate_(), after PDF_URL/QR_URL have been saved to the sheet,
+ * add:
+ *
+ *   const sourceRequestId = String(v[COL.ID - 1] || '').trim();
+ *   notifySiteCertificateIssued_(
+ *     sourceRequestId,
+ *     regNumber,
+ *     pdfFile.getUrl(),
+ *     verifyUrl
+ *   );
+ *
+ *
+ * 3) EMAIL WITHOUT AN EMPTY "TRAINING PERIOD" LINE
+ *
+ * In sendCertificateEmail_() create:
+ *
+ *   const periodHtml = period
+ *     ? (isEn
+ *         ? '<b>Training period:</b> ' + esc_(period) + '<br>'
+ *         : '<b>Период обучения:</b> ' + esc_(period) + '<br>')
+ *     : '';
+ *
+ * Then use periodHtml in the HTML instead of the unconditional period line.
+ *
+ *
+ * 4) PUBLIC VERIFICATION PAGE WITHOUT AN EMPTY PERIOD
+ *
+ * In doGet(), create:
+ *
+ *   const hasPeriod = Boolean(
+ *     row[COL.START_DATE - 1] && row[COL.END_DATE - 1]
+ *   );
+ *
+ * and render the period paragraph only when hasPeriod is true.
+ *
+ * These four changes preserve the existing manual approval, numbering,
+ * PDF generation, QR verification and first-email-only behaviour.
  */
