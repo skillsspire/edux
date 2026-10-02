@@ -1260,15 +1260,18 @@ def payment_thanks(request, slug):
 @login_required
 def my_courses(request):
     try:
-        enrollments = Enrollment.objects.filter(
-            user=request.user,
-            is_deleted=False,
-        ).select_related("course").only(
-            'id', 'completed', 'completed_at', 'created_at',
-            'course_id', 'course__title', 'course__slug', 'course__short_description'
-        ).order_by('-created_at')
-        
-        courses_with_images = []
+        enrollments = list(
+            Enrollment.objects.filter(
+                user=request.user,
+                is_deleted=False,
+            ).select_related(
+                "course",
+                "course__category",
+                "course__instructor",
+            ).order_by("-created_at")
+        )
+
+        progress_map = {}
         for enrollment in enrollments:
             required_blocks = LessonBlock.objects.filter(
                 lesson__module__course=enrollment.course,
@@ -1281,43 +1284,29 @@ def my_courses(request):
                 block__in=required_blocks,
                 is_completed=True,
             ).count()
-            progress_percent = round((completed_count / required_count) * 100) if required_count else 0
+            progress_map[enrollment.course_id] = (
+                round((completed_count / required_count) * 100)
+                if required_count else 0
+            )
 
-            courses_with_images.append({
-                'id': enrollment.course.id,
-                'title': enrollment.course.title,
-                'slug': enrollment.course.slug,
-                'short_description': enrollment.course.short_description[:100] if enrollment.course.short_description else '',
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{enrollment.course.slug}/",
-                'enrollment': {
-                    'completed': enrollment.completed,
-                    'progress': progress_percent,
-                    'created_at': enrollment.created_at,
-                },
-            })
-        
-        in_progress = [c for c in courses_with_images if not c["enrollment"]['completed']]
-        completed = [c for c in courses_with_images if c["enrollment"]['completed']]
-        
         return render(request, "courses/my_courses.html", {
-            "in_progress": in_progress,
-            "completed": completed,
+            "enrollments": enrollments,
+            "progress_map": progress_map,
         })
-        
+
     except DatabaseError as e:
         logger.error(f"Database error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
         return render(request, "courses/my_courses.html", {
-            "in_progress": [],
-            "completed": [],
+            "enrollments": [],
+            "progress_map": {},
         })
     except Exception as e:
         logger.error(f"Error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке курсов")
         return render(request, "courses/my_courses.html", {
-            "in_progress": [],
-            "completed": [],
+            "enrollments": [],
+            "progress_map": {},
         })
 
 @login_required
