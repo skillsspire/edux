@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import timedelta
 import math
 import logging
 from typing import Optional
@@ -737,7 +738,7 @@ class CertificateRequest(TimestampedModel):
     def period_eligible_date(self):
         """Первая календарная дата, когда сертификат с периодом становится допустим."""
         start = self.enrollment.enrolled_at.date()
-        return start + timezone.timedelta(days=self.minimum_training_days - 1)
+        return start + timedelta(days=self.minimum_training_days - 1)
 
     @property
     def period_is_allowed(self):
