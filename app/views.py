@@ -8,7 +8,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import DatabaseError, ProgrammingError
-from django.db.models import Q, Avg, Count, Sum
+from django.db.models import Q, Avg, Count, Sum, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -607,100 +607,76 @@ def materials_list(request):
     return render(request, "materials/list.html", context)
 
 def course_detail(request, slug):
-    cache_key = f'course_detail_v{CACHE_VERSION}_{slug}'
-    
-    if not request.user.is_authenticated:
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            if request.user.is_authenticated:
-                cached_data = _enrich_course_data(cached_data, request.user)
-            return render(request, "courses/detail.html", cached_data)
-    
     try:
-        course_obj = Course.objects.filter(
+        course_obj = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
             slug=slug,
             status=Course.PUBLISHED,
-            is_deleted=False
-        ).select_related("category", "instructor").only(
-            'id', 'title', 'slug', 'price', 'short_description', 'description',
-            'category_id', 'category__name', 'category__slug',
-            'instructor_id', 'instructor__first_name', 'instructor__last_name',
-            'created_at'
-        ).order_by('id').first()
-        
-        if not course_obj:
-            raise Http404("Курс не найден")
-        
-        course_data = course_card_dto(course_obj)
-        course_data.update({
-            'description': course_obj.description or "",
-            'instructor': {
-                'name': f"{course_obj.instructor.first_name or ''} {course_obj.instructor.last_name or ''}".strip() if course_obj.instructor else "",
-            },
-        })
+            is_deleted=False,
+        )
 
-        has_access = False
-        is_in_wishlist = False
-        if request.user.is_authenticated:
-            has_access = user_has_course_access(request.user, course_obj)
-            is_in_wishlist = Wishlist.objects.filter(
-                user=request.user, 
-                course=course_obj
-            ).exists()
+        lesson_qs = Lesson.objects.filter(
+            is_active=True,
+            is_deleted=False,
+        ).order_by("order", "id")
 
-        try:
-            modules = list(Module.objects.filter(
-                course=course_obj, 
-                is_active=True
-            ).only(
-                'id', 'title', 'order', 'is_active'
-            ).order_by("order")[:20])
-        except Exception:
-            modules = []
+        modules = list(
+            Module.objects.filter(
+                course=course_obj,
+                is_active=True,
+                is_deleted=False,
+            ).prefetch_related(
+                Prefetch("lessons", queryset=lesson_qs)
+            ).order_by("order", "id")
+        )
 
-        related_courses_qs = Course.objects.filter(
+        lessons = []
+        for module in modules:
+            module_lessons = list(module.lessons.all())
+            module.total_duration = sum((lesson.duration_minutes or 0) for lesson in module_lessons)
+            lessons.extend(module_lessons)
+
+        first_lesson = lessons[0] if lessons else None
+
+        has_access = user_has_course_access(request.user, course_obj)
+        is_in_wishlist = (
+            request.user.is_authenticated
+            and Wishlist.objects.filter(user=request.user, course=course_obj).exists()
+        )
+
+        teacher_profile = None
+        if course_obj.instructor_id:
+            teacher_profile = InstructorProfile.objects.filter(
+                user_id=course_obj.instructor_id,
+                is_deleted=False,
+            ).first()
+
+        reviews = Review.objects.filter(
+            course=course_obj,
+            is_active=True,
+        ).select_related("user").order_by("-created_at")[:10]
+
+        related_courses = Course.objects.filter(
             category=course_obj.category,
             status=Course.PUBLISHED,
-            is_deleted=False
-        ).exclude(id=course_obj.id).only(
-            'id', 'title', 'slug', 'price', 'short_description'
-        )[:4]
-        
-        related_courses = [course_card_dto(course) for course in related_courses_qs]
+            is_deleted=False,
+        ).exclude(id=course_obj.id).select_related("category")[:4]
 
-        reviews = list(Review.objects.filter(
-            course=course_obj, 
-            is_active=True
-        ).select_related('user').only(
-            'rating', 'comment', 'created_at',
-            'user__first_name', 'user__last_name'
-        )[:10].values(
-            'rating', 'comment', 'created_at',
-            'user__first_name', 'user__last_name'
-        ))
-
-        context = {
-            "course": course_data,
+        return render(request, "courses/detail.html", {
+            "course": course_obj,
             "has_access": has_access,
             "is_in_wishlist": is_in_wishlist,
             "modules": modules,
-            "related_courses": related_courses,
+            "lessons": lessons,
+            "first_lesson": first_lesson,
+            "teacher_profile": teacher_profile,
             "reviews": reviews,
-        }
-        
-        if not request.user.is_authenticated:
-            cache.set(cache_key, context, 600)
-        
-    except Course.DoesNotExist:
-        raise Http404("Курс не найден")
+            "related_courses": related_courses,
+        })
+
     except DatabaseError as e:
         logger.error(f"Database error loading course {slug}: {str(e)}", exc_info=True)
-        raise Http404("Курс не найден")
-    except Exception as e:
-        logger.error(f"Error loading course {slug}: {str(e)}", exc_info=True)
-        raise Http404("Курс не найден")
-    
-    return render(request, "courses/detail.html", context)
+        raise Http404("Курс временно недоступен")
 
 def _enrich_course_data(cached_data, user):
     if not user.is_authenticated:
