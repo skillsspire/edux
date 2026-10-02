@@ -873,6 +873,7 @@ def submit_quiz(request, quiz_id):
     points_total = sum(max(1, q.points) for q in questions)
     points_earned = 0
     answer_log = {}
+    feedback = []
 
     for question in questions:
         field_name = f"question_{question.id}"
@@ -901,6 +902,12 @@ def submit_quiz(request, quiz_id):
             "submitted": submitted_clean,
             "correct": is_correct,
         }
+        feedback.append({
+            "question_id": question.id,
+            "correct": is_correct,
+            "explanation": question.explanation or "",
+            "correct_answers": [answer.text for answer in correct_answers],
+        })
 
     score_percent = round((points_earned / points_total) * 100) if points_total else 0
     attempt = QuizAttempt.objects.create(
@@ -945,6 +952,7 @@ def submit_quiz(request, quiz_id):
         "passed": attempt.passed,
         "attempt_number": attempt.attempt_number,
         "unlimited_attempts": quiz.unlimited_attempts,
+        "feedback": feedback,
     })
 
 @login_required
