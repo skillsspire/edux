@@ -41,7 +41,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog
@@ -1388,6 +1388,75 @@ def dashboard(request):
 
 def learning_dashboard(request):
     return dashboard(request)
+
+
+@login_required
+def certificate_options(request, course_slug):
+    course_obj = get_object_or_404(Course, slug=course_slug, is_deleted=False)
+    enrollment = get_object_or_404(
+        Enrollment,
+        user=request.user,
+        course=course_obj,
+        is_deleted=False,
+    )
+
+    if not enrollment.completed or not enrollment.completed_at:
+        messages.error(request, "Сертификат станет доступен после завершения курса.")
+        return redirect("my_courses")
+
+    existing_request = CertificateRequest.objects.filter(enrollment=enrollment).first()
+    probe = existing_request or CertificateRequest(
+        enrollment=enrollment,
+        user=request.user,
+        course=course_obj,
+        period_mode=CertificateRequest.WITHOUT_PERIOD,
+    )
+
+    min_days = probe.minimum_training_days
+    actual_days = probe.actual_training_days
+    period_allowed = actual_days >= min_days
+    start_date = enrollment.enrolled_at.date()
+    completion_date = enrollment.completed_at.date()
+
+    if request.method == "POST":
+        mode = request.POST.get("period_mode", CertificateRequest.WITHOUT_PERIOD)
+        if mode not in {CertificateRequest.WITH_PERIOD, CertificateRequest.WITHOUT_PERIOD}:
+            mode = CertificateRequest.WITHOUT_PERIOD
+
+        if mode == CertificateRequest.WITH_PERIOD and not period_allowed:
+            messages.error(
+                request,
+                f"Период обучения нельзя указать: для курса объёмом {course_obj.duration_hours or 0} "
+                f"академических часов требуется не менее {min_days} календарных дней. "
+                f"Фактический период — {actual_days} дн. Выберите сертификат без периода."
+            )
+        else:
+            cert_request, _ = CertificateRequest.objects.update_or_create(
+                enrollment=enrollment,
+                defaults={
+                    "user": request.user,
+                    "course": course_obj,
+                    "period_mode": mode,
+                    "status": CertificateRequest.PENDING,
+                },
+            )
+            cert_request.save()
+            messages.success(
+                request,
+                "Данные для сертификата сохранены. Повторно вводить ФИО, курс, часы и даты не требуется."
+            )
+            return redirect("certificate_options", course_slug=course_slug)
+
+    return render(request, "certificates/options.html", {
+        "course": course_obj,
+        "enrollment": enrollment,
+        "certificate_request": existing_request,
+        "min_days": min_days,
+        "actual_days": actual_days,
+        "period_allowed": period_allowed,
+        "start_date": start_date,
+        "completion_date": completion_date,
+    })
 
 @login_required
 def profile_settings(request):
