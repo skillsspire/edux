@@ -29,6 +29,49 @@ from app.views import _check_course_completion
 User = get_user_model()
 
 
+class PublicPageSmokeTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(
+            name="Smoke category",
+            slug="smoke-category",
+        )
+        self.course = Course.objects.create(
+            title="Smoke course",
+            slug="smoke-course",
+            category=self.category,
+            short_description="Проверка публичной страницы курса.",
+            duration_hours=72,
+            price=Decimal("15000.00"),
+            status=Course.PUBLISHED,
+        )
+        module = Module.objects.create(
+            course=self.course,
+            title="Модуль 1",
+            order=1,
+        )
+        Lesson.objects.create(
+            module=module,
+            title="Тема 1",
+            slug="smoke-topic",
+            order=1,
+            duration_minutes=180,
+        )
+
+    def test_core_public_pages_render(self):
+        for url in (
+            "/",
+            "/courses/",
+            f"/courses/{self.course.slug}/",
+            f"/courses/{self.course.slug}/corporate/",
+            "/signup/",
+            "/terms/",
+            "/privacy/",
+        ):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200, url)
+
+
 class CorporateAccessTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(
