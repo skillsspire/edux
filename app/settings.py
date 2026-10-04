@@ -20,13 +20,21 @@ IS_LOCAL = not IS_VERCEL and not IS_RENDER
 
 # Supabase configuration
 SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID', 'pyttzlcuxyfkhrwggrwi')
-SUPABASE_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co"
+SUPABASE_URL = os.environ.get('SUPABASE_URL') or f"https://{SUPABASE_PROJECT_ID}.supabase.co"
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
-# Security
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-123')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+# Security. Existing Vercel configuration historically used SECRET_KEY,
+# while newer environments may use DJANGO_SECRET_KEY.
+SECRET_KEY = (
+    os.environ.get('DJANGO_SECRET_KEY')
+    or os.environ.get('SECRET_KEY')
+    or ('django-insecure-local-dev-only' if IS_LOCAL else '')
+)
+if not SECRET_KEY:
+    raise RuntimeError('DJANGO_SECRET_KEY or SECRET_KEY must be configured in production.')
+
+DEBUG = os.environ.get('DEBUG', 'False').strip().lower() in {'1', 'true', 'yes', 'on'}
 
 # ALLOWED_HOSTS - обновлено для Vercel
 ALLOWED_HOSTS = [
@@ -218,7 +226,7 @@ if DEBUG and IS_LOCAL:
     MEDIA_ROOT = BASE_DIR / 'media'
 else:
     # Продакшен (Vercel/Render) - используем Supabase Storage
-    SUPABASE_BUCKET = 'media'
+    SUPABASE_BUCKET = os.environ.get('SUPABASE_BUCKET', 'media')
     MEDIA_URL = f'{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/'
     
     AWS_ACCESS_KEY_ID = os.environ.get('SUPABASE_ACCESS_KEY')
