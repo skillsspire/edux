@@ -302,6 +302,19 @@ class CorporateInvitationAdmin(admin.ModelAdmin):
     course_name.short_description = "Курс"
 
 
+@admin.register(PracticalResponse)
+class PracticalResponseAdmin(admin.ModelAdmin):
+    list_display = ['user', 'block', 'course_name', 'updated_at']
+    list_filter = ['block__lesson__module__course', 'updated_at']
+    search_fields = ['user__username', 'user__email', 'block__title', 'text']
+    readonly_fields = ['created_at', 'updated_at']
+    list_select_related = ['user', 'block__lesson__module__course']
+
+    def course_name(self, obj):
+        return obj.block.lesson.module.course.title
+    course_name.short_description = "Курс"
+
+
 @admin.register(BlockProgress)
 class BlockProgressAdmin(admin.ModelAdmin):
     list_display = ['user', 'block', 'progress_percent', 'is_completed', 'time_spent', 'last_accessed']
