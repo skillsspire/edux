@@ -70,18 +70,18 @@ jobs:
             python manage.py sqlmigrate app "$migration" >> skillsspire_upgrade_0013_0019.sql
           done
 
-          cat >> skillsspire_upgrade_0013_0019.sql <<'SQL'
-
--- Record migrations after their DDL succeeds.
-INSERT INTO django_migrations (app, name, applied) VALUES
-('app','0013_quiz_attempts',CURRENT_TIMESTAMP),
-('app','0014_certificate_request',CURRENT_TIMESTAMP),
-('app','0015_certificate_sync_fields',CURRENT_TIMESTAMP),
-('app','0016_userprofile_consents',CURRENT_TIMESTAMP),
-('app','0017_corporate_orders',CURRENT_TIMESTAMP),
-('app','0018_sync_model_state',CURRENT_TIMESTAMP),
-('app','0019_practical_response',CURRENT_TIMESTAMP);
-SQL
+          printf '%s\n' \
+            '' \
+            '-- Record migrations after their DDL succeeds.' \
+            'INSERT INTO django_migrations (app, name, applied) VALUES' \
+            "('app','0013_quiz_attempts',CURRENT_TIMESTAMP)," \
+            "('app','0014_certificate_request',CURRENT_TIMESTAMP)," \
+            "('app','0015_certificate_sync_fields',CURRENT_TIMESTAMP)," \
+            "('app','0016_userprofile_consents',CURRENT_TIMESTAMP)," \
+            "('app','0017_corporate_orders',CURRENT_TIMESTAMP)," \
+            "('app','0018_sync_model_state',CURRENT_TIMESTAMP)," \
+            "('app','0019_practical_response',CURRENT_TIMESTAMP);" \
+            >> skillsspire_upgrade_0013_0019.sql
 
       - name: Validate upgrade SQL against an isolated copy
         run: |
