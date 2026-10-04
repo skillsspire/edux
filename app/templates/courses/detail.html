@@ -882,11 +882,9 @@
               </a>
             {% endif %}
             
-            {% if not has_access %}
-              <a href="{% url 'corporate_order_request' course.slug %}" class="btn-wishlist btn-enroll">
-                Для организации
-              </a>
-            {% endif %}
+            <a href="{% url 'corporate_order_request' course.slug %}" class="btn-wishlist btn-enroll">
+              Для организации
+            </a>
 
             {% if user.is_authenticated %}
               <form action="{% url 'toggle_wishlist' course.slug %}" method="post">
