@@ -5,7 +5,12 @@
       "src": "app/wsgi.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.11"
+        "runtime": "python3.11",
+        "includeFiles": [
+          "app/templates/**",
+          "app/static/**",
+          "app/course_data/**"
+        ]
       }
     }
   ],
