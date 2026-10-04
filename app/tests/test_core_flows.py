@@ -95,6 +95,29 @@ class PublicPageSmokeTests(TestCase):
             1,
         )
 
+    def test_successful_payment_creates_access_and_status_endpoint_reports_it(self):
+        user = User.objects.create_user(
+            username="paid-user",
+            email="paid@example.kz",
+            password="test-password",
+        )
+        self.client.force_login(user)
+        self.client.get(f"/checkout/{self.course.slug}/")
+        payment = Payment.objects.get(user=user, course=self.course)
+
+        payment.status = Payment.SUCCESS
+        payment.save()
+
+        self.assertTrue(
+            Enrollment.objects.filter(user=user, course=self.course).exists()
+        )
+        response = self.client.get(f"/api/payments/{payment.id}/status/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["paid"])
+        self.assertTrue(payload["has_access"])
+        self.assertTrue(payload["learn_url"])
+
 
 class CorporateAccessTests(TestCase):
     def setUp(self):
