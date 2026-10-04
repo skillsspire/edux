@@ -7,7 +7,7 @@
 <style>
 .corp-wrap{max-width:1000px;margin:38px auto;padding:0 20px 60px}
 .corp-card{background:#fff;border:1px solid #e4e9f2;border-radius:18px;padding:26px;margin-bottom:20px}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:20px 0}
 .metric{background:#f7f9fc;border-radius:12px;padding:14px}.metric small{color:#64748b}.metric strong{display:block;font-size:22px;margin-top:4px}
 .status{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef4ff;color:#01349D;font-weight:700}
 .invite-form textarea{width:100%;padding:12px;border:1px solid #ccd5e0;border-radius:10px;min-height:170px}
@@ -15,7 +15,7 @@
 .btn-primary{background:#01349D;color:#fff}.btn-danger{background:#fff1f0;color:#b42318;border:1px solid #f5c2bd}
 .invites{width:100%;border-collapse:collapse}.invites th,.invites td{padding:11px 8px;border-bottom:1px solid #edf0f4;text-align:left;vertical-align:top}
 .note{padding:14px;border-radius:12px;background:#f7f9fc}
-@media(max-width:760px){.metrics{grid-template-columns:1fr 1fr}.invites{display:block;overflow-x:auto}}
+@media(max-width:900px){.metrics{grid-template-columns:1fr 1fr}.invites{display:block;overflow-x:auto}}
 </style>
 
 <div class="corp-wrap">
@@ -28,6 +28,7 @@
       <div class="metric"><small>Оплачено мест</small><strong>{{ order.seats_purchased }}</strong></div>
       <div class="metric"><small>Распределено</small><strong>{{ order.used_seats }}</strong></div>
       <div class="metric"><small>Активировано</small><strong>{{ order.activated_seats }}</strong></div>
+      <div class="metric"><small>Завершили курс</small><strong>{{ order.completed_seats }}</strong></div>
       <div class="metric"><small>Свободно</small><strong>{{ order.remaining_seats }}</strong></div>
     </div>
 
@@ -64,13 +65,18 @@
     <h2>Слушатели</h2>
     {% if invitations %}
       <table class="invites">
-        <thead><tr><th>Слушатель</th><th>Email</th><th>Статус</th><th></th></tr></thead>
+        <thead><tr><th>Слушатель</th><th>Email</th><th>Доступ</th><th>Обучение</th><th></th></tr></thead>
         <tbody>
           {% for invitation in invitations %}
             <tr>
               <td>{{ invitation.last_name }} {{ invitation.first_name }}</td>
               <td>{{ invitation.email }}</td>
               <td>{{ invitation.get_status_display }}</td>
+              <td>
+                {% if invitation.status == "activated" %}
+                  {% if invitation.enrollment.completed %}Завершён{% else %}Проходит курс{% endif %}
+                {% else %}—{% endif %}
+              </td>
               <td>
                 {% if invitation.status == "pending" %}
                   <form method="post">
