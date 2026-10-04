@@ -734,6 +734,13 @@ class CorporateOrder(TimestampedModel):
         return self.invitations.filter(status=CorporateInvitation.ACTIVATED).count()
 
     @property
+    def completed_seats(self):
+        return self.invitations.filter(
+            status=CorporateInvitation.ACTIVATED,
+            enrollment__completed=True,
+        ).count()
+
+    @property
     def remaining_seats(self):
         return max(0, self.seats_purchased - self.used_seats)
 
