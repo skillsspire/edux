@@ -53,7 +53,10 @@ jobs:
       - name: Apply all Django migrations
         run: python manage.py migrate --noinput
 
-      - name: Dump clean public schema
+      - name: Seed SkillsSpire course draft
+        run: python manage.py seed_inclusive_course
+
+      - name: Build clean PostgreSQL bootstrap SQL
         run: |
           pg_dump "$DATABASE_URL" \
             --schema-only \
@@ -61,15 +64,41 @@ jobs:
             --no-privileges \
             --schema=public \
             > schema.raw.sql
+
+          pg_dump "$DATABASE_URL" \
+            --data-only \
+            --column-inserts \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            > data.raw.sql
+
           sed -e '/^\\/d' \
               -e '/^CREATE SCHEMA public;/d' \
               -e '/^ALTER SCHEMA public OWNER TO /d' \
-              schema.raw.sql > django_schema.sql
-          test -s django_schema.sql
+              schema.raw.sql > django_bootstrap.sql
 
-      - name: Upload schema artifact
+          printf '\n\n-- Seed data and Django migration history --\n' >> django_bootstrap.sql
+          sed -e '/^\\/d' data.raw.sql >> django_bootstrap.sql
+
+          test -s django_bootstrap.sql
+          grep -q 'CREATE TABLE public.django_migrations' django_bootstrap.sql
+          grep -q 'inclusive-higher-education' django_bootstrap.sql
+
+      - name: Validate bootstrap in a second PostgreSQL database
+        run: |
+          PGPASSWORD=postgres createdb -h 127.0.0.1 -U postgres restore_test
+          PGPASSWORD=postgres psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -U postgres -d restore_test \
+            -f django_bootstrap.sql >/dev/null
+          PGPASSWORD=postgres psql -At \
+            -h 127.0.0.1 -U postgres -d restore_test \
+            -c "select count(*) from app_course where slug='inclusive-higher-education';" \
+            | grep -qx '1'
+
+      - name: Upload bootstrap artifact
         uses: actions/upload-artifact@v4
         with:
-          name: django-postgres-schema
-          path: django_schema.sql
+          name: django-postgres-bootstrap
+          path: django_bootstrap.sql
           if-no-files-found: error
