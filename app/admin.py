@@ -26,7 +26,8 @@ from .models import (
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog,
-    ContactMessage
+    ContactMessage,
+    Organization, CorporateOrder, CorporateInvitation
 )
 
 # 🔥 СТАНДАРТНЫЕ МОДЕЛИ DJANGO
@@ -157,10 +158,17 @@ class PaymentAdmin(admin.ModelAdmin):
 # 📊 ОБУЧЕНИЕ (LMS)
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'completed', 'progress', 'created_at']
+    list_display = ['user', 'course', 'access_source', 'completed', 'progress', 'created_at']
     list_filter = ['completed', 'course', 'created_at']
-    search_fields = ['user__username', 'course__title']
+    search_fields = ['user__username', 'user__email', 'course__title', 'corporate_invitation__order__organization__name']
     readonly_fields = ['created_at', 'progress']
+    list_select_related = ['user', 'course', 'corporate_invitation__order__organization']
+
+    def access_source(self, obj):
+        if obj.corporate_invitation_id:
+            return f"Организация: {obj.corporate_invitation.order.organization.name}"
+        return "Индивидуально"
+    access_source.short_description = "Источник доступа"
     
     def progress(self, obj):
         # Теперь считаем прогресс по блокам, а не по урокам
@@ -180,6 +188,83 @@ class EnrollmentAdmin(admin.ModelAdmin):
         ).count()
         
         return f"{round((completed_blocks/total_blocks*100), 1)}%"
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'bin', 'contact_name', 'contact_email', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'bin', 'contact_name', 'contact_email']
+
+
+class CorporateInvitationInline(admin.TabularInline):
+    model = CorporateInvitation
+    extra = 0
+    fields = ['last_name', 'first_name', 'email', 'status', 'user', 'activated_at']
+    readonly_fields = ['activated_at']
+    show_change_link = True
+
+
+@admin.action(description="Отметить выбранные корпоративные заказы как оплаченные")
+def mark_corporate_paid(modeladmin, request, queryset):
+    count = 0
+    for order in queryset:
+        if order.status != CorporateOrder.CANCELLED:
+            order.status = CorporateOrder.PAID
+            order.save()
+            count += 1
+    modeladmin.message_user(request, f"Оплата подтверждена для заказов: {count}.")
+
+
+@admin.action(description="Отметить: счёт выставлен")
+def mark_corporate_invoiced(modeladmin, request, queryset):
+    count = queryset.exclude(status=CorporateOrder.CANCELLED).update(status=CorporateOrder.INVOICED)
+    modeladmin.message_user(request, f"Статус «Счёт выставлен» установлен для заказов: {count}.")
+
+
+@admin.register(CorporateOrder)
+class CorporateOrderAdmin(admin.ModelAdmin):
+    list_display = [
+        'order_number', 'organization', 'course', 'seats_purchased',
+        'used_seats_display', 'discount_percent', 'total_amount', 'status', 'paid_at'
+    ]
+    list_filter = ['status', 'course', 'created_at']
+    search_fields = [
+        'order_number', 'organization__name', 'organization__bin',
+        'organization__contact_email', 'course__title'
+    ]
+    readonly_fields = [
+        'order_number', 'manage_token', 'base_unit_price', 'discount_percent',
+        'unit_price', 'total_amount', 'paid_at', 'created_at', 'updated_at'
+    ]
+    autocomplete_fields = ['organization', 'course', 'requested_by']
+    actions = [mark_corporate_paid, mark_corporate_invoiced]
+    inlines = [CorporateInvitationInline]
+
+    def used_seats_display(self, obj):
+        return f"{obj.used_seats}/{obj.seats_purchased}"
+    used_seats_display.short_description = "Места"
+
+
+@admin.register(CorporateInvitation)
+class CorporateInvitationAdmin(admin.ModelAdmin):
+    list_display = ['email', 'full_name', 'organization_name', 'course_name', 'status', 'user', 'activated_at']
+    list_filter = ['status', 'order__course', 'created_at']
+    search_fields = ['email', 'first_name', 'last_name', 'order__organization__name', 'order__order_number']
+    readonly_fields = ['token', 'activated_at', 'created_at', 'updated_at']
+    autocomplete_fields = ['order', 'user']
+
+    def full_name(self, obj):
+        return f"{obj.last_name} {obj.first_name}"
+    full_name.short_description = "Слушатель"
+
+    def organization_name(self, obj):
+        return obj.order.organization.name
+    organization_name.short_description = "Организация"
+
+    def course_name(self, obj):
+        return obj.order.course.title
+    course_name.short_description = "Курс"
+
 
 @admin.register(BlockProgress)
 class BlockProgressAdmin(admin.ModelAdmin):
