@@ -661,7 +661,7 @@ class PracticalResponse(TimestampedModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["user", "block"]),
+            models.Index(fields=["user", "block"], name="pract_resp_user_block_idx"),
         ]
 
     def __str__(self):
