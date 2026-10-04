@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils import timezone
 
@@ -747,3 +748,21 @@ class InclusiveCourseSeedTests(TestCase):
             ),
             24,
         )
+
+
+    def test_launch_audit_blocks_free_course_and_accepts_ready_paid_course(self):
+        call_command("seed_inclusive_course", verbosity=0)
+
+        with self.assertRaises(CommandError):
+            call_command("audit_inclusive_course_launch", verbosity=0)
+
+        course = Course.objects.get(slug="inclusive-higher-education")
+        course.price = Decimal("15000.00")
+        course.save(update_fields=["price", "updated_at"])
+
+        with self.settings(
+            CERTIFICATE_REGISTRY_ENDPOINT="https://example.test/certificates",
+            CERTIFICATE_REGISTRY_TOKEN="test-token",
+            CERTIFICATE_CALLBACK_URL="https://example.test/callback",
+        ):
+            call_command("audit_inclusive_course_launch", verbosity=0)
