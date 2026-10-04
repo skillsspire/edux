@@ -8,6 +8,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils import timezone
 
+from app.certificate_sync import build_certificate_payload
 from app.models import (
     Category,
     CertificateRequest,
@@ -462,6 +463,35 @@ class CertificatePeriodTests(TestCase):
             request.period_end,
             self.enrollment.enrolled_at.date() + timedelta(days=8),
         )
+
+    def test_certificate_payload_language_follows_course_language(self):
+        request = CertificateRequest.objects.create(
+            enrollment=self.enrollment,
+            user=self.user,
+            course=self.course,
+            period_mode=CertificateRequest.WITHOUT_PERIOD,
+        )
+
+        self.course.language = "Русский"
+        self.course.save(update_fields=["language", "updated_at"])
+        self.assertEqual(build_certificate_payload(request)["language"], "Русский")
+
+        self.course.language = "English"
+        self.course.save(update_fields=["language", "updated_at"])
+        request.course = self.course
+        self.assertEqual(build_certificate_payload(request)["language"], "English")
+
+    def test_certificate_payload_omits_period_dates_without_period(self):
+        request = CertificateRequest.objects.create(
+            enrollment=self.enrollment,
+            user=self.user,
+            course=self.course,
+            period_mode=CertificateRequest.WITHOUT_PERIOD,
+        )
+        payload = build_certificate_payload(request)
+        self.assertEqual(payload["period_mode"], CertificateRequest.WITHOUT_PERIOD)
+        self.assertEqual(payload["start_date"], "")
+        self.assertEqual(payload["end_date"], "")
 
 
 class QuizAttemptTests(TestCase):
