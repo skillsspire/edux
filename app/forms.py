@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from .models import ContactMessage, Review, UserProfile
+from .models import ContactMessage, Review, UserProfile, CorporateOrder
 
 # reCAPTCHA
 from django_recaptcha.fields import ReCaptchaField
@@ -197,3 +197,100 @@ class ReviewForm(BootstrapFormMixin, forms.ModelForm):
             "rating": _("Rating"),
             "comment": _("Review"),
         }
+
+
+# --------------------------
+# CORPORATE CLIENTS
+# --------------------------
+class CorporateOrderRequestForm(BootstrapFormMixin, forms.Form):
+    organization_name = forms.CharField(max_length=255, label="Наименование организации")
+    bin = forms.CharField(max_length=20, label="БИН")
+    legal_address = forms.CharField(max_length=500, required=False, label="Юридический адрес")
+    contact_name = forms.CharField(max_length=255, label="Контактное лицо")
+    contact_email = forms.EmailField(label="Email контактного лица")
+    contact_phone = forms.CharField(max_length=30, label="Телефон контактного лица")
+    seats = forms.IntegerField(min_value=1, max_value=1000, label="Количество слушателей")
+    note = forms.CharField(
+        required=False,
+        label="Комментарий",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Например: нужен договор и счёт на оплату"}),
+    )
+
+    def clean_bin(self):
+        value = (self.cleaned_data.get("bin") or "").strip().replace(" ", "")
+        if not value:
+            raise forms.ValidationError("Укажите БИН организации.")
+        return value
+
+
+class CorporateParticipantsForm(BootstrapFormMixin, forms.Form):
+    participants = forms.CharField(
+        label="Список слушателей",
+        widget=forms.Textarea(attrs={
+            "rows": 8,
+            "placeholder": "Иванов; Иван; ivanov@example.kz\nСадыкова; Анна; sadykova@example.kz",
+        }),
+        help_text="Каждый участник — с новой строки: Фамилия; Имя; email.",
+    )
+
+    def __init__(self, *args, order=None, **kwargs):
+        self.order = order
+        super().__init__(*args, **kwargs)
+
+    def clean_participants(self):
+        raw = self.cleaned_data.get("participants", "")
+        participants = []
+        seen = set()
+
+        for line_number, raw_line in enumerate(raw.splitlines(), start=1):
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            delimiter = ";" if ";" in line else ","
+            parts = [part.strip() for part in line.split(delimiter)]
+            if len(parts) != 3:
+                raise forms.ValidationError(
+                    f"Строка {line_number}: используйте формат «Фамилия; Имя; email»."
+                )
+
+            last_name, first_name, email = parts
+            email = email.lower()
+            if not last_name or not first_name or not email:
+                raise forms.ValidationError(f"Строка {line_number}: заполнены не все данные.")
+
+            try:
+                forms.EmailField().clean(email)
+            except forms.ValidationError:
+                raise forms.ValidationError(f"Строка {line_number}: некорректный email.")
+
+            if email in seen:
+                raise forms.ValidationError(f"Email {email} повторяется в списке.")
+            seen.add(email)
+            participants.append({
+                "last_name": last_name,
+                "first_name": first_name,
+                "email": email,
+            })
+
+        if not participants:
+            raise forms.ValidationError("Добавьте хотя бы одного слушателя.")
+
+        if self.order:
+            remaining = self.order.remaining_seats
+            if len(participants) > remaining:
+                raise forms.ValidationError(
+                    f"Доступно мест: {remaining}. В списке указано: {len(participants)}."
+                )
+
+            existing_emails = set(
+                self.order.invitations.exclude(status="revoked")
+                .values_list("email", flat=True)
+            )
+            duplicate = next((p["email"] for p in participants if p["email"] in existing_emails), None)
+            if duplicate:
+                raise forms.ValidationError(
+                    f"Для {duplicate} приглашение уже существует в этом заказе."
+                )
+
+        return participants
