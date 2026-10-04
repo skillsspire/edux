@@ -1586,6 +1586,31 @@ def payment_webhook(request):
     return kaspi_webhook(request)
 
 
+@login_required
+def payment_status(request, payment_id):
+    payment = get_object_or_404(
+        Payment.objects.select_related("course"),
+        id=payment_id,
+        user=request.user,
+        is_deleted=False,
+    )
+    has_access = Enrollment.objects.filter(
+        user=request.user,
+        course=payment.course,
+        is_deleted=False,
+    ).exists()
+
+    return JsonResponse({
+        "status": payment.status,
+        "paid": payment.status == Payment.SUCCESS,
+        "has_access": has_access,
+        "learn_url": (
+            reverse("course_learn", args=[payment.course.slug])
+            if has_access else ""
+        ),
+    })
+
+
 @csrf_exempt
 def certificate_registry_callback(request):
     if request.method != "POST":
