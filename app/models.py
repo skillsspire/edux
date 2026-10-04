@@ -759,11 +759,21 @@ class CorporateOrder(TimestampedModel):
     def clean(self):
         if not self.seats_purchased or self.seats_purchased < 1:
             raise ValidationError({"seats_purchased": "Количество мест должно быть не меньше 1."})
+        if self.pk:
+            used = self.invitations.exclude(status=CorporateInvitation.REVOKED).count()
+            if self.seats_purchased < used:
+                raise ValidationError({
+                    "seats_purchased": (
+                        f"Нельзя уменьшить количество мест до {self.seats_purchased}: "
+                        f"уже распределено {used}."
+                    )
+                })
 
     def save(self, *args, **kwargs):
         if not self.order_number:
             self.order_number = f"CORP-{timezone.localdate():%Y}-{uuid.uuid4().hex[:8].upper()}"
         self.recalculate()
+        self.full_clean()
         if self.status == self.PAID and not self.paid_at:
             self.paid_at = timezone.now()
         super().save(*args, **kwargs)
