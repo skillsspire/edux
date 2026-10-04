@@ -635,6 +635,50 @@ class BlockProgress(TimestampedModel):
         super().save(*args, **kwargs)
 
 
+class PracticalResponse(TimestampedModel):
+    """Текстовый ответ слушателя на практическое задание LessonBlock."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="practical_responses",
+        verbose_name="Пользователь",
+    )
+    block = models.ForeignKey(
+        LessonBlock,
+        on_delete=models.CASCADE,
+        related_name="practical_responses",
+        verbose_name="Практическое задание",
+    )
+    text = models.TextField("Ответ")
+
+    class Meta:
+        verbose_name = "Ответ на практическое задание"
+        verbose_name_plural = "Ответы на практические задания"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "block"],
+                name="uniq_practical_response_user_block",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "block"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.block}"
+
+    def clean(self):
+        if self.block_id and self.block.block_type != "assignment":
+            raise ValidationError("Ответ можно сохранить только для блока-задания.")
+        if not (self.text or "").strip():
+            raise ValidationError({"text": "Ответ не может быть пустым."})
+
+    def save(self, *args, **kwargs):
+        self.text = (self.text or "").strip()
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
 class Organization(TimestampedModel):
     name = models.CharField("Наименование организации", max_length=255)
     bin = models.CharField("БИН", max_length=20, unique=True)
