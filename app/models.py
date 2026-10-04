@@ -519,7 +519,7 @@ class Lesson(TimestampedModel):
         super().save(*args, **kwargs)
     
     def get_absolute_url(self):
-        return reverse("lesson_detail", args=[self.module.course.slug, self.slug])
+        return reverse("lesson_view", args=[self.module.course.slug, self.slug])
     
     def soft_delete(self):
         self.is_deleted = True
