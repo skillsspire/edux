@@ -73,6 +73,7 @@ urlpatterns = [
     # 7️⃣ ОПЛАТА (единый flow)
     path("checkout/<slug:slug>/", views.checkout, name="checkout"),
     path("checkout/<slug:slug>/confirm/", views.checkout_confirm, name="checkout_confirm"),
+    path("checkout/<slug:slug>/thanks/", views.payment_thanks, name="payment_thanks"),
     path("payment/webhook/", views.payment_webhook, name="payment_webhook"),
     path("api/certificates/registry-callback/", views.certificate_registry_callback, name="certificate_registry_callback"),
     
