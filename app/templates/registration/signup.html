@@ -363,6 +363,7 @@
 
         <form method="post" novalidate class="signup-form" id="signup-form">
           {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
           <div class="form-group">
             <label for="{{ form.username.id_for_label }}">Имя пользователя</label>
@@ -547,7 +548,7 @@
         <div class="signup-footer">
           <p>
             Уже есть аккаунт?
-            <a href="{% url 'login' %}" class="login-link">
+            <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}" class="login-link">
               Войти <i>→</i>
             </a>
           </p>
