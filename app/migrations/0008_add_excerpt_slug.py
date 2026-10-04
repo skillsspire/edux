@@ -1,4 +1,5 @@
-from django.db import migrations, models
+from django.db import migrations
+
 
 class Migration(migrations.Migration):
 
@@ -6,15 +7,8 @@ class Migration(migrations.Migration):
         ('app', '0001_initial'),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name='article',
-            name='excerpt',
-            field=models.TextField(blank=True, verbose_name='Краткое описание'),
-        ),
-        migrations.AddField(
-            model_name='material',
-            name='slug',
-            field=models.CharField(blank=True, max_length=220),
-        ),
-    ]
+    # The current 0001_initial already contains Article.excerpt and Material.slug.
+    # Keeping the historical AddField operations would make a clean PostgreSQL
+    # install fail with DuplicateColumn. Existing databases that already recorded
+    # 0008 as applied are unaffected by making this migration a compatibility no-op.
+    operations = []
