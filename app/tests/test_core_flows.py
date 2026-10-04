@@ -713,6 +713,8 @@ class InclusiveCourseSeedTests(TestCase):
         course = Course.objects.get(slug="inclusive-higher-education")
         self.assertEqual(course.status, Course.DRAFT)
         self.assertEqual(course.duration_hours, 72)
+        self.assertEqual(course.price, Decimal("15000.00"))
+        self.assertIsNone(course.discount_price)
         self.assertEqual(course.modules.count(), 4)
         self.assertEqual(
             Lesson.objects.filter(module__course=course, is_deleted=False).count(),
@@ -750,15 +752,8 @@ class InclusiveCourseSeedTests(TestCase):
         )
 
 
-    def test_launch_audit_blocks_free_course_and_accepts_ready_paid_course(self):
+    def test_launch_audit_requires_final_price_and_accepts_ready_course(self):
         call_command("seed_inclusive_course", verbosity=0)
-
-        with self.assertRaises(CommandError):
-            call_command("audit_inclusive_course_launch", verbosity=0)
-
-        course = Course.objects.get(slug="inclusive-higher-education")
-        course.price = Decimal("15000.00")
-        course.save(update_fields=["price", "updated_at"])
 
         with self.settings(
             CERTIFICATE_REGISTRY_ENDPOINT="https://example.test/certificates",
@@ -766,3 +761,10 @@ class InclusiveCourseSeedTests(TestCase):
             CERTIFICATE_CALLBACK_URL="https://example.test/callback",
         ):
             call_command("audit_inclusive_course_launch", verbosity=0)
+
+            course = Course.objects.get(slug="inclusive-higher-education")
+            course.price = Decimal("0.00")
+            course.save(update_fields=["price", "updated_at"])
+
+            with self.assertRaises(CommandError):
+                call_command("audit_inclusive_course_launch", verbosity=0)
