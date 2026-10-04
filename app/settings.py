@@ -210,18 +210,23 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / 'app' / 'static',
-]
 
-# Настройки WhiteNoise - работает на Vercel и Render, но не на локальной разработке
-# Используем WhiteNoise для продакшена (Vercel, Render) и отключаем для локальной разработки
-if not DEBUG or IS_VERCEL or IS_RENDER:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    WHITENOISE_MANIFEST_STRICT = False  # Не падать если файл не найден
+# On Vercel the app/static directory is bundled with the serverless function.
+# Serve bundled files directly instead of requiring a collectstatic manifest.
+if IS_VERCEL:
+    STATIC_ROOT = BASE_DIR / 'app' / 'static'
+    STATICFILES_DIRS = []
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 else:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    STATICFILES_DIRS = [
+        BASE_DIR / 'app' / 'static',
+    ]
+    if not DEBUG or IS_RENDER:
+        STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        WHITENOISE_MANIFEST_STRICT = False
+    else:
+        STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Media files
 if DEBUG and IS_LOCAL:
