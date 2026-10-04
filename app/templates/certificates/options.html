@@ -46,7 +46,7 @@
                     <input type="radio" name="period_mode" value="without_period"
                         {% if not certificate_request or certificate_request.period_mode == "without_period" %}checked{% endif %}>
                     <strong>Получить сертификат без периода обучения</strong><br>
-                    <span>На сертификате будут указаны 72 академических часа, дата выдачи, номер и QR-код, но без строки «Период обучения».</span>
+                    <span>На сертификате будут указаны {{ course.duration_hours }} академических часов, дата выдачи, номер и QR-код, но без строки «Период обучения».</span>
                 </label>
 
                 <label class="cert-choice {% if not period_allowed %}disabled{% endif %}">
