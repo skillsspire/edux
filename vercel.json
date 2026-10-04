@@ -4,7 +4,9 @@
     {
       "src": "app/wsgi.py",
       "use": "@vercel/python",
-      "config": { "runtime": "python3.11" }
+      "config": {
+        "runtime": "python3.11"
+      }
     }
   ],
   "routes": [
@@ -12,5 +14,6 @@
       "src": "/(.*)",
       "dest": "app/wsgi.py"
     }
-  ]
+  ],
+  "buildCommand": "python manage.py migrate --noinput && python manage.py collectstatic --noinput"
 }
