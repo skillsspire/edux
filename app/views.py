@@ -1459,11 +1459,28 @@ def corporate_order_portal(request, token):
                 )
                 return redirect("corporate_order_portal", token=order.manage_token)
 
-    invitations = order.invitations.select_related("user", "enrollment").order_by("created_at")
+    invitations = list(
+        order.invitations.select_related("user", "enrollment").order_by("created_at")
+    )
+    for invitation in invitations:
+        invitation.share_url = request.build_absolute_uri(
+            reverse("corporate_invitation_accept", args=[invitation.token])
+        )
+
+    manage_url = request.build_absolute_uri(
+        reverse("corporate_order_portal", args=[order.manage_token])
+    )
+    email_delivery_configured = bool(
+        getattr(settings, "EMAIL_HOST_USER", "")
+        and getattr(settings, "EMAIL_HOST_PASSWORD", "")
+    )
+
     return render(request, "corporate/order_portal.html", {
         "order": order,
         "invitations": invitations,
         "form": form,
+        "manage_url": manage_url,
+        "email_delivery_configured": email_delivery_configured,
     })
 
 
