@@ -20,6 +20,7 @@ from app.models import (
     Module,
     Organization,
     Payment,
+    PracticalResponse,
     Quiz,
     QuizAttempt,
 )
@@ -332,6 +333,65 @@ class QuizAttemptTests(TestCase):
         )
         self.assertTrue(passed.passed)
         self.assertFalse(failed.passed)
+
+
+class PracticalResponseTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="practice-user",
+            email="practice@example.kz",
+            password="test-password",
+        )
+        self.course = Course.objects.create(
+            title="Practice course",
+            slug="practice-course",
+        )
+        Enrollment.objects.create(user=self.user, course=self.course)
+        module = Module.objects.create(course=self.course, title="Модуль", order=1)
+        lesson = Lesson.objects.create(
+            module=module,
+            title="Практика",
+            slug="practice-topic",
+            order=1,
+        )
+        self.block = LessonBlock.objects.create(
+            lesson=lesson,
+            block_type="assignment",
+            order=10,
+            title="Практическое задание",
+            is_required=True,
+        )
+        self.client.force_login(self.user)
+
+    def test_required_assignment_cannot_be_completed_without_response(self):
+        response = self.client.post(f"/api/blocks/{self.block.id}/complete/")
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(
+            BlockProgress.objects.filter(
+                user=self.user,
+                block=self.block,
+                is_completed=True,
+            ).exists()
+        )
+
+    def test_practical_response_marks_required_assignment_complete(self):
+        response = self.client.post(
+            f"/api/blocks/{self.block.id}/practical-response/",
+            {"text": "Анализирую барьер и предлагаю доступный способ выполнения задания."},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            PracticalResponse.objects.filter(
+                user=self.user,
+                block=self.block,
+            ).exists()
+        )
+        self.assertTrue(
+            BlockProgress.objects.get(
+                user=self.user,
+                block=self.block,
+            ).is_completed
+        )
 
 
 class CourseCompletionTests(TestCase):
