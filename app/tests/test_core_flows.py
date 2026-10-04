@@ -119,6 +119,78 @@ class PublicPageSmokeTests(TestCase):
         self.assertTrue(payload["has_access"])
         self.assertTrue(payload["learn_url"])
 
+    def test_paid_enroll_url_cannot_grant_access_without_payment(self):
+        user = User.objects.create_user(
+            username="blocked-enroll-user",
+            email="blocked@example.kz",
+            password="test-password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(f"/courses/{self.course.slug}/enroll/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(f"/checkout/{self.course.slug}/", response.url)
+        self.assertFalse(
+            Enrollment.objects.filter(user=user, course=self.course).exists()
+        )
+
+    def test_free_course_enroll_creates_access(self):
+        free_course = Course.objects.create(
+            title="Free smoke course",
+            slug="free-smoke-course",
+            category=self.category,
+            duration_hours=1,
+            price=Decimal("0.00"),
+            status=Course.PUBLISHED,
+        )
+        module = Module.objects.create(
+            course=free_course,
+            title="Модуль",
+            order=1,
+        )
+        Lesson.objects.create(
+            module=module,
+            title="Тема",
+            slug="free-smoke-topic",
+            order=1,
+        )
+        user = User.objects.create_user(
+            username="free-user",
+            email="free@example.kz",
+            password="test-password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(f"/courses/{free_course.slug}/enroll/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Enrollment.objects.filter(user=user, course=free_course).exists()
+        )
+
+    def test_partial_payment_status_update_persists_paid_at_and_access(self):
+        user = User.objects.create_user(
+            username="partial-payment-user",
+            email="partial-payment@example.kz",
+            password="test-password",
+        )
+        payment = Payment.objects.create(
+            user=user,
+            course=self.course,
+            amount=self.course.final_price,
+            status=Payment.PENDING,
+        )
+
+        payment.status = Payment.SUCCESS
+        payment.save(update_fields=["status"])
+        payment.refresh_from_db()
+
+        self.assertIsNotNone(payment.paid_at)
+        self.assertTrue(
+            Enrollment.objects.filter(user=user, course=self.course).exists()
+        )
+
 
 class CorporateAccessTests(TestCase):
     def setUp(self):
@@ -218,6 +290,77 @@ class CorporateAccessTests(TestCase):
                 first_name="Второй",
                 last_name="Слушатель",
             )
+
+    def test_paid_order_portal_allocates_only_purchased_seats(self):
+        order = self.create_order(seats=2)
+        response = self.client.post(
+            f"/corporate/orders/{order.manage_token}/",
+            {
+                "action": "invite",
+                "participants": (
+                    "Иванов; Иван; one@example.kz\n"
+                    "Садыкова; Анна; two@example.kz"
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            order.invitations.exclude(status=CorporateInvitation.REVOKED).count(),
+            2,
+        )
+
+        response = self.client.post(
+            f"/corporate/orders/{order.manage_token}/",
+            {
+                "action": "invite",
+                "participants": "Третий; Слушатель; three@example.kz",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            order.invitations.exclude(status=CorporateInvitation.REVOKED).count(),
+            2,
+        )
+
+    def test_unpaid_order_portal_does_not_allocate_seats(self):
+        order = self.create_order(seats=2, status=CorporateOrder.REQUESTED)
+        response = self.client.post(
+            f"/corporate/orders/{order.manage_token}/",
+            {
+                "action": "invite",
+                "participants": "Иванов; Иван; one@example.kz",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(order.invitations.count(), 0)
+
+    def test_invitation_page_activates_matching_account_without_payment(self):
+        order = self.create_order(seats=1)
+        invitation = CorporateInvitation.objects.create(
+            order=order,
+            email="employee@example.kz",
+            first_name="Алия",
+            last_name="Серикова",
+        )
+        user = User.objects.create_user(
+            username="employee-user",
+            email="employee@example.kz",
+            password="test-password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            f"/corporate/invitations/{invitation.token}/"
+        )
+
+        self.assertEqual(response.status_code, 302)
+        invitation.refresh_from_db()
+        enrollment = Enrollment.objects.get(user=user, course=self.course)
+        self.assertEqual(invitation.status, CorporateInvitation.ACTIVATED)
+        self.assertEqual(enrollment.corporate_invitation, invitation)
+        self.assertFalse(
+            Payment.objects.filter(user=user, course=self.course).exists()
+        )
 
 
 class CertificatePeriodTests(TestCase):
@@ -483,6 +626,56 @@ class CourseCompletionTests(TestCase):
         self.assertTrue(status["eligible_for_completion"])
         self.assertTrue(self.enrollment.completed)
         self.assertIsNotNone(self.enrollment.completed_at)
+
+    def test_high_average_does_not_override_failed_topic_quiz(self):
+        second_lesson = Lesson.objects.create(
+            module=self.module,
+            title="Вторая тема",
+            slug="completion-topic-2",
+            order=2,
+        )
+        second_quiz = Quiz.objects.create(
+            lesson=second_lesson,
+            title="Второй тест",
+            passing_score=80,
+            unlimited_attempts=True,
+        )
+        second_block = LessonBlock.objects.create(
+            lesson=second_lesson,
+            block_type="quiz",
+            order=90,
+            title="Второй тест",
+            quiz=second_quiz,
+            is_required=True,
+        )
+        BlockProgress.objects.create(
+            user=self.user,
+            block=second_block,
+            is_completed=True,
+            progress_percent=100,
+            completed_at=timezone.now(),
+        )
+
+        QuizAttempt.objects.create(
+            user=self.user,
+            quiz=self.quiz,
+            attempt_number=1,
+            score_percent=100,
+        )
+        QuizAttempt.objects.create(
+            user=self.user,
+            quiz=second_quiz,
+            attempt_number=1,
+            score_percent=70,
+        )
+
+        status = _check_course_completion(self.user, self.course)
+        self.enrollment.refresh_from_db()
+
+        self.assertEqual(status["cumulative_score"], 85)
+        self.assertFalse(status["all_quizzes_passed"])
+        self.assertFalse(status["eligible_for_completion"])
+        self.assertFalse(self.enrollment.completed)
 
 
 class InclusiveCourseSeedTests(TestCase):
