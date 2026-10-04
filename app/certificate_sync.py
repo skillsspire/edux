@@ -1,4 +1,3 @@
-# Preview deployment refresh marker
 import json
 import logging
 import urllib.error
@@ -30,7 +29,17 @@ def build_certificate_payload(cert_request):
         start_date = ""
         end_date = ""
 
-    course_language = (course.language or "").strip().lower()\n    certificate_language = "English" if (\n        course_language == "en"\n        or "english" in course_language\n        or "англ" in course_language\n    ) else "Русский"\n\n    return {\n        "source": "skillsspire_site",\n        "local_request_id": str(cert_request.pk),\n        "language": certificate_language,
+    course_language = (course.language or "").strip().lower()
+    certificate_language = "English" if (
+        course_language == "en"
+        or "english" in course_language
+        or "англ" in course_language
+    ) else "Русский"
+
+    return {
+        "source": "skillsspire_site",
+        "local_request_id": str(cert_request.pk),
+        "language": certificate_language,
         "surname": surname,
         "name": name,
         "full_name": full_name,
