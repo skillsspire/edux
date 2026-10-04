@@ -1487,22 +1487,31 @@ def create_payment(request, slug):
             Enrollment.objects.get_or_create(user=request.user, course=course)
             return redirect("course_learn", course_slug=course.slug)
 
-        payment = Payment.objects.create(
+        payment = Payment.objects.filter(
             user=request.user,
             course=course,
-            amount=amount,
-            status="pending",
-            kaspi_invoice_id=f"QR{int(timezone.now().timestamp())}",
-        )
+            status=Payment.PENDING,
+            is_deleted=False,
+        ).order_by("-created_at").first()
+
+        if payment is None:
+            payment = Payment.objects.create(
+                user=request.user,
+                course=course,
+                amount=amount,
+                status=Payment.PENDING,
+                kaspi_invoice_id=f"QR-{uuid.uuid4().hex[:16].upper()}",
+            )
+        elif payment.amount != amount:
+            payment.amount = amount
+            payment.save(update_fields=["amount", "updated_at"])
         
-        return render(request, "payments/payment_page.html", {
-            "course": {
-                'title': course.title,
-                'slug': course.slug,
-            },
+        return render(request, "payment/payment_page.html", {
+            "course": course,
             "amount": amount,
             "kaspi_url": getattr(settings, "KASPI_PAYMENT_URL", ""),
             "payment": payment,
+            "last_payment": payment,
         })
         
     except Course.DoesNotExist:
@@ -1545,7 +1554,7 @@ def payment_claim(request, slug):
                 return redirect("payment_thanks", slug=slug)
             messages.error(request, "В модели Payment не предусмотрено поле для чека")
 
-        return render(request, "payments/payment_claim.html", {
+        return render(request, "payment/payment_claim.html", {
             "course": {
                 'title': course.title,
                 'slug': course.slug,
@@ -1626,7 +1635,7 @@ def payment_thanks(request, slug):
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
             
-        return render(request, "payments/payment_thanks.html", {
+        return render(request, "payment/payment_thanks.html", {
             "course": {
                 'title': course.title,
                 'slug': course.slug,
