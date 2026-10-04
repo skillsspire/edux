@@ -1,0 +1,74 @@
+name: Build PostgreSQL Schema
+
+on:
+  push:
+    branches:
+      - inclusive-course-integration
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: schema_build
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d schema_build"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: "schema-build-only-key"
+      EMAIL_BACKEND: "django.core.mail.backends.locmem.EmailBackend"
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:5432/schema_build"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply all Django migrations
+        run: python manage.py migrate --noinput
+
+      - name: Dump clean public schema
+        run: |
+          pg_dump "$DATABASE_URL" \
+            --schema-only \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            > schema.raw.sql
+          sed -e '/^\\/d' \
+              -e '/^CREATE SCHEMA public;/d' \
+              -e '/^ALTER SCHEMA public OWNER TO /d' \
+              schema.raw.sql > django_schema.sql
+          test -s django_schema.sql
+
+      - name: Upload schema artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: django-postgres-schema
+          path: django_schema.sql
+          if-no-files-found: error
