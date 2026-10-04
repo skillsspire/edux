@@ -1527,44 +1527,52 @@ def create_payment(request, slug):
         return redirect("course_detail", slug=slug)
 
 def checkout_confirm(request, slug):
+    if request.method != "POST":
+        return redirect("checkout", slug=slug)
     return payment_claim(request, slug)
+
 
 @login_required
 def payment_claim(request, slug):
     try:
-        course = Course.objects.filter(slug=slug).only('id', 'title', 'slug').order_by('id').first()
+        course = Course.objects.filter(
+            slug=slug,
+            status=Course.PUBLISHED,
+            is_deleted=False,
+        ).only("id", "title", "slug").order_by("id").first()
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
 
         payment = Payment.objects.filter(
-            user=request.user, 
-            course=course
-        ).order_by("-id").first()
-        
+            user=request.user,
+            course=course,
+            is_deleted=False,
+        ).order_by("-created_at").first()
+
         if not payment:
-            messages.error(request, "Платеж не найден")
+            messages.error(request, "Платёж не найден")
             return redirect("course_detail", slug=slug)
 
-        if request.method == "POST" and request.FILES.get("receipt"):
-            if hasattr(payment, "receipt"):
-                payment.receipt = request.FILES["receipt"]
-                payment.save(update_fields=["receipt"])
-                messages.success(request, "Чек успешно загружен, ожидайте подтверждения")
-                return redirect("payment_thanks", slug=slug)
-            messages.error(request, "В модели Payment не предусмотрено поле для чека")
+        if payment.status == Payment.SUCCESS:
+            return redirect("course_learn", course_slug=course.slug)
 
-        return render(request, "payment/payment_claim.html", {
-            "course": {
-                'title': course.title,
-                'slug': course.slug,
-            },
-            "payment": payment,
-        })
-        
-    except Course.DoesNotExist:
-        messages.error(request, "Курс не найден")
-        return redirect("courses_list")
+        receipt = request.FILES.get("receipt")
+        if not receipt:
+            messages.info(
+                request,
+                "Если платёж ещё не подтвердился автоматически, приложите чек из Kaspi."
+            )
+            return redirect("checkout", slug=slug)
+
+        payment.receipt = receipt
+        payment.save(update_fields=["receipt", "updated_at"])
+        messages.success(
+            request,
+            "Чек загружен. После подтверждения платежа доступ откроется автоматически."
+        )
+        return redirect("payment_thanks", slug=slug)
+
     except DatabaseError as e:
         logger.error(f"Database error confirming payment {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
