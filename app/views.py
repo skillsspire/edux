@@ -139,10 +139,13 @@ def kaspi_webhook(request):
 
     signature = request.headers.get("X-Kaspi-Signature") or ""
     body = request.body
-    secret = getattr(settings, "KASPI_SECRET", None)
+    secret = (
+        getattr(settings, "KASPI_WEBHOOK_SECRET", "")
+        or getattr(settings, "KASPI_SECRET", "")
+    )
     if not secret:
-        logger.error("KASPI_SECRET is not set in settings")
-        return JsonResponse({"error": "KASPI_SECRET is not set"}, status=500)
+        logger.error("Kaspi webhook secret is not configured")
+        return JsonResponse({"error": "Webhook is not configured"}, status=503)
 
     try:
         expected_signature = hmac.new(
@@ -1512,6 +1515,10 @@ def create_payment(request, slug):
             "kaspi_url": getattr(settings, "KASPI_PAYMENT_URL", ""),
             "payment": payment,
             "last_payment": payment,
+            "automatic_payment_enabled": bool(
+                getattr(settings, "KASPI_WEBHOOK_SECRET", "")
+                or getattr(settings, "KASPI_SECRET", "")
+            ),
         })
         
     except Course.DoesNotExist:
