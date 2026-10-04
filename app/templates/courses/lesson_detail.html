@@ -32,6 +32,10 @@
 .quiz-result.fail{background:#fff5f2}
 .quiz-feedback-list{margin:12px 0 0;padding-left:20px}
 .quiz-feedback-list li{margin:8px 0;line-height:1.45}
+.practical-form{margin-top:18px;padding-top:18px;border-top:1px solid #edf0f4}
+.practical-form label{display:block;font-weight:600;margin-bottom:8px}
+.practical-form textarea{width:100%;min-height:130px;padding:12px;border:1px solid #ccd5e0;border-radius:10px;resize:vertical;font:inherit}
+.practical-result{margin-top:10px;font-size:14px;color:#18794e;font-weight:600}
 .lesson-nav{display:flex;justify-content:space-between;gap:16px;margin-top:28px}
 .lesson-nav a{padding:12px 16px;border:1px solid #d9e1ec;border-radius:10px;text-decoration:none}
 @media(max-width:900px){.learning-top{display:block}.progress-card{margin-top:16px}.lesson-grid{grid-template-columns:1fr}.lesson-sidebar{position:static;order:-1}}
@@ -122,7 +126,21 @@
                         </form>
                     {% endif %}
 
-                    {% if block.block_type != "quiz" %}
+                    {% if block.block_type == "assignment" %}
+                        <form class="practical-form" data-submit-url="{% url 'submit_practical_response' block.id %}">
+                            {% csrf_token %}
+                            <label for="practical-{{ block.id }}">
+                                Ваш ответ{% if block.is_required %} — обязательная часть темы{% endif %}
+                            </label>
+                            <textarea id="practical-{{ block.id }}" name="text" placeholder="Запишите решение, выводы или результат выполнения задания.">{{ block.practical_response.text|default:"" }}</textarea>
+                            <button type="submit" class="block-complete">
+                                {% if block.practical_response %}Сохранить изменения{% else %}Отправить ответ{% endif %}
+                            </button>
+                            <div class="practical-result"{% if not block.user_progress.is_completed %} hidden{% endif %}>
+                                ✓ Ответ сохранён{% if block.is_required %}, задание выполнено{% endif %}
+                            </div>
+                        </form>
+                    {% elif block.block_type != "quiz" %}
                         {% if block.user_progress.is_completed %}
                             <div class="block-done">✓ Блок завершён</div>
                         {% else %}
@@ -192,6 +210,31 @@
             } catch (error) {
                 alert(error.message);
                 button.disabled = false;
+            }
+        });
+    });
+
+    document.querySelectorAll('.practical-form').forEach(function(form){
+        form.addEventListener('submit', async function(event){
+            event.preventDefault();
+            const submit = form.querySelector('button[type="submit"]');
+            const result = form.querySelector('.practical-result');
+            submit.disabled = true;
+            try {
+                const response = await fetch(form.dataset.submitUrl, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {'X-CSRFToken': csrfToken(form)}
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Не удалось сохранить ответ');
+                result.hidden = false;
+                result.textContent = '✓ Ответ сохранён';
+                submit.textContent = 'Сохранить изменения';
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                submit.disabled = false;
             }
         });
     });
