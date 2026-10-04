@@ -51,11 +51,6 @@
             {% csrf_token %}
 
             <div class="mb-3">
-              <label class="form-label">Комментарий / номер перевода (необязательно)</label>
-              <input type="text" name="note" class="form-control" placeholder="напр. QR123456 или примечание">
-            </div>
-
-            <div class="mb-3">
               <label class="form-label">Чек(и) об оплате (PDF/JPG/PNG, можно несколько)</label>
               <input type="file" name="receipt" accept=".pdf,image/*" class="form-control">
               <div class="form-text">Если нет PDF — приложите скриншот из Kaspi.</div>
