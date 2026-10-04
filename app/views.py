@@ -232,7 +232,9 @@ def signup(request):
             else:
                 messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
-        form = CustomUserCreationForm()
+        form = CustomUserCreationForm(initial={
+            "email": request.GET.get("email", ""),
+        })
 
     return render(request, "registration/signup.html", {
         "form": form,
@@ -1324,7 +1326,7 @@ def corporate_order_portal(request, token):
                 )
                 return redirect("corporate_order_portal", token=order.manage_token)
 
-    invitations = order.invitations.select_related("user").order_by("created_at")
+    invitations = order.invitations.select_related("user", "enrollment").order_by("created_at")
     return render(request, "corporate/order_portal.html", {
         "order": order,
         "invitations": invitations,
