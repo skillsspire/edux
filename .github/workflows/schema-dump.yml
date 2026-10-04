@@ -33,6 +33,7 @@ jobs:
       DJANGO_SECRET_KEY: "schema-build-only-key"
       EMAIL_BACKEND: "django.core.mail.backends.locmem.EmailBackend"
       DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:5432/schema_build"
+      DATABASE_SSL_REQUIRE: "False"
 
     steps:
       - name: Checkout
