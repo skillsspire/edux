@@ -34,6 +34,17 @@
 
     <p>Скидка: <strong>{{ order.discount_percent|floatformat:0 }}%</strong> · Цена за место: <strong>{{ order.unit_price|floatformat:0|intcomma }} ₸</strong> · Сумма заказа: <strong>{{ order.total_amount|floatformat:0|intcomma }} ₸</strong></p>
 
+    <div class="note" style="margin-bottom:12px">
+      <strong>Ссылка на кабинет заказчика:</strong><br>
+      <input id="manage-link" type="text" value="{{ manage_url }}" readonly style="width:100%;margin:8px 0;padding:9px;border:1px solid #ccd5e0;border-radius:8px">
+      <button type="button" class="btn" onclick="copyCorpLink('manage-link', this)">Скопировать ссылку</button>
+      {% if not email_delivery_configured %}
+        <div style="margin-top:10px;color:#8a5a00">
+          Email-отправка на сайте пока не настроена, поэтому сохраните эту ссылку. После подключения почты уведомления будут отправляться автоматически.
+        </div>
+      {% endif %}
+    </div>
+
     {% if order.status == "requested" %}
       <div class="note">Заявка получена. После проверки реквизитов SkillsSpire выставит счёт или подтвердит способ оплаты. До подтверждения оплаты распределение мест закрыто.</div>
     {% elif order.status == "invoiced" %}
@@ -78,6 +89,12 @@
                 {% else %}—{% endif %}
               </td>
               <td>
+                {% if invitation.status != "revoked" %}
+                  <div style="margin-bottom:8px">
+                    <input id="invite-{{ invitation.id }}" type="text" value="{{ invitation.share_url }}" readonly style="width:260px;max-width:100%;padding:7px;border:1px solid #ccd5e0;border-radius:7px">
+                    <button type="button" class="btn" onclick="copyCorpLink('invite-{{ invitation.id }}', this)">Скопировать</button>
+                  </div>
+                {% endif %}
                 {% if invitation.status == "pending" %}
                   <form method="post">
                     {% csrf_token %}
@@ -96,4 +113,22 @@
     {% endif %}
   </section>
 </div>
+
+<script>
+function copyCorpLink(inputId, button){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const value = input.value;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(value).then(function(){
+      const original = button.textContent;
+      button.textContent = 'Скопировано';
+      window.setTimeout(function(){ button.textContent = original; }, 1600);
+    });
+  } else {
+    input.select();
+    document.execCommand('copy');
+  }
+}
+</script>
 {% endblock %}
