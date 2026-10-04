@@ -840,9 +840,18 @@ def lesson_detail(request, course_slug, lesson_slug):
         for attempt in attempts:
             best_scores.setdefault(attempt.quiz_id, attempt.score_percent)
 
+    practical_responses = {
+        response.block_id: response
+        for response in PracticalResponse.objects.filter(
+            user=request.user,
+            block__in=blocks,
+        )
+    }
+
     for block in blocks:
         block.user_progress = block_progress.get(block.id)
         block.best_score = best_scores.get(block.quiz_id, 0) if block.quiz_id else 0
+        block.practical_response = practical_responses.get(block.id)
 
     enrollment = Enrollment.objects.filter(user=request.user, course=course_obj).first()
 
@@ -1002,6 +1011,15 @@ def complete_block(request, block_id):
                 "passing_score": block.quiz.passing_score,
             }, status=400)
 
+    if block.block_type == "assignment" and block.is_required:
+        if not PracticalResponse.objects.filter(
+            user=request.user,
+            block=block,
+        ).exists():
+            return JsonResponse({
+                "error": "Сначала отправьте ответ на практическое задание."
+            }, status=400)
+
     progress, _ = BlockProgress.objects.update_or_create(
         user=request.user,
         block=block,
@@ -1017,6 +1035,54 @@ def complete_block(request, block_id):
         "success": True,
         "block_id": block.id,
         "progress": progress.progress_percent,
+    })
+
+
+@login_required
+def submit_practical_response(request, block_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    block = get_object_or_404(
+        LessonBlock.objects.select_related("lesson__module__course"),
+        id=block_id,
+        block_type="assignment",
+        is_deleted=False,
+    )
+    course_obj = block.lesson.module.course
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    text_value = (request.POST.get("text") or "").strip()
+    if not text_value:
+        return JsonResponse(
+            {"error": "Введите ответ на практическое задание."},
+            status=400,
+        )
+
+    response, _ = PracticalResponse.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={"text": text_value},
+    )
+
+    progress, _ = BlockProgress.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={
+            "progress_percent": 100,
+            "is_completed": True,
+            "completed_at": timezone.now(),
+        },
+    )
+    status = _check_course_completion(request.user, course_obj)
+
+    return JsonResponse({
+        "success": True,
+        "block_id": block.id,
+        "saved_at": response.updated_at.isoformat(),
+        "progress": progress.progress_percent,
+        "course_completed": bool(status and status["eligible_for_completion"]),
     })
 
 
