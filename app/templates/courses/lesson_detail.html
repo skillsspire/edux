@@ -13,6 +13,10 @@
 .progress-card{min-width:220px;background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:16px}
 .progress-track{height:8px;background:#eef2f7;border-radius:999px;overflow:hidden;margin-top:10px}
 .progress-fill{height:100%;background:#01349D;border-radius:999px}
+.course-complete-banner{display:flex;justify-content:space-between;gap:18px;align-items:center;background:#eef8f1;border:1px solid #c9e8d3;border-radius:16px;padding:18px 20px;margin-bottom:22px}
+.course-complete-banner[hidden]{display:none}
+.course-complete-banner strong{display:block;font-size:18px;margin-bottom:4px}
+.course-complete-banner a{display:inline-block;text-decoration:none;background:#01349D;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;white-space:nowrap}
 .lesson-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px}
 .lesson-main{min-width:0}
 .lesson-sidebar{position:sticky;top:92px;align-self:start;background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:16px}
@@ -42,6 +46,16 @@
 </style>
 
 <div class="learning-shell">
+    <div id="course-complete-banner" class="course-complete-banner"{% if not course_completed %} hidden{% endif %}>
+        <div>
+            <strong>Курс завершён</strong>
+            Все обязательные материалы, практические задания и тесты выполнены.
+        </div>
+        {% if course.certificate %}
+            <a id="certificate-link" href="{% url 'certificate_options' course.slug %}">Перейти к сертификату</a>
+        {% endif %}
+    </div>
+
     <div class="learning-top">
         <div class="learning-title">
             <div class="eyebrow">{{ lesson.module.title }} · {{ course.title }}</div>
@@ -194,6 +208,18 @@
         return input ? input.value : '';
     }
 
+    function showCourseCompletion(data){
+        if (!data || !data.course_completed) return;
+        const banner = document.getElementById('course-complete-banner');
+        if (banner) banner.hidden = false;
+        const link = document.getElementById('certificate-link');
+        if (link && data.certificate_url) link.href = data.certificate_url;
+        const progressText = document.querySelector('.progress-card strong');
+        if (progressText) progressText.textContent = 'Прогресс курса: 100%';
+        const progressFill = document.querySelector('.progress-fill');
+        if (progressFill) progressFill.style.width = '100%';
+    }
+
     document.querySelectorAll('.complete-block').forEach(function(button){
         button.addEventListener('click', async function(){
             button.disabled = true;
@@ -207,6 +233,7 @@
                 button.hidden = true;
                 const done = button.parentElement.querySelector('.block-done');
                 if (done) done.hidden = false;
+                showCourseCompletion(data);
             } catch (error) {
                 alert(error.message);
                 button.disabled = false;
@@ -231,6 +258,7 @@
                 result.hidden = false;
                 result.textContent = '✓ Ответ сохранён';
                 submit.textContent = 'Сохранить изменения';
+                showCourseCompletion(data);
             } catch (error) {
                 alert(error.message);
             } finally {
@@ -277,6 +305,7 @@
                     });
                     result.appendChild(list);
                 }
+                showCourseCompletion(data);
             } catch (error) {
                 result.hidden = false;
                 result.className = 'quiz-result fail';
