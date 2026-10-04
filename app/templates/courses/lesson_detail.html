@@ -49,6 +49,12 @@
             <div class="progress-track" aria-hidden="true">
                 <div class="progress-fill" style="width:{{ course_progress }}%"></div>
             </div>
+            {% if quiz_count %}
+                <div class="course-score-summary">
+                    Средний лучший результат тестов: <strong>{{ cumulative_score }}%</strong>
+                    {% if cumulative_score < 80 %}<br>Для завершения курса требуется не менее 80%.{% endif %}
+                </div>
+            {% endif %}
         </div>
     </div>
 
