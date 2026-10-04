@@ -1,4 +1,4 @@
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db import DatabaseError, ProgrammingError
+from django.core.mail import send_mail
+from django.db import DatabaseError, ProgrammingError, transaction
 from django.db.models import Q, Avg, Count, Sum, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse
 from django.utils.translation import get_language
+from django.utils.http import url_has_allowed_host_and_scheme
 
 import hmac
 import hashlib
@@ -25,7 +27,13 @@ import logging
 from typing import Optional
 from datetime import timedelta
 
-from .forms import ContactForm, CustomUserCreationForm, ReviewForm
+from .forms import (
+    ContactForm,
+    CustomUserCreationForm,
+    ReviewForm,
+    CorporateOrderRequestForm,
+    CorporateParticipantsForm,
+)
 from .certificate_sync import CertificateRegistryError, sync_certificate_request
 from .models import (
     Category,
@@ -45,7 +53,8 @@ from .models import (
     Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
-    CourseStaff, AuditLog
+    CourseStaff, AuditLog,
+    Organization, CorporateOrder, CorporateInvitation
 )
 
 logger = logging.getLogger(__name__)
@@ -189,9 +198,11 @@ def kaspi_webhook(request):
 
 @csrf_protect
 def signup(request):
+    next_url = request.POST.get("next") or request.GET.get("next") or ""
+
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
-        
+
         if form.is_valid():
             try:
                 user = form.save()
@@ -203,6 +214,12 @@ def signup(request):
                 if auth_user is not None:
                     login(request, auth_user)
                     messages.success(request, "Регистрация прошла успешно! Добро пожаловать!")
+                    if next_url and url_has_allowed_host_and_scheme(
+                        next_url,
+                        allowed_hosts={request.get_host()},
+                        require_https=request.is_secure(),
+                    ):
+                        return redirect(next_url)
                     return redirect("home")
                 messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
                 return redirect("login")
@@ -210,14 +227,17 @@ def signup(request):
                 logger.error(f"Error during user registration: {str(e)}", exc_info=True)
                 messages.error(request, "Произошла ошибка при создании аккаунта")
         else:
-            if 'captcha' in form.errors:
+            if "captcha" in form.errors:
                 messages.error(request, "Пожалуйста, пройдите проверку reCAPTCHA.")
             else:
                 messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         form = CustomUserCreationForm()
-    
-    return render(request, "registration/signup.html", {"form": form})
+
+    return render(request, "registration/signup.html", {
+        "form": form,
+        "next": next_url,
+    })
 
 def home(request):
     language = get_language() or 'ru'
@@ -1120,6 +1140,257 @@ def enroll_course(request, slug):
         logger.error(f"Error enrolling in course {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при записи на курс")
         return redirect("course_detail", slug=slug)
+
+def _send_corporate_order_link(request, order):
+    manage_url = request.build_absolute_uri(
+        reverse("corporate_order_portal", args=[order.manage_token])
+    )
+    send_mail(
+        subject=f"SkillsSpire: корпоративная заявка {order.order_number}",
+        message=(
+            f"Здравствуйте, {order.organization.contact_name}!\n\n"
+            f"Заявка на курс «{order.course.title}» создана.\n"
+            f"Количество мест: {order.seats_purchased}.\n"
+            f"Корпоративная скидка: {order.discount_percent}%.\n"
+            f"Сумма: {order.total_amount} ₸.\n\n"
+            "По этой защищённой ссылке можно отслеживать статус заказа, "
+            "а после подтверждения оплаты — распределить места между слушателями:\n"
+            f"{manage_url}\n\nSkillsSpire"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[order.organization.contact_email],
+        fail_silently=True,
+    )
+    return manage_url
+
+
+def _send_corporate_invitation(request, invitation):
+    invite_url = request.build_absolute_uri(
+        reverse("corporate_invitation_accept", args=[invitation.token])
+    )
+    send_mail(
+        subject=f"SkillsSpire: доступ к курсу «{invitation.order.course.title}»",
+        message=(
+            f"Здравствуйте, {invitation.first_name}!\n\n"
+            f"Организация «{invitation.order.organization.name}» предоставила вам "
+            f"индивидуальное место на курсе «{invitation.order.course.title}».\n\n"
+            "Чтобы активировать доступ, откройте ссылку и войдите в SkillsSpire "
+            "или создайте аккаунт с этим же email:\n"
+            f"{invite_url}\n\n"
+            f"Приглашение предназначено для: {invitation.email}\n"
+            "Оплачивать курс повторно не нужно."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[invitation.email],
+        fail_silently=True,
+    )
+    return invite_url
+
+
+def corporate_order_request(request, slug):
+    course_obj = get_object_or_404(
+        Course,
+        slug=slug,
+        status=Course.PUBLISHED,
+        is_deleted=False,
+    )
+
+    profile = None
+    if request.user.is_authenticated:
+        profile = UserProfile.objects.filter(user=request.user).first()
+
+    initial = {}
+    if request.user.is_authenticated:
+        initial.update({
+            "contact_name": request.user.get_full_name() or request.user.username,
+            "contact_email": request.user.email,
+            "contact_phone": profile.phone if profile else "",
+            "organization_name": profile.company if profile else "",
+        })
+
+    if request.method == "POST":
+        form = CorporateOrderRequestForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with transaction.atomic():
+                organization, _ = Organization.objects.select_for_update().get_or_create(
+                    bin=data["bin"],
+                    defaults={
+                        "name": data["organization_name"],
+                        "legal_address": data["legal_address"],
+                        "contact_name": data["contact_name"],
+                        "contact_email": data["contact_email"],
+                        "contact_phone": data["contact_phone"],
+                    },
+                )
+                organization.name = data["organization_name"]
+                organization.legal_address = data["legal_address"]
+                organization.contact_name = data["contact_name"]
+                organization.contact_email = data["contact_email"]
+                organization.contact_phone = data["contact_phone"]
+                organization.is_active = True
+                organization.save()
+
+                order = CorporateOrder.objects.create(
+                    organization=organization,
+                    course=course_obj,
+                    requested_by=request.user if request.user.is_authenticated else None,
+                    seats_purchased=data["seats"],
+                    base_unit_price=course_obj.final_price or 0,
+                    unit_price=course_obj.final_price or 0,
+                    total_amount=0,
+                    notes=data.get("note", ""),
+                )
+
+            _send_corporate_order_link(request, order)
+            messages.success(
+                request,
+                "Корпоративная заявка создана. Ссылка на кабинет заказчика отправлена на указанный email."
+            )
+            return redirect("corporate_order_portal", token=order.manage_token)
+    else:
+        form = CorporateOrderRequestForm(initial=initial)
+
+    tiers = [
+        {"min": 1, "max": 4, "discount": 0},
+        {"min": 5, "max": 9, "discount": 3},
+        {"min": 10, "max": 14, "discount": 7},
+        {"min": 15, "max": 19, "discount": 10},
+        {"min": 20, "max": 29, "discount": 13},
+        {"min": 30, "max": 49, "discount": 17},
+        {"min": 50, "max": None, "discount": 18},
+    ]
+    return render(request, "corporate/order_request.html", {
+        "course": course_obj,
+        "form": form,
+        "tiers": tiers,
+    })
+
+
+def corporate_order_portal(request, token):
+    order = get_object_or_404(
+        CorporateOrder.objects.select_related("organization", "course"),
+        manage_token=token,
+    )
+
+    if request.method == "POST" and request.POST.get("action") == "revoke":
+        invitation = get_object_or_404(
+            CorporateInvitation,
+            pk=request.POST.get("invitation_id"),
+            order=order,
+        )
+        if invitation.status == CorporateInvitation.PENDING:
+            invitation.status = CorporateInvitation.REVOKED
+            invitation.save(update_fields=["status", "updated_at"])
+            messages.success(request, "Приглашение отозвано, место снова доступно.")
+        else:
+            messages.error(request, "Отозвать можно только неактивированное приглашение.")
+        return redirect("corporate_order_portal", token=order.manage_token)
+
+    form = CorporateParticipantsForm(order=order)
+    if request.method == "POST" and request.POST.get("action") != "revoke":
+        form = CorporateParticipantsForm(request.POST, order=order)
+        if order.status != CorporateOrder.PAID:
+            messages.error(request, "Распределять места можно после подтверждения оплаты.")
+        elif form.is_valid():
+            created = []
+            try:
+                with transaction.atomic():
+                    locked_order = CorporateOrder.objects.select_for_update().get(pk=order.pk)
+                    participants = form.cleaned_data["participants"]
+
+                    used = locked_order.invitations.exclude(
+                        status=CorporateInvitation.REVOKED
+                    ).count()
+                    if used + len(participants) > locked_order.seats_purchased:
+                        raise ValidationError(
+                            f"Недостаточно свободных мест. Осталось: {locked_order.seats_purchased - used}."
+                        )
+
+                    for participant in participants:
+                        invitation = CorporateInvitation.objects.create(
+                            order=locked_order,
+                            **participant,
+                        )
+                        created.append(invitation)
+            except ValidationError as exc:
+                messages.error(request, "; ".join(exc.messages))
+            else:
+                for invitation in created:
+                    _send_corporate_invitation(request, invitation)
+                messages.success(
+                    request,
+                    f"Создано приглашений: {len(created)}. Каждому слушателю отправлена персональная ссылка."
+                )
+                return redirect("corporate_order_portal", token=order.manage_token)
+
+    invitations = order.invitations.select_related("user").order_by("created_at")
+    return render(request, "corporate/order_portal.html", {
+        "order": order,
+        "invitations": invitations,
+        "form": form,
+    })
+
+
+def corporate_invitation_accept(request, token):
+    invitation = get_object_or_404(
+        CorporateInvitation.objects.select_related(
+            "order__organization",
+            "order__course",
+            "user",
+        ),
+        token=token,
+    )
+
+    if invitation.status == CorporateInvitation.REVOKED:
+        return render(request, "corporate/invitation.html", {
+            "invitation": invitation,
+            "revoked": True,
+        })
+
+    if not request.user.is_authenticated:
+        next_url = request.path
+        return render(request, "corporate/invitation.html", {
+            "invitation": invitation,
+            "next": next_url,
+        })
+
+    email_matches = (
+        (request.user.email or "").strip().lower()
+        == invitation.email.strip().lower()
+    )
+
+    if request.method == "POST" and email_matches:
+        try:
+            with transaction.atomic():
+                locked = CorporateInvitation.objects.select_for_update().select_related(
+                    "order__organization",
+                    "order__course",
+                ).get(pk=invitation.pk)
+                enrollment = locked.activate_for(request.user)
+
+                profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                if not profile.company:
+                    profile.company = locked.order.organization.name
+                    profile.save(update_fields=["company", "updated_at"])
+        except ValidationError as exc:
+            messages.error(request, "; ".join(exc.messages))
+        else:
+            messages.success(
+                request,
+                f"Корпоративный доступ активирован. Оплачивать курс повторно не нужно."
+            )
+            return redirect("course_learn", course_slug=enrollment.course.slug)
+
+    return render(request, "corporate/invitation.html", {
+        "invitation": invitation,
+        "email_matches": email_matches,
+        "already_activated": (
+            invitation.status == CorporateInvitation.ACTIVATED
+            and invitation.user_id == request.user.id
+        ),
+    })
+
 
 def checkout(request, slug):
     return create_payment(request, slug)
