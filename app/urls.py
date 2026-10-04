@@ -38,6 +38,9 @@ urlpatterns = [
     path("courses/", views.courses_list, name="courses_list"),
     path("courses/<slug:slug>/", views.course_detail, name="course_detail"),
     path("courses/<slug:slug>/enroll/", views.enroll_course, name="enroll_course"),
+    path("courses/<slug:slug>/corporate/", views.corporate_order_request, name="corporate_order_request"),
+    path("corporate/orders/<uuid:token>/", views.corporate_order_portal, name="corporate_order_portal"),
+    path("corporate/invitations/<uuid:token>/", views.corporate_invitation_accept, name="corporate_invitation_accept"),
     path("categories/<slug:slug>/", views.category_detail, name="category_detail"),
     
     # 4️⃣ ОБУЧЕНИЕ (LMS — отдельный контекст)
