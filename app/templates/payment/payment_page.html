@@ -46,7 +46,7 @@
           <hr class="my-4">
 
           <form method="post"
-                action="{% url 'payment_claim' course.slug %}"
+                action="{% url 'checkout_confirm' course.slug %}"
                 enctype="multipart/form-data" id="claimForm">
             {% csrf_token %}
 
@@ -57,8 +57,8 @@
 
             <div class="mb-3">
               <label class="form-label">Чек(и) об оплате (PDF/JPG/PNG, можно несколько)</label>
-              <input type="file" name="receipts" accept=".pdf,image/*" multiple class="form-control">
-              <div class="form-text">Если нет файла — сделайте скриншот из Kaspi.</div>
+              <input type="file" name="receipt" accept=".pdf,image/*" class="form-control">
+              <div class="form-text">Если нет PDF — приложите скриншот из Kaspi.</div>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">
@@ -80,8 +80,8 @@
               <span class="text-muted">Статус:</span>
               {% if last_payment.status == 'success' %}
                 <span class="badge bg-success">оплачен</span>
-              {% elif last_payment.status == 'claimed' %}
-                <span class="badge bg-warning text-dark">на проверке</span>
+              {% elif last_payment.status == 'pending' and last_payment.receipt %}
+                <span class="badge bg-warning text-dark">чек отправлен, на проверке</span>
               {% elif last_payment.status == 'pending' %}
                 <span class="badge bg-secondary">ожидает оплаты</span>
               {% else %}
@@ -95,8 +95,8 @@
               </div>
             {% endif %}
             <div class="text-muted small">
-              Создан: {{ last_payment.created|date:"d.m.Y H:i" }}<br>
-              Обновлён: {{ last_payment.updated|date:"d.m.Y H:i" }}
+              Создан: {{ last_payment.created_at|date:"d.m.Y H:i" }}<br>
+              Обновлён: {{ last_payment.updated_at|date:"d.m.Y H:i" }}
             </div>
           {% else %}
             <p class="text-muted mb-0">Платёж ещё не создан. Нажмите «Открыть Kaspi QR», оплатите и отправьте чек.</p>
