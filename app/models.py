@@ -635,9 +635,234 @@ class BlockProgress(TimestampedModel):
         super().save(*args, **kwargs)
 
 
+class Organization(TimestampedModel):
+    name = models.CharField("Наименование организации", max_length=255)
+    bin = models.CharField("БИН", max_length=20, unique=True)
+    legal_address = models.CharField("Юридический адрес", max_length=500, blank=True)
+    contact_name = models.CharField("Контактное лицо", max_length=255)
+    contact_email = models.EmailField("Email контактного лица")
+    contact_phone = models.CharField("Телефон контактного лица", max_length=30)
+    is_active = models.BooleanField("Активна", default=True)
+
+    class Meta:
+        verbose_name = "Организация"
+        verbose_name_plural = "Организации"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.bin})"
+
+
+class CorporateOrder(TimestampedModel):
+    REQUESTED = "requested"
+    INVOICED = "invoiced"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+    STATUS_CHOICES = [
+        (REQUESTED, "Заявка получена"),
+        (INVOICED, "Счёт выставлен"),
+        (PAID, "Оплачен"),
+        (CANCELLED, "Отменён"),
+    ]
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="orders",
+        verbose_name="Организация",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.PROTECT,
+        related_name="corporate_orders",
+        verbose_name="Курс",
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="corporate_orders_requested",
+        verbose_name="Создал заявку",
+    )
+    seats_purchased = models.PositiveIntegerField("Количество мест")
+    base_unit_price = models.DecimalField("Базовая цена за место", max_digits=10, decimal_places=2)
+    discount_percent = models.DecimalField("Корпоративная скидка, %", max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    unit_price = models.DecimalField("Цена за место после скидки", max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField("Сумма заказа", max_digits=12, decimal_places=2)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=REQUESTED)
+    order_number = models.CharField("Номер заказа", max_length=40, unique=True, blank=True)
+    manage_token = models.UUIDField("Токен кабинета заказчика", default=uuid.uuid4, unique=True, editable=False)
+    paid_at = models.DateTimeField("Оплачен", null=True, blank=True)
+    notes = models.TextField("Комментарий", blank=True)
+
+    class Meta:
+        verbose_name = "Корпоративный заказ"
+        verbose_name_plural = "Корпоративные заказы"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["organization", "course"]),
+        ]
+
+    def __str__(self):
+        return f"{self.order_number or 'Новый заказ'} — {self.organization} — {self.course}"
+
+    @staticmethod
+    def discount_for_seats(seats):
+        seats = int(seats or 0)
+        if seats >= 50:
+            return Decimal("18.00")
+        if seats >= 30:
+            return Decimal("17.00")
+        if seats >= 20:
+            return Decimal("13.00")
+        if seats >= 15:
+            return Decimal("10.00")
+        if seats >= 10:
+            return Decimal("7.00")
+        if seats >= 5:
+            return Decimal("3.00")
+        return Decimal("0.00")
+
+    @property
+    def used_seats(self):
+        return self.invitations.exclude(status=CorporateInvitation.REVOKED).count()
+
+    @property
+    def activated_seats(self):
+        return self.invitations.filter(status=CorporateInvitation.ACTIVATED).count()
+
+    @property
+    def remaining_seats(self):
+        return max(0, self.seats_purchased - self.used_seats)
+
+    def recalculate(self):
+        base = Decimal(self.course.final_price or 0)
+        discount = self.discount_for_seats(self.seats_purchased)
+        multiplier = (Decimal("100.00") - discount) / Decimal("100.00")
+        unit = (base * multiplier).quantize(Decimal("0.01"))
+        self.base_unit_price = base
+        self.discount_percent = discount
+        self.unit_price = unit
+        self.total_amount = (unit * Decimal(self.seats_purchased or 0)).quantize(Decimal("0.01"))
+
+    def clean(self):
+        if not self.seats_purchased or self.seats_purchased < 1:
+            raise ValidationError({"seats_purchased": "Количество мест должно быть не меньше 1."})
+
+    def save(self, *args, **kwargs):
+        if not self.order_number:
+            self.order_number = f"CORP-{timezone.localdate():%Y}-{uuid.uuid4().hex[:8].upper()}"
+        self.recalculate()
+        if self.status == self.PAID and not self.paid_at:
+            self.paid_at = timezone.now()
+        super().save(*args, **kwargs)
+
+
+class CorporateInvitation(TimestampedModel):
+    PENDING = "pending"
+    ACTIVATED = "activated"
+    REVOKED = "revoked"
+    STATUS_CHOICES = [
+        (PENDING, "Приглашён"),
+        (ACTIVATED, "Доступ активирован"),
+        (REVOKED, "Приглашение отозвано"),
+    ]
+
+    order = models.ForeignKey(
+        CorporateOrder,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+        verbose_name="Корпоративный заказ",
+    )
+    email = models.EmailField("Email слушателя")
+    first_name = models.CharField("Имя", max_length=100)
+    last_name = models.CharField("Фамилия", max_length=100)
+    token = models.UUIDField("Токен приглашения", default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="corporate_invitations",
+        verbose_name="Пользователь",
+    )
+    activated_at = models.DateTimeField("Активировано", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Корпоративное приглашение"
+        verbose_name_plural = "Корпоративные приглашения"
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["order", "email"], name="uniq_corporate_order_invite_email"),
+        ]
+        indexes = [
+            models.Index(fields=["order", "status"]),
+            models.Index(fields=["email", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.last_name} {self.first_name} — {self.email}"
+
+    def clean(self):
+        if self.order_id and self.status != self.REVOKED:
+            if self.order.status != CorporateOrder.PAID:
+                raise ValidationError("Приглашения можно выдавать только после подтверждения оплаты.")
+            existing = self.order.invitations.exclude(pk=self.pk).exclude(status=self.REVOKED).count()
+            if existing >= self.order.seats_purchased:
+                raise ValidationError("Все оплаченные места уже распределены.")
+
+    def save(self, *args, **kwargs):
+        self.email = (self.email or "").strip().lower()
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def activate_for(self, user):
+        if self.status == self.REVOKED:
+            raise ValidationError("Это приглашение отозвано.")
+        if self.status == self.ACTIVATED:
+            if self.user_id == user.id:
+                return self.enrollment
+            raise ValidationError("Это приглашение уже использовано другим пользователем.")
+        if self.order.status != CorporateOrder.PAID:
+            raise ValidationError("Корпоративный заказ ещё не оплачен.")
+        if (user.email or "").strip().lower() != self.email:
+            raise ValidationError(
+                "Email аккаунта должен совпадать с email, на который отправлено приглашение."
+            )
+
+        enrollment, _ = Enrollment.objects.get_or_create(
+            user=user,
+            course=self.order.course,
+        )
+        if enrollment.corporate_invitation_id and enrollment.corporate_invitation_id != self.id:
+            raise ValidationError("Доступ к этому курсу уже связан с другим корпоративным приглашением.")
+
+        enrollment.corporate_invitation = self
+        enrollment.is_deleted = False
+        enrollment.deleted_at = None
+        enrollment.save(update_fields=["corporate_invitation", "is_deleted", "deleted_at", "updated_at"])
+
+        self.user = user
+        self.status = self.ACTIVATED
+        self.activated_at = timezone.now()
+        super().save(update_fields=["user", "status", "activated_at", "updated_at"])
+        return enrollment
+
+
 class Enrollment(TimestampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments", verbose_name="Пользователь")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments", verbose_name="Курс")
+    corporate_invitation = models.OneToOneField(
+        CorporateInvitation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="enrollment",
+        verbose_name="Корпоративное место",
+    )
     
     completed = models.BooleanField("Курс завершён", default=False)
     completed_at = models.DateTimeField("Завершён", null=True, blank=True)
