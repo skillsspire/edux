@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Корпоративный заказ {{ order.order_number }} — SkillsSpire{% endblock %}
+
+{% block content %}
+<style>
+.corp-wrap{max-width:1000px;margin:38px auto;padding:0 20px 60px}
+.corp-card{background:#fff;border:1px solid #e4e9f2;border-radius:18px;padding:26px;margin-bottom:20px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+.metric{background:#f7f9fc;border-radius:12px;padding:14px}.metric small{color:#64748b}.metric strong{display:block;font-size:22px;margin-top:4px}
+.status{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef4ff;color:#01349D;font-weight:700}
+.invite-form textarea{width:100%;padding:12px;border:1px solid #ccd5e0;border-radius:10px;min-height:170px}
+.btn{display:inline-block;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer;text-decoration:none}
+.btn-primary{background:#01349D;color:#fff}.btn-danger{background:#fff1f0;color:#b42318;border:1px solid #f5c2bd}
+.invites{width:100%;border-collapse:collapse}.invites th,.invites td{padding:11px 8px;border-bottom:1px solid #edf0f4;text-align:left;vertical-align:top}
+.note{padding:14px;border-radius:12px;background:#f7f9fc}
+@media(max-width:760px){.metrics{grid-template-columns:1fr 1fr}.invites{display:block;overflow-x:auto}}
+</style>
+
+<div class="corp-wrap">
+  <section class="corp-card">
+    <span class="status">{{ order.get_status_display }}</span>
+    <h1 style="margin-bottom:8px">Корпоративный заказ {{ order.order_number }}</h1>
+    <p><strong>{{ order.organization.name }}</strong><br>{{ order.course.title }}</p>
+
+    <div class="metrics">
+      <div class="metric"><small>Оплачено мест</small><strong>{{ order.seats_purchased }}</strong></div>
+      <div class="metric"><small>Распределено</small><strong>{{ order.used_seats }}</strong></div>
+      <div class="metric"><small>Активировано</small><strong>{{ order.activated_seats }}</strong></div>
+      <div class="metric"><small>Свободно</small><strong>{{ order.remaining_seats }}</strong></div>
+    </div>
+
+    <p>Скидка: <strong>{{ order.discount_percent|floatformat:0 }}%</strong> · Цена за место: <strong>{{ order.unit_price|floatformat:0|intcomma }} ₸</strong> · Сумма заказа: <strong>{{ order.total_amount|floatformat:0|intcomma }} ₸</strong></p>
+
+    {% if order.status == "requested" %}
+      <div class="note">Заявка получена. После проверки реквизитов SkillsSpire выставит счёт или подтвердит способ оплаты. До подтверждения оплаты распределение мест закрыто.</div>
+    {% elif order.status == "invoiced" %}
+      <div class="note">Счёт выставлен. После подтверждения оплаты здесь откроется форма распределения мест.</div>
+    {% elif order.status == "paid" %}
+      <div class="note">Оплата подтверждена. Можно распределять оплаченные места между сотрудниками.</div>
+    {% else %}
+      <div class="note">Заказ отменён. Если это ошибка, свяжитесь со SkillsSpire.</div>
+    {% endif %}
+  </section>
+
+  {% if order.status == "paid" and order.remaining_seats > 0 %}
+    <section class="corp-card">
+      <h2>Добавить слушателей</h2>
+      <p>Каждый участник получит собственную одноразовую ссылку. Повторная оплата ему не потребуется.</p>
+      <form method="post" class="invite-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="invite">
+        {{ form.participants.label_tag }}
+        {{ form.participants }}
+        {% if form.participants.help_text %}<p>{{ form.participants.help_text }}</p>{% endif %}
+        {{ form.participants.errors }}
+        <button type="submit" class="btn btn-primary">Создать и отправить приглашения</button>
+      </form>
+    </section>
+  {% endif %}
+
+  <section class="corp-card">
+    <h2>Слушатели</h2>
+    {% if invitations %}
+      <table class="invites">
+        <thead><tr><th>Слушатель</th><th>Email</th><th>Статус</th><th></th></tr></thead>
+        <tbody>
+          {% for invitation in invitations %}
+            <tr>
+              <td>{{ invitation.last_name }} {{ invitation.first_name }}</td>
+              <td>{{ invitation.email }}</td>
+              <td>{{ invitation.get_status_display }}</td>
+              <td>
+                {% if invitation.status == "pending" %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="revoke">
+                    <input type="hidden" name="invitation_id" value="{{ invitation.id }}">
+                    <button type="submit" class="btn btn-danger">Отозвать</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Места пока не распределены.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
