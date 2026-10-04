@@ -19,6 +19,7 @@ from app.models import (
     LessonBlock,
     Module,
     Organization,
+    Payment,
     Quiz,
     QuizAttempt,
 )
@@ -70,6 +71,29 @@ class PublicPageSmokeTests(TestCase):
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200, url)
+
+    def test_checkout_renders_and_reuses_pending_payment(self):
+        user = User.objects.create_user(
+            username="checkout-user",
+            email="checkout@example.kz",
+            password="test-password",
+        )
+        self.client.force_login(user)
+
+        url = f"/checkout/{self.course.slug}/"
+        first = self.client.get(url)
+        second = self.client.get(url)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(
+            Payment.objects.filter(
+                user=user,
+                course=self.course,
+                status=Payment.PENDING,
+            ).count(),
+            1,
+        )
 
 
 class CorporateAccessTests(TestCase):
