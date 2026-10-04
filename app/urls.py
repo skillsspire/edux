@@ -75,6 +75,7 @@ urlpatterns = [
     path("checkout/<slug:slug>/confirm/", views.checkout_confirm, name="checkout_confirm"),
     path("checkout/<slug:slug>/thanks/", views.payment_thanks, name="payment_thanks"),
     path("payment/webhook/", views.payment_webhook, name="payment_webhook"),
+    path("api/payments/<int:payment_id>/status/", views.payment_status, name="payment_status"),
     path("api/certificates/registry-callback/", views.certificate_registry_callback, name="certificate_registry_callback"),
     
     # 8️⃣ API (только по необходимости)
