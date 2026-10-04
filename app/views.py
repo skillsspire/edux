@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.core.mail import send_mail
 from django.db import DatabaseError, ProgrammingError, transaction
-from django.db.models import Q, Avg, Count, Sum, Prefetch
+from django.db.models import Q, Avg, Count, Sum, Max, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -843,18 +843,8 @@ def lesson_detail(request, course_slug, lesson_slug):
 
     enrollment = Enrollment.objects.filter(user=request.user, course=course_obj).first()
 
-    required_blocks = LessonBlock.objects.filter(
-        lesson__module__course=course_obj,
-        is_required=True,
-        is_deleted=False,
-    )
-    required_count = required_blocks.count()
-    completed_count = BlockProgress.objects.filter(
-        user=request.user,
-        block__in=required_blocks,
-        is_completed=True,
-    ).count()
-    course_progress = round((completed_count / required_count) * 100) if required_count else 0
+    completion_status = _course_completion_status(request.user, course_obj)
+    course_progress = completion_status["course_progress"]
 
     return render(request, "courses/lesson_detail.html", {
         "course": course_obj,
@@ -866,6 +856,9 @@ def lesson_detail(request, course_slug, lesson_slug):
         "next_lesson": next_lesson,
         "enrollment": enrollment,
         "course_progress": course_progress,
+        "cumulative_score": completion_status["cumulative_score"],
+        "quiz_count": completion_status["quiz_count"],
+        "all_quizzes_passed": completion_status["all_quizzes_passed"],
     })
 
 
@@ -1078,34 +1071,85 @@ def update_progress(request):
         logger.error(f"Error updating progress: {str(e)}", exc_info=True)
         return JsonResponse({"error": str(e)}, status=500)
 
+def _course_completion_status(user, course):
+    """Return one canonical completion calculation for progress and certificates."""
+    required_blocks_qs = LessonBlock.objects.filter(
+        lesson__module__course=course,
+        lesson__is_active=True,
+        lesson__is_deleted=False,
+        is_required=True,
+        is_deleted=False,
+    )
+    required_count = required_blocks_qs.count()
+    completed_count = BlockProgress.objects.filter(
+        user=user,
+        block__in=required_blocks_qs,
+        is_completed=True,
+    ).count()
+
+    quizzes = list(
+        Quiz.objects.filter(
+            blocks__in=required_blocks_qs.filter(block_type="quiz"),
+            is_active=True,
+        ).distinct().order_by("id")
+    )
+    quiz_ids = [quiz.id for quiz in quizzes]
+    best_by_quiz = {}
+    if quiz_ids:
+        best_by_quiz = {
+            row["quiz_id"]: row["best_score"] or 0
+            for row in QuizAttempt.objects.filter(
+                user=user,
+                quiz_id__in=quiz_ids,
+            ).values("quiz_id").annotate(best_score=Max("score_percent"))
+        }
+
+    scores = [int(best_by_quiz.get(quiz.id, 0)) for quiz in quizzes]
+    cumulative_score = round(sum(scores) / len(scores)) if scores else 0
+    all_quizzes_passed = all(
+        best_by_quiz.get(quiz.id, 0) >= quiz.passing_score
+        for quiz in quizzes
+    ) if quizzes else True
+
+    blocks_complete = required_count > 0 and completed_count >= required_count
+    cumulative_passed = cumulative_score >= 80 if quizzes else True
+
+    return {
+        "required_count": required_count,
+        "completed_count": completed_count,
+        "course_progress": round((completed_count / required_count) * 100) if required_count else 0,
+        "quiz_count": len(quizzes),
+        "quiz_scores": best_by_quiz,
+        "cumulative_score": cumulative_score,
+        "all_quizzes_passed": all_quizzes_passed,
+        "cumulative_passed": cumulative_passed,
+        "eligible_for_completion": (
+            blocks_complete
+            and all_quizzes_passed
+            and cumulative_passed
+        ),
+    }
+
+
 def _check_course_completion(user, course):
     try:
-        required_blocks = LessonBlock.objects.filter(
-            lesson__module__course=course,
-            is_required=True,
-            is_deleted=False
-        ).count()
-        
-        if required_blocks == 0:
-            return
-        
-        completed_blocks = BlockProgress.objects.filter(
-            user=user,
-            block__lesson__module__course=course,
-            is_completed=True
-        ).count()
-        
-        if completed_blocks >= required_blocks:
-            enrollment = Enrollment.objects.get(user=user, course=course)
-            if not enrollment.completed:
-                enrollment.completed = True
-                enrollment.completed_at = timezone.now()
-                enrollment.save()
-                
+        status = _course_completion_status(user, course)
+        if not status["eligible_for_completion"]:
+            return status
+
+        enrollment = Enrollment.objects.get(user=user, course=course)
+        if not enrollment.completed:
+            enrollment.completed = True
+            enrollment.completed_at = timezone.now()
+            enrollment.save(update_fields=["completed", "completed_at", "updated_at"])
+        return status
+
     except Enrollment.DoesNotExist:
         logger.warning(f"Enrollment not found for user {user.id} and course {course.id}")
+        return None
     except Exception as e:
         logger.error(f"Error checking course completion: {str(e)}", exc_info=True)
+        return None
 
 @login_required
 def enroll_course(request, slug):
