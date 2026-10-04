@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from decimal import Decimal
 
@@ -492,6 +493,74 @@ class CertificatePeriodTests(TestCase):
         self.assertEqual(payload["period_mode"], CertificateRequest.WITHOUT_PERIOD)
         self.assertEqual(payload["start_date"], "")
         self.assertEqual(payload["end_date"], "")
+
+
+class CertificateRegistryCallbackTests(TestCase):
+    def setUp(self):
+        self.course = Course.objects.create(
+            title="Callback course",
+            slug="certificate-callback-course",
+            duration_hours=8,
+            price=Decimal("0.00"),
+        )
+        self.user = User.objects.create_user(
+            username="certificate-callback-user",
+            email="callback@example.kz",
+            password="test-password",
+        )
+        self.enrollment = Enrollment.objects.create(
+            user=self.user,
+            course=self.course,
+            completed=True,
+            completed_at=timezone.now(),
+        )
+        self.request = CertificateRequest.objects.create(
+            enrollment=self.enrollment,
+            user=self.user,
+            course=self.course,
+            period_mode=CertificateRequest.WITHOUT_PERIOD,
+        )
+
+    def test_issued_callback_updates_certificate_request(self):
+        payload = {
+            "token": "test-token",
+            "local_request_id": str(self.request.pk),
+            "status": "issued",
+            "certificate_number": "SS-TEST-0001",
+            "pdf_url": "https://example.test/certificate.pdf",
+            "verify_url": "https://example.test/verify",
+        }
+        with self.settings(CERTIFICATE_REGISTRY_TOKEN="test-token"):
+            response = self.client.post(
+                "/api/certificates/registry-callback/",
+                data=json.dumps(payload),
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, CertificateRequest.ISSUED)
+        self.assertEqual(self.request.external_number, "SS-TEST-0001")
+        self.assertEqual(self.request.pdf_url, "https://example.test/certificate.pdf")
+        self.assertEqual(self.request.verify_url, "https://example.test/verify")
+        self.assertIsNotNone(self.request.issued_at)
+
+    def test_callback_rejects_wrong_token(self):
+        payload = {
+            "token": "wrong-token",
+            "local_request_id": str(self.request.pk),
+            "status": "issued",
+        }
+        with self.settings(CERTIFICATE_REGISTRY_TOKEN="test-token"):
+            response = self.client.post(
+                "/api/certificates/registry-callback/",
+                data=json.dumps(payload),
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, CertificateRequest.PENDING)
 
 
 class QuizAttemptTests(TestCase):
