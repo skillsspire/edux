@@ -10,16 +10,20 @@ from django.utils import timezone
 from app.models import (
     Category,
     CertificateRequest,
+    BlockProgress,
     CorporateInvitation,
     CorporateOrder,
     Course,
     Enrollment,
     Lesson,
+    LessonBlock,
     Module,
     Organization,
     Quiz,
     QuizAttempt,
 )
+
+from app.views import _check_course_completion
 
 
 User = get_user_model()
@@ -238,6 +242,97 @@ class QuizAttemptTests(TestCase):
         )
         self.assertTrue(passed.passed)
         self.assertFalse(failed.passed)
+
+
+class CourseCompletionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="completion-user",
+            email="completion@example.kz",
+            password="test-password",
+        )
+        self.course = Course.objects.create(
+            title="Completion course",
+            slug="completion-course",
+        )
+        self.enrollment = Enrollment.objects.create(
+            user=self.user,
+            course=self.course,
+        )
+        self.module = Module.objects.create(
+            course=self.course,
+            title="Модуль",
+            order=1,
+        )
+        self.lesson = Lesson.objects.create(
+            module=self.module,
+            title="Тема",
+            slug="completion-topic",
+            order=1,
+        )
+        self.text_block = LessonBlock.objects.create(
+            lesson=self.lesson,
+            block_type="text",
+            order=10,
+            title="Материал",
+            is_required=True,
+        )
+        self.quiz = Quiz.objects.create(
+            lesson=self.lesson,
+            title="Тест",
+            passing_score=70,
+            unlimited_attempts=True,
+        )
+        self.quiz_block = LessonBlock.objects.create(
+            lesson=self.lesson,
+            block_type="quiz",
+            order=90,
+            title="Тест",
+            quiz=self.quiz,
+            is_required=True,
+        )
+        for block in (self.text_block, self.quiz_block):
+            BlockProgress.objects.create(
+                user=self.user,
+                block=block,
+                is_completed=True,
+                progress_percent=100,
+                completed_at=timezone.now(),
+            )
+
+    def test_cumulative_score_below_80_blocks_completion(self):
+        QuizAttempt.objects.create(
+            user=self.user,
+            quiz=self.quiz,
+            attempt_number=1,
+            score_percent=75,
+        )
+        status = _check_course_completion(self.user, self.course)
+        self.enrollment.refresh_from_db()
+
+        self.assertFalse(status["cumulative_passed"])
+        self.assertFalse(self.enrollment.completed)
+
+    def test_best_score_at_80_allows_completion(self):
+        QuizAttempt.objects.create(
+            user=self.user,
+            quiz=self.quiz,
+            attempt_number=1,
+            score_percent=75,
+        )
+        QuizAttempt.objects.create(
+            user=self.user,
+            quiz=self.quiz,
+            attempt_number=2,
+            score_percent=80,
+        )
+        status = _check_course_completion(self.user, self.course)
+        self.enrollment.refresh_from_db()
+
+        self.assertEqual(status["cumulative_score"], 80)
+        self.assertTrue(status["eligible_for_completion"])
+        self.assertTrue(self.enrollment.completed)
+        self.assertIsNotNone(self.enrollment.completed_at)
 
 
 class InclusiveCourseSeedTests(TestCase):
