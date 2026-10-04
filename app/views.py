@@ -51,7 +51,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, PracticalResponse, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog,
