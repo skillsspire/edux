@@ -1,8 +1,11 @@
 from django.contrib import admin
+from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.urls import reverse
 from datetime import timedelta
 
 from .certificate_sync import CertificateRegistryError, sync_certificate_request
@@ -207,11 +210,29 @@ class CorporateInvitationInline(admin.TabularInline):
 @admin.action(description="Отметить выбранные корпоративные заказы как оплаченные")
 def mark_corporate_paid(modeladmin, request, queryset):
     count = 0
-    for order in queryset:
+    for order in queryset.select_related("organization", "course"):
         if order.status != CorporateOrder.CANCELLED:
             order.status = CorporateOrder.PAID
             order.save()
             count += 1
+
+            manage_url = request.build_absolute_uri(
+                reverse("corporate_order_portal", args=[order.manage_token])
+            )
+            send_mail(
+                subject=f"SkillsSpire: оплата заказа {order.order_number} подтверждена",
+                message=(
+                    f"Здравствуйте, {order.organization.contact_name}!\n\n"
+                    f"Оплата корпоративного заказа {order.order_number} подтверждена.\n"
+                    f"Курс: «{order.course.title}».\n"
+                    f"Доступно мест: {order.seats_purchased}.\n\n"
+                    "Теперь вы можете распределить места между сотрудниками:\n"
+                    f"{manage_url}\n\nSkillsSpire"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[order.organization.contact_email],
+                fail_silently=True,
+            )
     modeladmin.message_user(request, f"Оплата подтверждена для заказов: {count}.")
 
 
