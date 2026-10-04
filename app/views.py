@@ -871,6 +871,7 @@ def lesson_detail(request, course_slug, lesson_slug):
         "cumulative_score": completion_status["cumulative_score"],
         "quiz_count": completion_status["quiz_count"],
         "all_quizzes_passed": completion_status["all_quizzes_passed"],
+        "course_completed": bool(enrollment and enrollment.completed),
     })
 
 
@@ -972,7 +973,10 @@ def submit_quiz(request, quiz_id):
                 },
             )
 
-    _check_course_completion(request.user, course_obj)
+    completion_status = _check_course_completion(request.user, course_obj)
+    course_completed = bool(
+        completion_status and completion_status.get("eligible_for_completion")
+    )
 
     return JsonResponse({
         "success": True,
@@ -983,6 +987,11 @@ def submit_quiz(request, quiz_id):
         "attempt_number": attempt.attempt_number,
         "unlimited_attempts": quiz.unlimited_attempts,
         "feedback": feedback,
+        "course_completed": course_completed,
+        "certificate_url": (
+            reverse("certificate_options", args=[course_obj.slug])
+            if course_completed and course_obj.certificate else ""
+        ),
     })
 
 @login_required
@@ -1029,12 +1038,20 @@ def complete_block(request, block_id):
             "completed_at": timezone.now(),
         },
     )
-    _check_course_completion(request.user, course_obj)
+    completion_status = _check_course_completion(request.user, course_obj)
+    course_completed = bool(
+        completion_status and completion_status.get("eligible_for_completion")
+    )
 
     return JsonResponse({
         "success": True,
         "block_id": block.id,
         "progress": progress.progress_percent,
+        "course_completed": course_completed,
+        "certificate_url": (
+            reverse("certificate_options", args=[course_obj.slug])
+            if course_completed and course_obj.certificate else ""
+        ),
     })
 
 
@@ -1083,6 +1100,10 @@ def submit_practical_response(request, block_id):
         "saved_at": response.updated_at.isoformat(),
         "progress": progress.progress_percent,
         "course_completed": bool(status and status["eligible_for_completion"]),
+        "certificate_url": (
+            reverse("certificate_options", args=[course_obj.slug])
+            if status and status["eligible_for_completion"] and course_obj.certificate else ""
+        ),
     })
 
 
@@ -1104,10 +1125,22 @@ def update_progress(request):
         except ValueError:
             return JsonResponse({"error": "Invalid progress value"}, status=400)
         
-        lesson = Lesson.objects.get(id=lesson_id)
-        
-        block = LessonBlock.objects.filter(lesson=lesson, is_deleted=False).first()
+        lesson = Lesson.objects.select_related("module__course").get(id=lesson_id)
+        course_obj = lesson.module.course
+
+        if not user_has_course_access(request.user, course_obj):
+            return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+        block = LessonBlock.objects.filter(
+            lesson=lesson,
+            is_deleted=False,
+        ).order_by("order", "id").first()
         if block:
+            if block.block_type in {"quiz", "assignment"}:
+                return JsonResponse({
+                    "error": "Этот блок завершается через собственную форму задания или теста."
+                }, status=400)
+
             block_progress, created = BlockProgress.objects.update_or_create(
                 user=request.user,
                 block=block,
@@ -1115,6 +1148,7 @@ def update_progress(request):
                     "progress_percent": progress,
                     "is_completed": progress >= 100,
                     "last_accessed": timezone.now(),
+                    "completed_at": timezone.now() if progress >= 100 else None,
                 }
             )
             
