@@ -1,6 +1,7 @@
 import html
 import json
 from pathlib import Path
+from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -83,6 +84,8 @@ class Command(BaseCommand):
                     "академических требований."
                 ),
                 "duration_hours": 72,
+                "price": Decimal("15000.00"),
+                "discount_price": None,
                 "language": "Русский",
                 "certificate": True,
                 "status": Course.DRAFT,
