@@ -1231,11 +1231,16 @@ class Payment(TimestampedModel):
         return f"{self.user} — {self.course} — {self.amount} ({self.status})"
     
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        forced_fields = set()
+
         if not self.payment_id:
             self.payment_id = f"pay_{uuid.uuid4().hex[:16]}"
+            forced_fields.add("payment_id")
         
         if not self.idempotency_key:
             self.idempotency_key = f"pay_{uuid.uuid4().hex}"
+            forced_fields.add("idempotency_key")
         
         if self.status == self.SUCCESS:
             existing = Payment.objects.filter(
@@ -1248,9 +1253,16 @@ class Payment(TimestampedModel):
             
             if not self.paid_at:
                 self.paid_at = timezone.now()
+                forced_fields.add("paid_at")
             
         elif self.status == self.REFUNDED and not self.refunded_at:
             self.refunded_at = timezone.now()
+            forced_fields.add("refunded_at")
+
+        if update_fields is not None:
+            kwargs["update_fields"] = list(
+                set(update_fields) | forced_fields | {"updated_at"}
+            )
             
         super().save(*args, **kwargs)
 
