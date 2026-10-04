@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import logging
+import uuid
 from typing import Optional
 from datetime import timedelta
 
@@ -1314,10 +1315,25 @@ def corporate_order_portal(request, token):
                         )
 
                     for participant in participants:
-                        invitation = CorporateInvitation.objects.create(
+                        invitation = CorporateInvitation.objects.filter(
                             order=locked_order,
-                            **participant,
-                        )
+                            email=participant["email"],
+                            status=CorporateInvitation.REVOKED,
+                        ).first()
+
+                        if invitation:
+                            invitation.first_name = participant["first_name"]
+                            invitation.last_name = participant["last_name"]
+                            invitation.status = CorporateInvitation.PENDING
+                            invitation.user = None
+                            invitation.activated_at = None
+                            invitation.token = uuid.uuid4()
+                            invitation.save()
+                        else:
+                            invitation = CorporateInvitation.objects.create(
+                                order=locked_order,
+                                **participant,
+                            )
                         created.append(invitation)
             except ValidationError as exc:
                 messages.error(request, "; ".join(exc.messages))
