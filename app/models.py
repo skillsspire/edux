@@ -738,7 +738,9 @@ class CorporateOrder(TimestampedModel):
         return max(0, self.seats_purchased - self.used_seats)
 
     def recalculate(self):
-        base = Decimal(self.course.final_price or 0)
+        # Базовую цену фиксируем в момент создания заказа, чтобы последующее
+        # изменение цены курса не меняло уже выставленный корпоративный расчёт.
+        base = Decimal(self.base_unit_price or self.course.final_price or 0)
         discount = self.discount_for_seats(self.seats_purchased)
         multiplier = (Decimal("100.00") - discount) / Decimal("100.00")
         unit = (base * multiplier).quantize(Decimal("0.01"))
@@ -824,7 +826,7 @@ class CorporateInvitation(TimestampedModel):
             raise ValidationError("Это приглашение отозвано.")
         if self.status == self.ACTIVATED:
             if self.user_id == user.id:
-                return self.enrollment
+                return Enrollment.objects.get(user=user, course=self.order.course)
             raise ValidationError("Это приглашение уже использовано другим пользователем.")
         if self.order.status != CorporateOrder.PAID:
             raise ValidationError("Корпоративный заказ ещё не оплачен.")
