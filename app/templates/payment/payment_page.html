@@ -123,5 +123,35 @@ document.getElementById('claimForm')?.addEventListener('submit', function(e){
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Отправляем...';
   }
 });
+
+(function pollPaymentStatus(){
+  const statusUrl = "{% url 'payment_status' payment.id %}";
+  let attempts = 0;
+  const maxAttempts = 120;
+
+  async function check(){
+    attempts += 1;
+    try {
+      const response = await fetch(statusUrl, {
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        credentials: 'same-origin'
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.paid && data.has_access && data.learn_url) {
+        window.location.href = data.learn_url;
+        return;
+      }
+    } catch (error) {
+      // Оставляем ручную загрузку чека как резервный сценарий.
+    }
+
+    if (attempts < maxAttempts) {
+      window.setTimeout(check, 5000);
+    }
+  }
+
+  window.setTimeout(check, 5000);
+})();
 </script>
 {% endblock %}
