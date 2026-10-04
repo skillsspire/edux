@@ -145,13 +145,28 @@ class LessonAdmin(admin.ModelAdmin):
         return obj.blocks.count()
 
 # 💰 ФИНАНСЫ (только для superusers)
+@admin.action(description="Подтвердить оплату и открыть доступ")
+def mark_payments_success(modeladmin, request, queryset):
+    count = 0
+    for payment in queryset.select_related("user", "course"):
+        if payment.status != Payment.SUCCESS:
+            payment.status = Payment.SUCCESS
+            payment.save()
+            count += 1
+    modeladmin.message_user(
+        request,
+        f"Оплата подтверждена, доступ открыт: {count}."
+    )
+
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'amount', 'status', 'type', 'created_at', 'revenue_impact']
+    list_display = ['user', 'course', 'amount', 'status', 'type', 'receipt', 'created_at', 'revenue_impact']
     list_filter = ['status', 'type', 'created_at']
-    search_fields = ['user__username', 'course__title', 'kaspi_invoice_id', 'payment_id']
+    search_fields = ['user__username', 'user__email', 'course__title', 'kaspi_invoice_id', 'payment_id']
     readonly_fields = ['created_at', 'updated_at', 'payment_id', 'idempotency_key']
     ordering = ['-created_at']
+    actions = [mark_payments_success]
     
     def revenue_impact(self, obj):
         if obj.status == 'success':
