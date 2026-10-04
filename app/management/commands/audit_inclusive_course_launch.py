@@ -7,6 +7,7 @@ from app.models import Course, Lesson, LessonBlock, Quiz
 
 
 COURSE_SLUG = "inclusive-higher-education"
+EXPECTED_PRICE = Decimal("15000.00")
 
 
 class Command(BaseCommand):
@@ -28,9 +29,10 @@ class Command(BaseCommand):
         if not course.certificate:
             errors.append("Для курса должна быть включена выдача сертификата.")
 
-        if Decimal(course.price or 0) <= 0:
+        if Decimal(course.price or 0) != EXPECTED_PRICE:
             errors.append(
-                "Цена курса не настроена. Платный курс нельзя публиковать с ценой 0."
+                f"Цена курса должна быть {EXPECTED_PRICE:.0f} ₸. "
+                f"Сейчас установлено {Decimal(course.price or 0):.0f} ₸."
             )
 
         modules = course.modules.filter(is_deleted=False, is_active=True)
