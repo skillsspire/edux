@@ -25,6 +25,7 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
+    PracticalResponse,
     Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
