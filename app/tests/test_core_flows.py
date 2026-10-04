@@ -73,6 +73,33 @@ class PublicPageSmokeTests(TestCase):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200, url)
 
+    def test_legacy_progress_endpoint_requires_course_access(self):
+        user = User.objects.create_user(
+            username="no-access-user",
+            email="no-access@example.kz",
+            password="test-password",
+        )
+        lesson = Lesson.objects.get(module__course=self.course)
+        LessonBlock.objects.create(
+            lesson=lesson,
+            block_type="text",
+            order=10,
+            title="Материал",
+            is_required=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            "/api/progress/",
+            {"lesson_id": lesson.id, "progress": 100},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            BlockProgress.objects.filter(user=user, block__lesson=lesson).exists()
+        )
+
+
     def test_checkout_renders_and_reuses_pending_payment(self):
         user = User.objects.create_user(
             username="checkout-user",
