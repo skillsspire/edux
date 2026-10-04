@@ -86,12 +86,14 @@ def first_nonempty(*vals):
     return None
 
 def user_has_course_access(user, course):
-    """Проверяет, имеет ли пользователь доступ к курсу."""
+    """Доступ существует только через явное зачисление на курс."""
     if not user.is_authenticated:
         return False
-    if not course.price or float(course.price or 0) == 0:
-        return True
-    return Enrollment.objects.filter(user=user, course=course).exists()
+    return Enrollment.objects.filter(
+        user=user,
+        course=course,
+        is_deleted=False,
+    ).exists()
 
 def article_card_dto(article, request=None):
     base_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
