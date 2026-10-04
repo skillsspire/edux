@@ -140,14 +140,18 @@ WSGI_APPLICATION = 'app.wsgi.application'
 # Database
 # Используем Supabase PostgreSQL
 DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_SSL_REQUIRE = os.environ.get('DATABASE_SSL_REQUIRE', 'True').strip().lower() not in {
+    '0', 'false', 'no', 'off'
+}
 if DATABASE_URL:
-    # Supabase подключение
+    # Supabase подключение. SSL обязателен по умолчанию; в изолированном
+    # локальном PostgreSQL его можно явно отключить через DATABASE_SSL_REQUIRE=False.
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=True
+            ssl_require=DATABASE_SSL_REQUIRE
         )
     }
 else:
