@@ -1111,29 +1111,31 @@ def enroll_course(request, slug):
             slug=slug,
             status=Course.PUBLISHED,
             is_deleted=False
-        ).only('id', 'slug', 'price').order_by('id').first()
-        
+        ).only('id', 'slug', 'price', 'discount_price').order_by('id').first()
+
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
-        
-        if not user_has_course_access(request.user, course):
+
+        if course.final_price and course.final_price > 0:
+            if not user_has_course_access(request.user, course):
+                messages.info(request, "Сначала необходимо оплатить курс.")
+                return redirect("checkout", slug=course.slug)
+        else:
             Enrollment.objects.get_or_create(user=request.user, course=course)
-        
+
         first_lesson = Lesson.objects.filter(
             module__course=course,
-            is_active=True
+            is_active=True,
+            is_deleted=False,
         ).order_by("module__order", "order").first()
-        
+
         if first_lesson:
             return redirect("lesson_view", course_slug=course.slug, lesson_slug=first_lesson.slug)
-        else:
-            messages.success(request, "Вы успешно записались на курс!")
-            return redirect("course_detail", slug=slug)
-            
-    except Course.DoesNotExist:
-        messages.error(request, "Курс не найден")
-        return redirect("courses_list")
+
+        messages.success(request, "Вы успешно записались на курс!")
+        return redirect("course_detail", slug=slug)
+
     except DatabaseError as e:
         logger.error(f"Database error enrolling in course {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
@@ -1409,8 +1411,20 @@ def create_payment(request, slug):
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
-        
+
+        if Enrollment.objects.filter(
+            user=request.user,
+            course=course,
+            is_deleted=False,
+        ).exists():
+            messages.info(request, "Доступ к этому курсу у вас уже есть.")
+            return redirect("course_learn", course_slug=course.slug)
+
         amount = course.discount_price or course.price or 0
+        if amount <= 0:
+            Enrollment.objects.get_or_create(user=request.user, course=course)
+            return redirect("course_learn", course_slug=course.slug)
+
         payment = Payment.objects.create(
             user=request.user,
             course=course,
