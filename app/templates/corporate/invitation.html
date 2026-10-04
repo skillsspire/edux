@@ -25,7 +25,7 @@
     {% elif not user.is_authenticated %}
       <p>Войдите в существующий аккаунт или создайте новый аккаунт с указанным email.</p>
       <a class="btn btn-primary" href="{% url 'login' %}?next={{ next|urlencode }}">Войти</a>
-      <a class="btn btn-outline" href="{% url 'signup' %}?next={{ next|urlencode }}">Создать аккаунт</a>
+      <a class="btn btn-outline" href="{% url 'signup' %}?next={{ next|urlencode }}&email={{ invitation.email|urlencode }}">Создать аккаунт</a>
     {% elif already_activated %}
       <div class="success">Корпоративный доступ уже активирован.</div>
       <a class="btn btn-primary" href="{% url 'course_learn' invitation.order.course.slug %}">Перейти к курсу</a>
