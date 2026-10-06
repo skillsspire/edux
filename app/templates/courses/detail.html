@@ -815,23 +815,29 @@
             <span>Удобно на телефоне</span>
           </div>
           <div class="feature-item">
-            <span class="feature-icon">💾</span>
-            <span>Материалы для скачивания</span>
+            <span class="feature-icon">⏱</span>
+            <span>{{ course.duration_hours }} академических часов</span>
           </div>
         </div>
         
         <div class="hero-actions">
-          {% if has_access %}
-            <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn-hero btn-hero-primary">
-              🚀 Продолжить обучение
+          {% if has_access and first_lesson %}
+            <a href="{% url 'lesson_view' course.slug first_lesson.slug %}" class="btn-hero btn-hero-primary">
+              Продолжить обучение
             </a>
-          {% else %}
-            <form action="{% url 'enroll_course' course.slug %}" method="post" style="display: inline;">
+          {% elif not user.is_authenticated %}
+            <a href="{% url 'signup' %}?next={% url 'course_detail' course.slug %}" class="btn-hero btn-hero-primary">
+              Зарегистрироваться
+            </a>
+          {% elif course.final_price == 0 %}
+            <form action="{% url 'enroll_course' course.slug %}" method="post" style="display:inline;">
               {% csrf_token %}
-              <button type="submit" class="btn-hero btn-hero-primary">
-                📝 Записаться на курс
-              </button>
+              <button type="submit" class="btn-hero btn-hero-primary">Начать обучение</button>
             </form>
+          {% else %}
+            <a href="{% url 'checkout' course.slug %}" class="btn-hero btn-hero-primary">
+              Оплатить и начать
+            </a>
           {% endif %}
           
           <a href="#program" class="btn-hero btn-hero-outline">
@@ -845,31 +851,49 @@
         <div class="course-enrollment-card">
           <div class="price-display">
             <div class="price-label">Стоимость курса</div>
-            <div class="price-amount free">Бесплатно</div>
-            <div class="price-note">Без скрытых платежей</div>
+            {% if course.final_price == 0 %}
+              <div class="price-amount free">Бесплатно</div>
+            {% else %}
+              {% if course.has_discount %}
+                <div class="price-note"><s>{{ course.price|floatformat:0|intcomma }} ₸</s></div>
+              {% endif %}
+              <div class="price-amount">{{ course.final_price|floatformat:0|intcomma }} ₸</div>
+            {% endif %}
+            <div class="price-note">100% предоплата • доступ после подтверждения оплаты</div>
           </div>
           
           <div class="enrollment-actions">
-            {% if has_access %}
-              <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn-enroll btn-enroll-primary">
-                🎯 Перейти к урокам
+            {% if has_access and first_lesson %}
+              <a href="{% url 'lesson_view' course.slug first_lesson.slug %}" class="btn-enroll btn-enroll-primary">
+                Перейти к обучению
               </a>
-            {% else %}
+            {% elif not user.is_authenticated %}
+              <a href="{% url 'signup' %}?next={% url 'course_detail' course.slug %}" class="btn-enroll btn-enroll-primary">
+                Зарегистрироваться
+              </a>
+            {% elif course.final_price == 0 %}
               <form action="{% url 'enroll_course' course.slug %}" method="post">
                 {% csrf_token %}
-                <button type="submit" class="btn-enroll btn-enroll-primary">
-                  ✅ Записаться бесплатно
+                <button type="submit" class="btn-enroll btn-enroll-primary">Начать обучение</button>
+              </form>
+            {% else %}
+              <a href="{% url 'checkout' course.slug %}" class="btn-enroll btn-enroll-primary">
+                Оплатить курс
+              </a>
+            {% endif %}
+            
+            <a href="{% url 'corporate_order_request' course.slug %}" class="btn-wishlist btn-enroll">
+              Для организации
+            </a>
+
+            {% if user.is_authenticated %}
+              <form action="{% url 'toggle_wishlist' course.slug %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-wishlist btn-enroll" style="width:100%;">
+                  {% if is_in_wishlist %}Удалить из избранного{% else %}Добавить в избранное{% endif %}
                 </button>
               </form>
             {% endif %}
-            
-            <a href="{% url 'toggle_wishlist' course.slug %}" class="btn-wishlist btn-enroll">
-              {% if is_in_wishlist %}
-                ❤️ Удалить из избранного
-              {% else %}
-                🤍 Добавить в избранное
-              {% endif %}
-            </a>
           </div>
         </div>
       </div>
@@ -891,7 +915,7 @@
         <div class="course-stats">
           <div class="stat-item">
             <div class="stat-number">{{ lessons|length }}</div>
-            <div class="stat-label">Уроков</div>
+            <div class="stat-label">Тем</div>
           </div>
           <div class="stat-item">
             <div class="stat-number">♾️</div>
@@ -935,7 +959,7 @@
               <div class="module-name">
                 <h3>{{ module.title|default:"Модуль "|add:forloop.counter }}</h3>
                 <div class="module-meta">
-                  {{ module.lessons.count }} уроков • {{ module.total_duration }} минут
+                  {{ module.lessons.count }} тем • {{ module.total_duration }} минут учебных материалов
                 </div>
               </div>
             </div>
@@ -948,10 +972,7 @@
               <div class="lesson-item">
                 <div class="lesson-info">
                   <div class="lesson-icon">
-                    {% if lesson.lesson_type == 'video' %}📹
-                    {% elif lesson.lesson_type == 'text' %}📝
-                    {% elif lesson.lesson_type == 'quiz' %}❓
-                    {% else %}📚{% endif %}
+                    {{ forloop.counter }}
                   </div>
                   <div class="lesson-title">
                     <h4>{{ lesson.title }}</h4>
@@ -962,12 +983,12 @@
                 </div>
                 
                 {% if has_access %}
-                  <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn-lesson btn-lesson-primary">
-                    {% if lesson.completed %}👀 Повторить{% else %}▶️ Смотреть{% endif %}
+                  <a href="{% url 'lesson_view' course.slug lesson.slug %}" class="btn-lesson btn-lesson-primary">
+                    Открыть
                   </a>
                 {% else %}
                   <span class="btn-lesson" style="background: var(--color-border); color: var(--color-text-tertiary); padding: 0.6rem 1.2rem; border-radius: 8px;">
-                    🔒 Доступ после записи
+                    Доступ после оплаты
                   </span>
                 {% endif %}
               </div>
@@ -1045,10 +1066,10 @@
         <div class="review-card">
           <div class="review-header">
             <div class="reviewer-avatar">
-              {{ review.user.first_name|first|default:review.name|first|default:"A" }}
+              {{ review.user.first_name|first|default:review.user.username|first|default:"A" }}
             </div>
             <div class="reviewer-info">
-              <h4>{{ review.name|default:"Аноним" }}</h4>
+              <h4>{{ review.user.get_full_name|default:review.user.username|default:"Аноним" }}</h4>
               <div class="date">{{ review.created_at|date:"d M Y" }}</div>
             </div>
           </div>

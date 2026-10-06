@@ -1,4 +1,6 @@
 from decimal import Decimal
+from datetime import timedelta
+import math
 import logging
 from typing import Optional
 import uuid
@@ -82,6 +84,11 @@ class UserProfile(TimestampedModel):
     course_updates = models.BooleanField("Обновления курсов", default=True)
     newsletter = models.BooleanField("Рассылка", default=False)
     push_reminders = models.BooleanField("Напоминания", default=True)
+
+    offer_accepted_at = models.DateTimeField("Оферта принята", null=True, blank=True)
+    privacy_accepted_at = models.DateTimeField("Согласие на обработку ПД", null=True, blank=True)
+    offer_version = models.CharField("Версия оферты", max_length=50, blank=True)
+    privacy_version = models.CharField("Версия согласия", max_length=50, blank=True)
     
     is_deleted = models.BooleanField("Удалён", default=False)
     deleted_at = models.DateTimeField("Удалён", null=True, blank=True)
@@ -512,7 +519,7 @@ class Lesson(TimestampedModel):
         super().save(*args, **kwargs)
     
     def get_absolute_url(self):
-        return reverse("lesson_detail", args=[self.module.course.slug, self.slug])
+        return reverse("lesson_view", args=[self.module.course.slug, self.slug])
     
     def soft_delete(self):
         self.is_deleted = True
@@ -628,9 +635,297 @@ class BlockProgress(TimestampedModel):
         super().save(*args, **kwargs)
 
 
+class PracticalResponse(TimestampedModel):
+    """Текстовый ответ слушателя на практическое задание LessonBlock."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="practical_responses",
+        verbose_name="Пользователь",
+    )
+    block = models.ForeignKey(
+        LessonBlock,
+        on_delete=models.CASCADE,
+        related_name="practical_responses",
+        verbose_name="Практическое задание",
+    )
+    text = models.TextField("Ответ")
+
+    class Meta:
+        verbose_name = "Ответ на практическое задание"
+        verbose_name_plural = "Ответы на практические задания"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "block"],
+                name="uniq_practical_response_user_block",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "block"], name="pract_resp_user_block_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.block}"
+
+    def clean(self):
+        if self.block_id and self.block.block_type != "assignment":
+            raise ValidationError("Ответ можно сохранить только для блока-задания.")
+        if not (self.text or "").strip():
+            raise ValidationError({"text": "Ответ не может быть пустым."})
+
+    def save(self, *args, **kwargs):
+        self.text = (self.text or "").strip()
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class Organization(TimestampedModel):
+    name = models.CharField("Наименование организации", max_length=255)
+    bin = models.CharField("БИН", max_length=20, unique=True)
+    legal_address = models.CharField("Юридический адрес", max_length=500, blank=True)
+    contact_name = models.CharField("Контактное лицо", max_length=255)
+    contact_email = models.EmailField("Email контактного лица")
+    contact_phone = models.CharField("Телефон контактного лица", max_length=30)
+    is_active = models.BooleanField("Активна", default=True)
+
+    class Meta:
+        verbose_name = "Организация"
+        verbose_name_plural = "Организации"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.bin})"
+
+
+class CorporateOrder(TimestampedModel):
+    REQUESTED = "requested"
+    INVOICED = "invoiced"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+    STATUS_CHOICES = [
+        (REQUESTED, "Заявка получена"),
+        (INVOICED, "Счёт выставлен"),
+        (PAID, "Оплачен"),
+        (CANCELLED, "Отменён"),
+    ]
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="orders",
+        verbose_name="Организация",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.PROTECT,
+        related_name="corporate_orders",
+        verbose_name="Курс",
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="corporate_orders_requested",
+        verbose_name="Создал заявку",
+    )
+    seats_purchased = models.PositiveIntegerField("Количество мест")
+    base_unit_price = models.DecimalField("Базовая цена за место", max_digits=10, decimal_places=2)
+    discount_percent = models.DecimalField("Корпоративная скидка, %", max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    unit_price = models.DecimalField("Цена за место после скидки", max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField("Сумма заказа", max_digits=12, decimal_places=2)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=REQUESTED)
+    order_number = models.CharField("Номер заказа", max_length=40, unique=True, blank=True)
+    manage_token = models.UUIDField("Токен кабинета заказчика", default=uuid.uuid4, unique=True, editable=False)
+    paid_at = models.DateTimeField("Оплачен", null=True, blank=True)
+    notes = models.TextField("Комментарий", blank=True)
+
+    class Meta:
+        verbose_name = "Корпоративный заказ"
+        verbose_name_plural = "Корпоративные заказы"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["organization", "course"]),
+        ]
+
+    def __str__(self):
+        return f"{self.order_number or 'Новый заказ'} — {self.organization} — {self.course}"
+
+    @staticmethod
+    def discount_for_seats(seats):
+        seats = int(seats or 0)
+        if seats >= 50:
+            return Decimal("18.00")
+        if seats >= 30:
+            return Decimal("17.00")
+        if seats >= 20:
+            return Decimal("13.00")
+        if seats >= 15:
+            return Decimal("10.00")
+        if seats >= 10:
+            return Decimal("7.00")
+        if seats >= 5:
+            return Decimal("3.00")
+        return Decimal("0.00")
+
+    @property
+    def used_seats(self):
+        return self.invitations.exclude(status=CorporateInvitation.REVOKED).count()
+
+    @property
+    def activated_seats(self):
+        return self.invitations.filter(status=CorporateInvitation.ACTIVATED).count()
+
+    @property
+    def completed_seats(self):
+        return self.invitations.filter(
+            status=CorporateInvitation.ACTIVATED,
+            enrollment__completed=True,
+        ).count()
+
+    @property
+    def remaining_seats(self):
+        return max(0, self.seats_purchased - self.used_seats)
+
+    def recalculate(self):
+        # Базовую цену фиксируем в момент создания заказа, чтобы последующее
+        # изменение цены курса не меняло уже выставленный корпоративный расчёт.
+        base = Decimal(self.base_unit_price or self.course.final_price or 0)
+        discount = self.discount_for_seats(self.seats_purchased)
+        multiplier = (Decimal("100.00") - discount) / Decimal("100.00")
+        unit = (base * multiplier).quantize(Decimal("0.01"))
+        self.base_unit_price = base
+        self.discount_percent = discount
+        self.unit_price = unit
+        self.total_amount = (unit * Decimal(self.seats_purchased or 0)).quantize(Decimal("0.01"))
+
+    def clean(self):
+        if not self.seats_purchased or self.seats_purchased < 1:
+            raise ValidationError({"seats_purchased": "Количество мест должно быть не меньше 1."})
+        if self.pk:
+            used = self.invitations.exclude(status=CorporateInvitation.REVOKED).count()
+            if self.seats_purchased < used:
+                raise ValidationError({
+                    "seats_purchased": (
+                        f"Нельзя уменьшить количество мест до {self.seats_purchased}: "
+                        f"уже распределено {used}."
+                    )
+                })
+
+    def save(self, *args, **kwargs):
+        if not self.order_number:
+            self.order_number = f"CORP-{timezone.localdate():%Y}-{uuid.uuid4().hex[:8].upper()}"
+        self.recalculate()
+        self.full_clean()
+        if self.status == self.PAID and not self.paid_at:
+            self.paid_at = timezone.now()
+        super().save(*args, **kwargs)
+
+
+class CorporateInvitation(TimestampedModel):
+    PENDING = "pending"
+    ACTIVATED = "activated"
+    REVOKED = "revoked"
+    STATUS_CHOICES = [
+        (PENDING, "Приглашён"),
+        (ACTIVATED, "Доступ активирован"),
+        (REVOKED, "Приглашение отозвано"),
+    ]
+
+    order = models.ForeignKey(
+        CorporateOrder,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+        verbose_name="Корпоративный заказ",
+    )
+    email = models.EmailField("Email слушателя")
+    first_name = models.CharField("Имя", max_length=100)
+    last_name = models.CharField("Фамилия", max_length=100)
+    token = models.UUIDField("Токен приглашения", default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="corporate_invitations",
+        verbose_name="Пользователь",
+    )
+    activated_at = models.DateTimeField("Активировано", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Корпоративное приглашение"
+        verbose_name_plural = "Корпоративные приглашения"
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["order", "email"], name="uniq_corporate_order_invite_email"),
+        ]
+        indexes = [
+            models.Index(fields=["order", "status"]),
+            models.Index(fields=["email", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.last_name} {self.first_name} — {self.email}"
+
+    def clean(self):
+        if self.order_id and self.status != self.REVOKED:
+            if self.order.status != CorporateOrder.PAID:
+                raise ValidationError("Приглашения можно выдавать только после подтверждения оплаты.")
+            existing = self.order.invitations.exclude(pk=self.pk).exclude(status=self.REVOKED).count()
+            if existing >= self.order.seats_purchased:
+                raise ValidationError("Все оплаченные места уже распределены.")
+
+    def save(self, *args, **kwargs):
+        self.email = (self.email or "").strip().lower()
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def activate_for(self, user):
+        if self.status == self.REVOKED:
+            raise ValidationError("Это приглашение отозвано.")
+        if self.status == self.ACTIVATED:
+            if self.user_id == user.id:
+                return Enrollment.objects.get(user=user, course=self.order.course)
+            raise ValidationError("Это приглашение уже использовано другим пользователем.")
+        if self.order.status != CorporateOrder.PAID:
+            raise ValidationError("Корпоративный заказ ещё не оплачен.")
+        if (user.email or "").strip().lower() != self.email:
+            raise ValidationError(
+                "Email аккаунта должен совпадать с email, на который отправлено приглашение."
+            )
+
+        enrollment, _ = Enrollment.objects.get_or_create(
+            user=user,
+            course=self.order.course,
+        )
+        if enrollment.corporate_invitation_id and enrollment.corporate_invitation_id != self.id:
+            raise ValidationError("Доступ к этому курсу уже связан с другим корпоративным приглашением.")
+
+        enrollment.corporate_invitation = self
+        enrollment.is_deleted = False
+        enrollment.deleted_at = None
+        enrollment.save(update_fields=["corporate_invitation", "is_deleted", "deleted_at", "updated_at"])
+
+        self.user = user
+        self.status = self.ACTIVATED
+        self.activated_at = timezone.now()
+        super().save(update_fields=["user", "status", "activated_at", "updated_at"])
+        return enrollment
+
+
 class Enrollment(TimestampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments", verbose_name="Пользователь")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments", verbose_name="Курс")
+    corporate_invitation = models.OneToOneField(
+        CorporateInvitation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="enrollment",
+        verbose_name="Корпоративное место",
+    )
     
     completed = models.BooleanField("Курс завершён", default=False)
     completed_at = models.DateTimeField("Завершён", null=True, blank=True)
@@ -660,6 +955,128 @@ class Enrollment(TimestampedModel):
         self.is_deleted = True
         self.deleted_at = timezone.now()
         self.save()
+
+
+class CertificateRequest(TimestampedModel):
+    WITH_PERIOD = "with_period"
+    WITHOUT_PERIOD = "without_period"
+    PERIOD_CHOICES = [
+        (WITH_PERIOD, "С периодом обучения"),
+        (WITHOUT_PERIOD, "Без периода обучения"),
+    ]
+
+    PENDING = "pending"
+    ISSUED = "issued"
+    REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (PENDING, "На проверке"),
+        (ISSUED, "Выдан"),
+        (REJECTED, "Отклонён"),
+    ]
+
+    enrollment = models.OneToOneField(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="certificate_request",
+        verbose_name="Зачисление",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="certificate_requests",
+        verbose_name="Пользователь",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="certificate_requests",
+        verbose_name="Курс",
+    )
+    period_mode = models.CharField(
+        "Период на сертификате",
+        max_length=20,
+        choices=PERIOD_CHOICES,
+    )
+    period_start = models.DateField("Дата начала", null=True, blank=True)
+    period_end = models.DateField("Дата окончания", null=True, blank=True)
+    status = models.CharField("Статус", max_length=20, choices=STATUS_CHOICES, default=PENDING)
+
+    external_number = models.CharField("Номер сертификата", max_length=100, blank=True)
+    pdf_url = models.URLField("Ссылка на PDF", blank=True)
+    verify_url = models.URLField("Ссылка проверки", blank=True)
+    issued_at = models.DateTimeField("Выдан", null=True, blank=True)
+
+    external_request_id = models.CharField("ID заявки во внешней системе", max_length=120, blank=True)
+    synced_at = models.DateTimeField("Передано в реестр", null=True, blank=True)
+    sync_error = models.TextField("Ошибка синхронизации", blank=True)
+
+    class Meta:
+        verbose_name = "Заявка на сертификат"
+        verbose_name_plural = "Заявки на сертификаты"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} — {self.course} — {self.get_period_mode_display()}"
+
+    @property
+    def minimum_training_days(self):
+        hours = int(self.course.duration_hours or 0)
+        return max(1, math.ceil(hours / 8)) if hours else 1
+
+    @property
+    def actual_training_days(self):
+        if not self.enrollment.completed_at:
+            return 0
+        start = self.enrollment.enrolled_at.date()
+        end = self.enrollment.completed_at.date()
+        return (end - start).days + 1
+
+    @property
+    def period_eligible_date(self):
+        """Первая календарная дата, когда сертификат с периодом становится допустим."""
+        start = self.enrollment.enrolled_at.date()
+        return start + timedelta(days=self.minimum_training_days - 1)
+
+    @property
+    def period_is_allowed(self):
+        return (
+            self.enrollment.completed
+            and self.enrollment.completed_at is not None
+            and timezone.localdate() >= self.period_eligible_date
+        )
+
+    @property
+    def certificate_period_end(self):
+        if not self.enrollment.completed_at:
+            return None
+        completion_date = self.enrollment.completed_at.date()
+        return max(completion_date, self.period_eligible_date)
+
+    def clean(self):
+        if not self.enrollment.completed or not self.enrollment.completed_at:
+            raise ValidationError("Сертификат доступен только после завершения курса.")
+
+        self.user = self.enrollment.user
+        self.course = self.enrollment.course
+
+        if self.period_mode == self.WITH_PERIOD:
+            if not self.period_is_allowed:
+                raise ValidationError(
+                    f"Период обучения пока нельзя указать: для курса объёмом "
+                    f"{self.course.duration_hours or 0} часов требуется не менее "
+                    f"{self.minimum_training_days} календарных дней с даты регистрации."
+                )
+            self.period_start = self.enrollment.enrolled_at.date()
+            self.period_end = self.certificate_period_end
+        else:
+            self.period_start = None
+            self.period_end = None
+
+    def save(self, *args, **kwargs):
+        self.user = self.enrollment.user
+        self.course = self.enrollment.course
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Review(TimestampedModel):
@@ -814,11 +1231,16 @@ class Payment(TimestampedModel):
         return f"{self.user} — {self.course} — {self.amount} ({self.status})"
     
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        forced_fields = set()
+
         if not self.payment_id:
             self.payment_id = f"pay_{uuid.uuid4().hex[:16]}"
+            forced_fields.add("payment_id")
         
         if not self.idempotency_key:
             self.idempotency_key = f"pay_{uuid.uuid4().hex}"
+            forced_fields.add("idempotency_key")
         
         if self.status == self.SUCCESS:
             existing = Payment.objects.filter(
@@ -831,11 +1253,23 @@ class Payment(TimestampedModel):
             
             if not self.paid_at:
                 self.paid_at = timezone.now()
+                forced_fields.add("paid_at")
             
         elif self.status == self.REFUNDED and not self.refunded_at:
             self.refunded_at = timezone.now()
+            forced_fields.add("refunded_at")
+
+        if update_fields is not None:
+            kwargs["update_fields"] = list(
+                set(update_fields) | forced_fields | {"updated_at"}
+            )
             
         super().save(*args, **kwargs)
+
+        # Любой подтверждённый платёж открывает доступ к курсу независимо
+        # от того, подтверждён он webhook-ом или вручную администратором.
+        if self.status == self.SUCCESS:
+            Enrollment.objects.get_or_create(user=self.user, course=self.course)
     
     def soft_delete(self):
         self.is_deleted = True
@@ -991,6 +1425,11 @@ class Quiz(TimestampedModel):
     passing_score = models.PositiveIntegerField("Проходной балл", default=70)
     time_limit = models.PositiveIntegerField("Лимит времени (мин)", null=True, blank=True)
     attempts_allowed = models.PositiveIntegerField("Попыток разрешено", default=1)
+    unlimited_attempts = models.BooleanField(
+        "Неограниченные попытки",
+        default=False,
+        help_text="Если включено, числовое ограничение attempts_allowed не применяется."
+    )
     is_active = models.BooleanField("Активен", default=True)
     
     description = models.TextField("Описание", blank=True)
@@ -1051,6 +1490,46 @@ class Answer(TimestampedModel):
 
     def __str__(self):
         return f"{self.question.text[:30]} - {self.text[:30]}"
+
+
+class QuizAttempt(TimestampedModel):
+    """Одна завершённая попытка прохождения тематического теста."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quiz_attempts",
+        verbose_name="Пользователь"
+    )
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name="Тест"
+    )
+    attempt_number = models.PositiveIntegerField("Номер попытки", default=1)
+    score_percent = models.PositiveIntegerField("Результат, %", default=0)
+    points_earned = models.PositiveIntegerField("Набрано баллов", default=0)
+    points_total = models.PositiveIntegerField("Всего баллов", default=0)
+    passed = models.BooleanField("Пройден", default=False)
+    answers = models.JSONField("Ответы", default=dict, blank=True)
+    completed_at = models.DateTimeField("Завершена", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Попытка теста"
+        verbose_name_plural = "Попытки тестов"
+        ordering = ["-completed_at", "-id"]
+        indexes = [
+            models.Index(fields=["user", "quiz"]),
+            models.Index(fields=["quiz", "passed"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.quiz} — {self.score_percent}%"
+
+    def save(self, *args, **kwargs):
+        self.score_percent = max(0, min(100, int(self.score_percent or 0)))
+        self.passed = self.score_percent >= self.quiz.passing_score
+        super().save(*args, **kwargs)
 
 
 class Assignment(TimestampedModel):

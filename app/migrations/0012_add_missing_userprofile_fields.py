@@ -1,21 +1,13 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0011_alter_userprofile_platform_role'),
+        ("app", "0011_alter_userprofile_platform_role"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name='userprofile',
-            name='is_deleted',
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name='userprofile',
-            name='deleted_at',
-            field=models.DateTimeField(null=True, blank=True),
-        ),
-    ]
+    # The fields is_deleted/deleted_at are already part of the historical
+    # 0001 state in this repository. The old 0012 attempted to add them a
+    # second time, which made a clean database impossible to migrate.
+    operations = []

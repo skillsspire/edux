@@ -1,0 +1,111 @@
+name: Build PostgreSQL Upgrade SQL
+
+on:
+  push:
+    branches:
+      - inclusive-course-integration
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: upgrade_source
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d upgrade_source"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: "upgrade-build-only-key"
+      EMAIL_BACKEND: "django.core.mail.backends.locmem.EmailBackend"
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:5432/upgrade_source"
+      DATABASE_SSL_REQUIRE: "False"
+      RUN_SCHEMA_ENSURE: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build database through app migration 0012
+        run: python manage.py migrate app 0012_add_missing_userprofile_fields --noinput
+
+      - name: Generate upgrade SQL for app migrations 0013-0019
+        run: |
+          : > skillsspire_upgrade_0013_0019.sql
+          for migration in \
+            0013_quiz_attempts \
+            0014_certificate_request \
+            0015_certificate_sync_fields \
+            0016_userprofile_consents \
+            0017_corporate_orders \
+            0018_sync_model_state \
+            0019_practical_response
+          do
+            echo "" >> skillsspire_upgrade_0013_0019.sql
+            echo "-- ${migration}" >> skillsspire_upgrade_0013_0019.sql
+            python manage.py sqlmigrate app "$migration" >> skillsspire_upgrade_0013_0019.sql
+          done
+
+          printf '%s\n' \
+            '' \
+            '-- Record migrations after their DDL succeeds.' \
+            'INSERT INTO django_migrations (app, name, applied) VALUES' \
+            "('app','0013_quiz_attempts',CURRENT_TIMESTAMP)," \
+            "('app','0014_certificate_request',CURRENT_TIMESTAMP)," \
+            "('app','0015_certificate_sync_fields',CURRENT_TIMESTAMP)," \
+            "('app','0016_userprofile_consents',CURRENT_TIMESTAMP)," \
+            "('app','0017_corporate_orders',CURRENT_TIMESTAMP)," \
+            "('app','0018_sync_model_state',CURRENT_TIMESTAMP)," \
+            "('app','0019_practical_response',CURRENT_TIMESTAMP);" \
+            >> skillsspire_upgrade_0013_0019.sql
+
+      - name: Validate upgrade SQL against an isolated copy
+        run: |
+          PGPASSWORD=postgres createdb -h 127.0.0.1 -U postgres upgrade_test
+          export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/upgrade_test"
+          python manage.py migrate app 0012_add_missing_userprofile_fields --noinput
+          PGPASSWORD=postgres psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -U postgres -d upgrade_test \
+            -f skillsspire_upgrade_0013_0019.sql >/dev/null
+
+          PGPASSWORD=postgres psql -At \
+            -h 127.0.0.1 -U postgres -d upgrade_test \
+            -c "select count(*) from django_migrations where app='app' and name in ('0013_quiz_attempts','0014_certificate_request','0015_certificate_sync_fields','0016_userprofile_consents','0017_corporate_orders','0018_sync_model_state','0019_practical_response');" \
+            | grep -qx '7'
+
+          PGPASSWORD=postgres psql -At \
+            -h 127.0.0.1 -U postgres -d upgrade_test \
+            -c "select count(*) from pg_tables where schemaname='public' and tablename in ('app_quizattempt','app_certificaterequest','app_organization','app_corporateorder','app_corporateinvitation','app_practicalresponse');" \
+            | grep -qx '6'
+
+      - name: Upload upgrade SQL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skillsspire-postgres-upgrade-0013-0019
+          path: skillsspire_upgrade_0013_0019.sql
+          if-no-files-found: error

@@ -20,6 +20,7 @@ urlpatterns = [
     # 👤 ЛИЧНЫЙ КАБИНЕТ
     path("dashboard/", views.dashboard, name="dashboard"),
     path("my-courses/", views.my_courses, name="my_courses"),
+    path("certificates/<slug:course_slug>/", views.certificate_options, name="certificate_options"),
 
     # 1️⃣ АДМИНКА (стандартная) — точка управления
     path("admin/", admin.site.urls),
@@ -27,6 +28,8 @@ urlpatterns = [
     # 2️⃣ ПУБЛИЧНЫЕ СТРАНИЦЫ
     path("", views.home, name="home"),
     path("about/", TemplateView.as_view(template_name="about.html"), name="about"),
+    path("terms/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
+    path("privacy/", TemplateView.as_view(template_name="legal/privacy.html"), name="privacy"),
     path("contact/", views.contact, name="contact"),
     path("pricing/", TemplateView.as_view(template_name="pricing.html"), name="pricing"),
     
@@ -35,6 +38,9 @@ urlpatterns = [
     path("courses/", views.courses_list, name="courses_list"),
     path("courses/<slug:slug>/", views.course_detail, name="course_detail"),
     path("courses/<slug:slug>/enroll/", views.enroll_course, name="enroll_course"),
+    path("courses/<slug:slug>/corporate/", views.corporate_order_request, name="corporate_order_request"),
+    path("corporate/orders/<uuid:token>/", views.corporate_order_portal, name="corporate_order_portal"),
+    path("corporate/invitations/<uuid:token>/", views.corporate_invitation_accept, name="corporate_invitation_accept"),
     path("categories/<slug:slug>/", views.category_detail, name="category_detail"),
     
     # 4️⃣ ОБУЧЕНИЕ (LMS — отдельный контекст)
@@ -42,6 +48,9 @@ urlpatterns = [
     path("learn/<slug:course_slug>/", views.course_learn, name="course_learn"),
     path("learn/<slug:course_slug>/<slug:lesson_slug>/", views.lesson_view, name="lesson_view"),
     path("api/progress/", views.update_progress, name="update_progress"),
+    path("api/blocks/<int:block_id>/complete/", views.complete_block, name="complete_block"),
+    path("api/blocks/<int:block_id>/practical-response/", views.submit_practical_response, name="submit_practical_response"),
+    path("api/quizzes/<int:quiz_id>/submit/", views.submit_quiz, name="submit_quiz"),
     
     # 5️⃣ ИНСТРУКТОР (отдельная панель — НЕ Django Admin)
     path("instructor/", views.instructor_dashboard, name="instructor_dashboard"),
@@ -52,11 +61,26 @@ urlpatterns = [
     
     # 6️⃣ АУТЕНТИФИКАЦИЯ (минимально)
     path("login/", auth_views.LoginView.as_view(
-        template_name="auth/login.html",
+        template_name="registration/login.html",
         authentication_form=EmailAuthenticationForm,
         redirect_authenticated_user=True
     ), name="login"),
     
+    path("password-reset/", auth_views.PasswordResetView.as_view(
+        template_name="registration/password_reset.html",
+        email_template_name="registration/password_reset_email.html",
+        subject_template_name="registration/password_reset_subject.txt",
+    ), name="password_reset"),
+    path("password-reset/done/", auth_views.PasswordResetDoneView.as_view(
+        template_name="registration/password_reset_done.html",
+    ), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(
+        template_name="registration/password_reset_confirm.html",
+    ), name="password_reset_confirm"),
+    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(
+        template_name="registration/password_reset_complete.html",
+    ), name="password_reset_complete"),
+
     path("logout/", auth_views.LogoutView.as_view(next_page="/"), name="logout"),
     path("signup/", views.signup, name="signup"),
     path("account/", views.account_settings, name="account_settings"),
@@ -65,7 +89,10 @@ urlpatterns = [
     # 7️⃣ ОПЛАТА (единый flow)
     path("checkout/<slug:slug>/", views.checkout, name="checkout"),
     path("checkout/<slug:slug>/confirm/", views.checkout_confirm, name="checkout_confirm"),
+    path("checkout/<slug:slug>/thanks/", views.payment_thanks, name="payment_thanks"),
     path("payment/webhook/", views.payment_webhook, name="payment_webhook"),
+    path("api/payments/<int:payment_id>/status/", views.payment_status, name="payment_status"),
+    path("api/certificates/registry-callback/", views.certificate_registry_callback, name="certificate_registry_callback"),
     
     # 8️⃣ API (только по необходимости)
     path("api/courses/", views.api_courses, name="api_courses"),

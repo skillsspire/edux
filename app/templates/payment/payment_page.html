@@ -33,8 +33,13 @@
             <i class="bi bi-info-circle me-2 fs-5"></i>
             <div>
               Переведите <strong>{{ amount }} ₸</strong> по кнопке ниже в Kaspi.kz.
-              После оплаты вернитесь сюда, прикрепите чек и нажмите «Я оплатил(а)».
-              Мы проверим платёж и откроем доступ к курсу.
+              {% if automatic_payment_enabled %}
+                После подтверждения оплаты Kaspi доступ откроется автоматически, и эта страница сама перенаправит вас к курсу.
+                Если автоматическое подтверждение не сработало, можно приложить чек ниже.
+              {% else %}
+                После оплаты вернитесь сюда, приложите чек и нажмите «Я оплатил(а)».
+                После подтверждения доступ откроется автоматически.
+              {% endif %}
             </div>
           </div>
 
@@ -46,19 +51,14 @@
           <hr class="my-4">
 
           <form method="post"
-                action="{% url 'payment_claim' course.slug %}"
+                action="{% url 'checkout_confirm' course.slug %}"
                 enctype="multipart/form-data" id="claimForm">
             {% csrf_token %}
 
             <div class="mb-3">
-              <label class="form-label">Комментарий / номер перевода (необязательно)</label>
-              <input type="text" name="note" class="form-control" placeholder="напр. QR123456 или примечание">
-            </div>
-
-            <div class="mb-3">
               <label class="form-label">Чек(и) об оплате (PDF/JPG/PNG, можно несколько)</label>
-              <input type="file" name="receipts" accept=".pdf,image/*" multiple class="form-control">
-              <div class="form-text">Если нет файла — сделайте скриншот из Kaspi.</div>
+              <input type="file" name="receipt" accept=".pdf,image/*" class="form-control">
+              <div class="form-text">Если нет PDF — приложите скриншот из Kaspi.</div>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">
@@ -80,8 +80,8 @@
               <span class="text-muted">Статус:</span>
               {% if last_payment.status == 'success' %}
                 <span class="badge bg-success">оплачен</span>
-              {% elif last_payment.status == 'claimed' %}
-                <span class="badge bg-warning text-dark">на проверке</span>
+              {% elif last_payment.status == 'pending' and last_payment.receipt %}
+                <span class="badge bg-warning text-dark">чек отправлен, на проверке</span>
               {% elif last_payment.status == 'pending' %}
                 <span class="badge bg-secondary">ожидает оплаты</span>
               {% else %}
@@ -95,8 +95,8 @@
               </div>
             {% endif %}
             <div class="text-muted small">
-              Создан: {{ last_payment.created|date:"d.m.Y H:i" }}<br>
-              Обновлён: {{ last_payment.updated|date:"d.m.Y H:i" }}
+              Создан: {{ last_payment.created_at|date:"d.m.Y H:i" }}<br>
+              Обновлён: {{ last_payment.updated_at|date:"d.m.Y H:i" }}
             </div>
           {% else %}
             <p class="text-muted mb-0">Платёж ещё не создан. Нажмите «Открыть Kaspi QR», оплатите и отправьте чек.</p>
@@ -109,8 +109,8 @@
           <h6 class="mb-2">FAQ</h6>
           <ul class="small text-muted mb-0">
             <li>Оплата открывается в новой вкладке Kaspi.kz.</li>
-            <li>Если случайно закрыли эту страницу — вернитесь по меню «Мои курсы» → оплата.</li>
-            <li>Проверка занимает обычно до 1–2 часов в рабочее время.</li>
+            <li>Если автоматическое подтверждение доступно, страница проверяет статус каждые 5 секунд.</li>
+            <li>Чек остаётся резервным способом подтверждения оплаты.</li>
           </ul>
         </div>
       </div>
@@ -128,5 +128,35 @@ document.getElementById('claimForm')?.addEventListener('submit', function(e){
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Отправляем...';
   }
 });
+
+(function pollPaymentStatus(){
+  const statusUrl = "{% url 'payment_status' payment.id %}";
+  let attempts = 0;
+  const maxAttempts = 120;
+
+  async function check(){
+    attempts += 1;
+    try {
+      const response = await fetch(statusUrl, {
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        credentials: 'same-origin'
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.paid && data.has_access && data.learn_url) {
+        window.location.href = data.learn_url;
+        return;
+      }
+    } catch (error) {
+      // Оставляем ручную загрузку чека как резервный сценарий.
+    }
+
+    if (attempts < maxAttempts) {
+      window.setTimeout(check, 5000);
+    }
+  }
+
+  window.setTimeout(check, 5000);
+})();
 </script>
 {% endblock %}

@@ -1,4 +1,4 @@
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -7,8 +7,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db import DatabaseError, ProgrammingError
-from django.db.models import Q, Avg, Count, Sum
+from django.core.mail import send_mail
+from django.db import DatabaseError, ProgrammingError, transaction
+from django.db.models import Q, Avg, Count, Sum, Max, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -16,16 +17,25 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse
 from django.utils.translation import get_language
+from django.utils.http import url_has_allowed_host_and_scheme
 
 import hmac
 import hashlib
 import json
 import os
 import logging
+import uuid
 from typing import Optional
 from datetime import timedelta
 
-from .forms import ContactForm, CustomUserCreationForm, ReviewForm
+from .forms import (
+    ContactForm,
+    CustomUserCreationForm,
+    ReviewForm,
+    CorporateOrderRequestForm,
+    CorporateParticipantsForm,
+)
+from .certificate_sync import CertificateRegistryError, sync_certificate_request
 from .models import (
     Category,
     Course,
@@ -41,10 +51,11 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, PracticalResponse, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
-    CourseStaff, AuditLog
+    CourseStaff, AuditLog,
+    Organization, CorporateOrder, CorporateInvitation
 )
 
 logger = logging.getLogger(__name__)
@@ -76,12 +87,14 @@ def first_nonempty(*vals):
     return None
 
 def user_has_course_access(user, course):
-    """Проверяет, имеет ли пользователь доступ к курсу."""
+    """Доступ существует только через явное зачисление на курс."""
     if not user.is_authenticated:
         return False
-    if not course.price or float(course.price or 0) == 0:
-        return True
-    return Enrollment.objects.filter(user=user, course=course).exists()
+    return Enrollment.objects.filter(
+        user=user,
+        course=course,
+        is_deleted=False,
+    ).exists()
 
 def article_card_dto(article, request=None):
     base_url = f"{settings.STATIC_URL}img/articles/article-placeholder.jpg"
@@ -126,10 +139,13 @@ def kaspi_webhook(request):
 
     signature = request.headers.get("X-Kaspi-Signature") or ""
     body = request.body
-    secret = getattr(settings, "KASPI_SECRET", None)
+    secret = (
+        getattr(settings, "KASPI_WEBHOOK_SECRET", "")
+        or getattr(settings, "KASPI_SECRET", "")
+    )
     if not secret:
-        logger.error("KASPI_SECRET is not set in settings")
-        return JsonResponse({"error": "KASPI_SECRET is not set"}, status=500)
+        logger.error("Kaspi webhook secret is not configured")
+        return JsonResponse({"error": "Webhook is not configured"}, status=503)
 
     try:
         expected_signature = hmac.new(
@@ -172,7 +188,6 @@ def kaspi_webhook(request):
 
         if status == "success":
             Enrollment.objects.get_or_create(user=payment.user, course=payment.course)
-            payment.course.students.add(payment.user)
             logger.info(f"Payment {invoice_id} succeeded for user {payment.user.id}")
 
         return JsonResponse({"status": "ok"})
@@ -189,9 +204,11 @@ def kaspi_webhook(request):
 
 @csrf_protect
 def signup(request):
+    next_url = request.POST.get("next") or request.GET.get("next") or ""
+
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
-        
+
         if form.is_valid():
             try:
                 user = form.save()
@@ -203,6 +220,12 @@ def signup(request):
                 if auth_user is not None:
                     login(request, auth_user)
                     messages.success(request, "Регистрация прошла успешно! Добро пожаловать!")
+                    if next_url and url_has_allowed_host_and_scheme(
+                        next_url,
+                        allowed_hosts={request.get_host()},
+                        require_https=request.is_secure(),
+                    ):
+                        return redirect(next_url)
                     return redirect("home")
                 messages.warning(request, "Аккаунт создан, но автологин не сработал. Войдите вручную.")
                 return redirect("login")
@@ -210,14 +233,19 @@ def signup(request):
                 logger.error(f"Error during user registration: {str(e)}", exc_info=True)
                 messages.error(request, "Произошла ошибка при создании аккаунта")
         else:
-            if 'captcha' in form.errors:
+            if "captcha" in form.errors:
                 messages.error(request, "Пожалуйста, пройдите проверку reCAPTCHA.")
             else:
                 messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
-        form = CustomUserCreationForm()
-    
-    return render(request, "registration/signup.html", {"form": form})
+        form = CustomUserCreationForm(initial={
+            "email": request.GET.get("email", ""),
+        })
+
+    return render(request, "registration/signup.html", {
+        "form": form,
+        "next": next_url,
+    })
 
 def home(request):
     language = get_language() or 'ru'
@@ -607,100 +635,76 @@ def materials_list(request):
     return render(request, "materials/list.html", context)
 
 def course_detail(request, slug):
-    cache_key = f'course_detail_v{CACHE_VERSION}_{slug}'
-    
-    if not request.user.is_authenticated:
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            if request.user.is_authenticated:
-                cached_data = _enrich_course_data(cached_data, request.user)
-            return render(request, "courses/detail.html", cached_data)
-    
     try:
-        course_obj = Course.objects.filter(
+        course_obj = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
             slug=slug,
             status=Course.PUBLISHED,
-            is_deleted=False
-        ).select_related("category", "instructor").only(
-            'id', 'title', 'slug', 'price', 'short_description', 'description',
-            'category_id', 'category__name', 'category__slug',
-            'instructor_id', 'instructor__first_name', 'instructor__last_name',
-            'created_at'
-        ).order_by('id').first()
-        
-        if not course_obj:
-            raise Http404("Курс не найден")
-        
-        course_data = course_card_dto(course_obj)
-        course_data.update({
-            'description': course_obj.description or "",
-            'instructor': {
-                'name': f"{course_obj.instructor.first_name or ''} {course_obj.instructor.last_name or ''}".strip() if course_obj.instructor else "",
-            },
-        })
+            is_deleted=False,
+        )
 
-        has_access = False
-        is_in_wishlist = False
-        if request.user.is_authenticated:
-            has_access = user_has_course_access(request.user, course_obj)
-            is_in_wishlist = Wishlist.objects.filter(
-                user=request.user, 
-                course=course_obj
-            ).exists()
+        lesson_qs = Lesson.objects.filter(
+            is_active=True,
+            is_deleted=False,
+        ).order_by("order", "id")
 
-        try:
-            modules = list(Module.objects.filter(
-                course=course_obj, 
-                is_active=True
-            ).only(
-                'id', 'title', 'order', 'is_active'
-            ).order_by("order")[:20])
-        except Exception:
-            modules = []
+        modules = list(
+            Module.objects.filter(
+                course=course_obj,
+                is_active=True,
+                is_deleted=False,
+            ).prefetch_related(
+                Prefetch("lessons", queryset=lesson_qs)
+            ).order_by("order", "id")
+        )
 
-        related_courses_qs = Course.objects.filter(
+        lessons = []
+        for module in modules:
+            module_lessons = list(module.lessons.all())
+            module.total_duration = sum((lesson.duration_minutes or 0) for lesson in module_lessons)
+            lessons.extend(module_lessons)
+
+        first_lesson = lessons[0] if lessons else None
+
+        has_access = user_has_course_access(request.user, course_obj)
+        is_in_wishlist = (
+            request.user.is_authenticated
+            and Wishlist.objects.filter(user=request.user, course=course_obj).exists()
+        )
+
+        teacher_profile = None
+        if course_obj.instructor_id:
+            teacher_profile = InstructorProfile.objects.filter(
+                user_id=course_obj.instructor_id,
+                is_deleted=False,
+            ).first()
+
+        reviews = Review.objects.filter(
+            course=course_obj,
+            is_active=True,
+        ).select_related("user").order_by("-created_at")[:10]
+
+        related_courses = Course.objects.filter(
             category=course_obj.category,
             status=Course.PUBLISHED,
-            is_deleted=False
-        ).exclude(id=course_obj.id).only(
-            'id', 'title', 'slug', 'price', 'short_description'
-        )[:4]
-        
-        related_courses = [course_card_dto(course) for course in related_courses_qs]
+            is_deleted=False,
+        ).exclude(id=course_obj.id).select_related("category")[:4]
 
-        reviews = list(Review.objects.filter(
-            course=course_obj, 
-            is_active=True
-        ).select_related('user').only(
-            'rating', 'comment', 'created_at',
-            'user__first_name', 'user__last_name'
-        )[:10].values(
-            'rating', 'comment', 'created_at',
-            'user__first_name', 'user__last_name'
-        ))
-
-        context = {
-            "course": course_data,
+        return render(request, "courses/detail.html", {
+            "course": course_obj,
             "has_access": has_access,
             "is_in_wishlist": is_in_wishlist,
             "modules": modules,
-            "related_courses": related_courses,
+            "lessons": lessons,
+            "first_lesson": first_lesson,
+            "teacher_profile": teacher_profile,
             "reviews": reviews,
-        }
-        
-        if not request.user.is_authenticated:
-            cache.set(cache_key, context, 600)
-        
-    except Course.DoesNotExist:
-        raise Http404("Курс не найден")
+            "related_courses": related_courses,
+        })
+
     except DatabaseError as e:
         logger.error(f"Database error loading course {slug}: {str(e)}", exc_info=True)
-        raise Http404("Курс не найден")
-    except Exception as e:
-        logger.error(f"Error loading course {slug}: {str(e)}", exc_info=True)
-        raise Http404("Курс не найден")
-    
-    return render(request, "courses/detail.html", context)
+        raise Http404("Курс временно недоступен")
 
 def _enrich_course_data(cached_data, user):
     if not user.is_authenticated:
@@ -774,98 +778,334 @@ def lesson_view(request, course_slug, lesson_slug):
 
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
-    try:
-        course_obj = Course.objects.filter(
-            slug=course_slug,
-            status=Course.PUBLISHED,
-            is_deleted=False
-        ).only('id', 'title', 'slug', 'price').order_by('id').first()
-        
-        if not course_obj:
-            raise Http404("Курс не найден")
-        
-        if not user_has_course_access(request.user, course_obj):
-            messages.error(request, "У вас нет доступа к этому уроку")
-            return redirect("course_detail", slug=course_slug)
-        
-        course_data = course_card_dto(course_obj)
+    course_obj = get_object_or_404(
+        Course,
+        slug=course_slug,
+        status=Course.PUBLISHED,
+        is_deleted=False,
+    )
 
-        try:
-            lesson = Lesson.objects.filter(
-                slug=lesson_slug, 
-                module__course=course_obj, 
-                is_active=True
-            ).select_related("module").only(
-                'id', 'title', 'slug', 'content', 'video_url', 'duration',
-                'module_id', 'module__title', 'module__order'
-            ).order_by('id').first()
-            
-            if not lesson:
-                raise Http404("Урок не найден")
-                
-        except Lesson.DoesNotExist:
-            raise Http404("Урок не найден")
-        except Exception:
-            messages.error(request, "Урок недоступен")
-            return redirect("course_detail", slug=course_slug)
+    if not user_has_course_access(request.user, course_obj):
+        messages.error(request, "У вас нет доступа к этому уроку")
+        return redirect("course_detail", slug=course_slug)
 
-        try:
-            lessons_qs = Lesson.objects.filter(
-                module__course=course_obj, 
-                is_active=True
-            ).select_related("module").only(
-                'id', 'title', 'slug', 'module__order', 'order'
-            ).order_by("module__order", "order")
-            
-            lessons_list = list(lessons_qs)
-            current_index = next((i for i, l in enumerate(lessons_list) if l.id == lesson.id), 0)
-            
-            previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
-            next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
-            
-        except Exception:
-            previous_lesson = None
-            next_lesson = None
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("module"),
+        slug=lesson_slug,
+        module__course=course_obj,
+        is_active=True,
+        is_deleted=False,
+    )
 
-        try:
-            blocks = LessonBlock.objects.filter(lesson=lesson, is_deleted=False)
-            if blocks.exists():
-                for block in blocks:
-                    BlockProgress.objects.update_or_create(
-                        user=request.user,
-                        block=block,
-                        defaults={
-                            "progress_percent": 0,
-                            "is_completed": False,
-                            "last_accessed": timezone.now(),
-                        }
-                    )
-        except Exception as e:
-            logger.error(f"Error creating progress for lesson {lesson.id}: {str(e)}", exc_info=True)
+    lessons_list = list(
+        Lesson.objects.filter(
+            module__course=course_obj,
+            is_active=True,
+            is_deleted=False,
+        ).select_related("module").order_by("module__order", "order", "id")
+    )
+    current_index = next((i for i, item in enumerate(lessons_list) if item.id == lesson.id), 0)
+    previous_lesson = lessons_list[current_index - 1] if current_index > 0 else None
+    next_lesson = lessons_list[current_index + 1] if current_index < len(lessons_list) - 1 else None
 
-        enrollment = Enrollment.objects.filter(
-            user=request.user, 
-            course=course_obj
-        ).first()
+    blocks = list(
+        LessonBlock.objects.filter(
+            lesson=lesson,
+            is_deleted=False,
+        ).select_related("quiz", "assignment").prefetch_related(
+            "quiz__questions__answers"
+        ).order_by("order", "id")
+    )
 
-        return render(request, "courses/lesson_detail.html", {
-            "course": course_data,
-            "lesson": lesson,
-            "prev_lesson": previous_lesson,
-            "next_lesson": next_lesson,
-            "enrollment": enrollment,
+    block_progress = {
+        p.block_id: p
+        for p in BlockProgress.objects.filter(user=request.user, block__in=blocks)
+    }
+    for block in blocks:
+        if block.id not in block_progress:
+            block_progress[block.id] = BlockProgress.objects.create(
+                user=request.user,
+                block=block,
+                progress_percent=0,
+                is_completed=False,
+            )
+
+    quiz_ids = [block.quiz_id for block in blocks if block.quiz_id]
+    best_scores = {}
+    if quiz_ids:
+        attempts = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz_id__in=quiz_ids,
+        ).order_by("quiz_id", "-score_percent", "-completed_at")
+        for attempt in attempts:
+            best_scores.setdefault(attempt.quiz_id, attempt.score_percent)
+
+    practical_responses = {
+        response.block_id: response
+        for response in PracticalResponse.objects.filter(
+            user=request.user,
+            block__in=blocks,
+        )
+    }
+
+    for block in blocks:
+        block.user_progress = block_progress.get(block.id)
+        block.best_score = best_scores.get(block.quiz_id, 0) if block.quiz_id else 0
+        block.practical_response = practical_responses.get(block.id)
+
+    enrollment = Enrollment.objects.filter(user=request.user, course=course_obj).first()
+
+    completion_status = _course_completion_status(request.user, course_obj)
+    course_progress = completion_status["course_progress"]
+
+    return render(request, "courses/lesson_detail.html", {
+        "course": course_obj,
+        "lesson": lesson,
+        "blocks": blocks,
+        "block_progress": block_progress,
+        "best_scores": best_scores,
+        "prev_lesson": previous_lesson,
+        "next_lesson": next_lesson,
+        "enrollment": enrollment,
+        "course_progress": course_progress,
+        "cumulative_score": completion_status["cumulative_score"],
+        "quiz_count": completion_status["quiz_count"],
+        "all_quizzes_passed": completion_status["all_quizzes_passed"],
+        "course_completed": bool(enrollment and enrollment.completed),
+    })
+
+
+@login_required
+def submit_quiz(request, quiz_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    quiz = get_object_or_404(
+        Quiz.objects.select_related("lesson__module__course"),
+        id=quiz_id,
+        is_active=True,
+    )
+    course_obj = quiz.lesson.module.course
+
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    previous_attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz)
+    attempts_count = previous_attempts.count()
+    if not quiz.unlimited_attempts and attempts_count >= quiz.attempts_allowed:
+        return JsonResponse({
+            "error": "Лимит попыток исчерпан",
+            "attempts_used": attempts_count,
+        }, status=400)
+
+    questions = list(
+        quiz.questions.prefetch_related("answers").order_by("order", "id")
+    )
+    points_total = sum(max(1, q.points) for q in questions)
+    points_earned = 0
+    answer_log = {}
+    feedback = []
+
+    for question in questions:
+        field_name = f"question_{question.id}"
+        submitted_values = request.POST.getlist(field_name)
+        submitted_clean = [str(v).strip() for v in submitted_values if str(v).strip()]
+        correct_answers = list(question.answers.filter(is_correct=True))
+
+        is_correct = False
+        if question.question_type == "multiple":
+            correct_ids = {str(a.id) for a in correct_answers}
+            is_correct = set(submitted_clean) == correct_ids
+        elif question.question_type == "single":
+            correct_ids = {str(a.id) for a in correct_answers}
+            is_correct = len(submitted_clean) == 1 and submitted_clean[0] in correct_ids
+        elif question.question_type == "text":
+            expected = ""
+            if correct_answers:
+                expected = (correct_answers[0].correct_answer or correct_answers[0].text or "").strip()
+            received = submitted_clean[0] if submitted_clean else ""
+            is_correct = bool(expected) and received.casefold() == expected.casefold()
+
+        if is_correct:
+            points_earned += max(1, question.points)
+
+        answer_log[str(question.id)] = {
+            "submitted": submitted_clean,
+            "correct": is_correct,
+        }
+        feedback.append({
+            "question_id": question.id,
+            "correct": is_correct,
+            "explanation": question.explanation or "",
+            "correct_answers": [answer.text for answer in correct_answers],
         })
-        
-    except Http404:
-        raise
-    except DatabaseError as e:
-        logger.error(f"Database error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
-        messages.error(request, "Временные проблемы с базой данных")
-        return redirect("courses_list")
-    except Exception as e:
-        logger.error(f"Error loading lesson {course_slug}/{lesson_slug}: {str(e)}", exc_info=True)
-        messages.error(request, "Произошла ошибка при загрузке урока")
-        return redirect("courses_list")
+
+    score_percent = round((points_earned / points_total) * 100) if points_total else 0
+    attempt = QuizAttempt.objects.create(
+        user=request.user,
+        quiz=quiz,
+        attempt_number=attempts_count + 1,
+        score_percent=score_percent,
+        points_earned=points_earned,
+        points_total=points_total,
+        answers=answer_log,
+    )
+
+    best_score = QuizAttempt.objects.filter(
+        user=request.user,
+        quiz=quiz,
+    ).order_by("-score_percent", "-completed_at").values_list("score_percent", flat=True).first() or 0
+
+    quiz_blocks = LessonBlock.objects.filter(
+        quiz=quiz,
+        lesson=quiz.lesson,
+        is_deleted=False,
+    )
+    if attempt.passed:
+        for block in quiz_blocks:
+            BlockProgress.objects.update_or_create(
+                user=request.user,
+                block=block,
+                defaults={
+                    "progress_percent": 100,
+                    "is_completed": True,
+                    "completed_at": timezone.now(),
+                },
+            )
+
+    completion_status = _check_course_completion(request.user, course_obj)
+    course_completed = bool(
+        completion_status and completion_status.get("eligible_for_completion")
+    )
+
+    return JsonResponse({
+        "success": True,
+        "score": score_percent,
+        "best_score": best_score,
+        "passing_score": quiz.passing_score,
+        "passed": attempt.passed,
+        "attempt_number": attempt.attempt_number,
+        "unlimited_attempts": quiz.unlimited_attempts,
+        "feedback": feedback,
+        "course_completed": course_completed,
+        "certificate_url": (
+            reverse("certificate_options", args=[course_obj.slug])
+            if course_completed and course_obj.certificate else ""
+        ),
+    })
+
+@login_required
+def complete_block(request, block_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    block = get_object_or_404(
+        LessonBlock.objects.select_related("lesson__module__course", "quiz"),
+        id=block_id,
+        is_deleted=False,
+    )
+    course_obj = block.lesson.module.course
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    if block.block_type == "quiz" and block.quiz_id:
+        best_score = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz=block.quiz,
+        ).order_by("-score_percent").values_list("score_percent", flat=True).first() or 0
+        if best_score < block.quiz.passing_score:
+            return JsonResponse({
+                "error": "Сначала пройдите тест",
+                "best_score": best_score,
+                "passing_score": block.quiz.passing_score,
+            }, status=400)
+
+    if block.block_type == "assignment" and block.is_required:
+        if not PracticalResponse.objects.filter(
+            user=request.user,
+            block=block,
+        ).exists():
+            return JsonResponse({
+                "error": "Сначала отправьте ответ на практическое задание."
+            }, status=400)
+
+    progress, _ = BlockProgress.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={
+            "progress_percent": 100,
+            "is_completed": True,
+            "completed_at": timezone.now(),
+        },
+    )
+    completion_status = _check_course_completion(request.user, course_obj)
+    course_completed = bool(
+        completion_status and completion_status.get("eligible_for_completion")
+    )
+
+    return JsonResponse({
+        "success": True,
+        "block_id": block.id,
+        "progress": progress.progress_percent,
+        "course_completed": course_completed,
+        "certificate_url": (
+            reverse("certificate_options", args=[course_obj.slug])
+            if course_completed and course_obj.certificate else ""
+        ),
+    })
+
+
+@login_required
+def submit_practical_response(request, block_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    block = get_object_or_404(
+        LessonBlock.objects.select_related("lesson__module__course"),
+        id=block_id,
+        block_type="assignment",
+        is_deleted=False,
+    )
+    course_obj = block.lesson.module.course
+    if not user_has_course_access(request.user, course_obj):
+        return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+    text_value = (request.POST.get("text") or "").strip()
+    if not text_value:
+        return JsonResponse(
+            {"error": "Введите ответ на практическое задание."},
+            status=400,
+        )
+
+    response, _ = PracticalResponse.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={"text": text_value},
+    )
+
+    progress, _ = BlockProgress.objects.update_or_create(
+        user=request.user,
+        block=block,
+        defaults={
+            "progress_percent": 100,
+            "is_completed": True,
+            "completed_at": timezone.now(),
+        },
+    )
+    status = _check_course_completion(request.user, course_obj)
+
+    return JsonResponse({
+        "success": True,
+        "block_id": block.id,
+        "saved_at": response.updated_at.isoformat(),
+        "progress": progress.progress_percent,
+        "course_completed": bool(status and status["eligible_for_completion"]),
+        "certificate_url": (
+            reverse("certificate_options", args=[course_obj.slug])
+            if status and status["eligible_for_completion"] and course_obj.certificate else ""
+        ),
+    })
+
 
 @login_required
 def update_progress(request):
@@ -885,10 +1125,22 @@ def update_progress(request):
         except ValueError:
             return JsonResponse({"error": "Invalid progress value"}, status=400)
         
-        lesson = Lesson.objects.get(id=lesson_id)
-        
-        block = LessonBlock.objects.filter(lesson=lesson, is_deleted=False).first()
+        lesson = Lesson.objects.select_related("module__course").get(id=lesson_id)
+        course_obj = lesson.module.course
+
+        if not user_has_course_access(request.user, course_obj):
+            return JsonResponse({"error": "Нет доступа к курсу"}, status=403)
+
+        block = LessonBlock.objects.filter(
+            lesson=lesson,
+            is_deleted=False,
+        ).order_by("order", "id").first()
         if block:
+            if block.block_type in {"quiz", "assignment"}:
+                return JsonResponse({
+                    "error": "Этот блок завершается через собственную форму задания или теста."
+                }, status=400)
+
             block_progress, created = BlockProgress.objects.update_or_create(
                 user=request.user,
                 block=block,
@@ -896,6 +1148,7 @@ def update_progress(request):
                     "progress_percent": progress,
                     "is_completed": progress >= 100,
                     "last_accessed": timezone.now(),
+                    "completed_at": timezone.now() if progress >= 100 else None,
                 }
             )
             
@@ -921,34 +1174,85 @@ def update_progress(request):
         logger.error(f"Error updating progress: {str(e)}", exc_info=True)
         return JsonResponse({"error": str(e)}, status=500)
 
+def _course_completion_status(user, course):
+    """Return one canonical completion calculation for progress and certificates."""
+    required_blocks_qs = LessonBlock.objects.filter(
+        lesson__module__course=course,
+        lesson__is_active=True,
+        lesson__is_deleted=False,
+        is_required=True,
+        is_deleted=False,
+    )
+    required_count = required_blocks_qs.count()
+    completed_count = BlockProgress.objects.filter(
+        user=user,
+        block__in=required_blocks_qs,
+        is_completed=True,
+    ).count()
+
+    quizzes = list(
+        Quiz.objects.filter(
+            blocks__in=required_blocks_qs.filter(block_type="quiz"),
+            is_active=True,
+        ).distinct().order_by("id")
+    )
+    quiz_ids = [quiz.id for quiz in quizzes]
+    best_by_quiz = {}
+    if quiz_ids:
+        best_by_quiz = {
+            row["quiz_id"]: row["best_score"] or 0
+            for row in QuizAttempt.objects.filter(
+                user=user,
+                quiz_id__in=quiz_ids,
+            ).values("quiz_id").annotate(best_score=Max("score_percent"))
+        }
+
+    scores = [int(best_by_quiz.get(quiz.id, 0)) for quiz in quizzes]
+    cumulative_score = round(sum(scores) / len(scores)) if scores else 0
+    all_quizzes_passed = all(
+        best_by_quiz.get(quiz.id, 0) >= quiz.passing_score
+        for quiz in quizzes
+    ) if quizzes else True
+
+    blocks_complete = required_count > 0 and completed_count >= required_count
+    cumulative_passed = cumulative_score >= 80 if quizzes else True
+
+    return {
+        "required_count": required_count,
+        "completed_count": completed_count,
+        "course_progress": round((completed_count / required_count) * 100) if required_count else 0,
+        "quiz_count": len(quizzes),
+        "quiz_scores": best_by_quiz,
+        "cumulative_score": cumulative_score,
+        "all_quizzes_passed": all_quizzes_passed,
+        "cumulative_passed": cumulative_passed,
+        "eligible_for_completion": (
+            blocks_complete
+            and all_quizzes_passed
+            and cumulative_passed
+        ),
+    }
+
+
 def _check_course_completion(user, course):
     try:
-        required_blocks = LessonBlock.objects.filter(
-            lesson__module__course=course,
-            is_required=True,
-            is_deleted=False
-        ).count()
-        
-        if required_blocks == 0:
-            return
-        
-        completed_blocks = BlockProgress.objects.filter(
-            user=user,
-            block__lesson__module__course=course,
-            is_completed=True
-        ).count()
-        
-        if completed_blocks >= required_blocks:
-            enrollment = Enrollment.objects.get(user=user, course=course)
-            if not enrollment.completed:
-                enrollment.completed = True
-                enrollment.completed_at = timezone.now()
-                enrollment.save()
-                
+        status = _course_completion_status(user, course)
+        if not status["eligible_for_completion"]:
+            return status
+
+        enrollment = Enrollment.objects.get(user=user, course=course)
+        if not enrollment.completed:
+            enrollment.completed = True
+            enrollment.completed_at = timezone.now()
+            enrollment.save(update_fields=["completed", "completed_at", "updated_at"])
+        return status
+
     except Enrollment.DoesNotExist:
         logger.warning(f"Enrollment not found for user {user.id} and course {course.id}")
+        return None
     except Exception as e:
         logger.error(f"Error checking course completion: {str(e)}", exc_info=True)
+        return None
 
 @login_required
 def enroll_course(request, slug):
@@ -957,29 +1261,31 @@ def enroll_course(request, slug):
             slug=slug,
             status=Course.PUBLISHED,
             is_deleted=False
-        ).only('id', 'slug', 'price').order_by('id').first()
-        
+        ).only('id', 'slug', 'price', 'discount_price').order_by('id').first()
+
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
-        
-        if not user_has_course_access(request.user, course):
+
+        if course.final_price and course.final_price > 0:
+            if not user_has_course_access(request.user, course):
+                messages.info(request, "Сначала необходимо оплатить курс.")
+                return redirect("checkout", slug=course.slug)
+        else:
             Enrollment.objects.get_or_create(user=request.user, course=course)
-        
+
         first_lesson = Lesson.objects.filter(
             module__course=course,
-            is_active=True
+            is_active=True,
+            is_deleted=False,
         ).order_by("module__order", "order").first()
-        
+
         if first_lesson:
             return redirect("lesson_view", course_slug=course.slug, lesson_slug=first_lesson.slug)
-        else:
-            messages.success(request, "Вы успешно записались на курс!")
-            return redirect("course_detail", slug=slug)
-            
-    except Course.DoesNotExist:
-        messages.error(request, "Курс не найден")
-        return redirect("courses_list")
+
+        messages.success(request, "Вы успешно записались на курс!")
+        return redirect("course_detail", slug=slug)
+
     except DatabaseError as e:
         logger.error(f"Database error enrolling in course {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
@@ -988,6 +1294,289 @@ def enroll_course(request, slug):
         logger.error(f"Error enrolling in course {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при записи на курс")
         return redirect("course_detail", slug=slug)
+
+def _send_corporate_order_link(request, order):
+    manage_url = request.build_absolute_uri(
+        reverse("corporate_order_portal", args=[order.manage_token])
+    )
+    send_mail(
+        subject=f"SkillsSpire: корпоративная заявка {order.order_number}",
+        message=(
+            f"Здравствуйте, {order.organization.contact_name}!\n\n"
+            f"Заявка на курс «{order.course.title}» создана.\n"
+            f"Количество мест: {order.seats_purchased}.\n"
+            f"Корпоративная скидка: {order.discount_percent}%.\n"
+            f"Сумма: {order.total_amount} ₸.\n\n"
+            "По этой защищённой ссылке можно отслеживать статус заказа, "
+            "а после подтверждения оплаты — распределить места между слушателями:\n"
+            f"{manage_url}\n\nSkillsSpire"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[order.organization.contact_email],
+        fail_silently=True,
+    )
+    return manage_url
+
+
+def _send_corporate_invitation(request, invitation):
+    invite_url = request.build_absolute_uri(
+        reverse("corporate_invitation_accept", args=[invitation.token])
+    )
+    send_mail(
+        subject=f"SkillsSpire: доступ к курсу «{invitation.order.course.title}»",
+        message=(
+            f"Здравствуйте, {invitation.first_name}!\n\n"
+            f"Организация «{invitation.order.organization.name}» предоставила вам "
+            f"индивидуальное место на курсе «{invitation.order.course.title}».\n\n"
+            "Чтобы активировать доступ, откройте ссылку и войдите в SkillsSpire "
+            "или создайте аккаунт с этим же email:\n"
+            f"{invite_url}\n\n"
+            f"Приглашение предназначено для: {invitation.email}\n"
+            "Оплачивать курс повторно не нужно."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[invitation.email],
+        fail_silently=True,
+    )
+    return invite_url
+
+
+def corporate_order_request(request, slug):
+    course_obj = get_object_or_404(
+        Course,
+        slug=slug,
+        status=Course.PUBLISHED,
+        is_deleted=False,
+    )
+
+    profile = None
+    if request.user.is_authenticated:
+        profile = UserProfile.objects.filter(user=request.user).first()
+
+    initial = {}
+    if request.user.is_authenticated:
+        initial.update({
+            "contact_name": request.user.get_full_name() or request.user.username,
+            "contact_email": request.user.email,
+            "contact_phone": profile.phone if profile else "",
+            "organization_name": profile.company if profile else "",
+        })
+
+    if request.method == "POST":
+        form = CorporateOrderRequestForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with transaction.atomic():
+                organization, _ = Organization.objects.select_for_update().get_or_create(
+                    bin=data["bin"],
+                    defaults={
+                        "name": data["organization_name"],
+                        "legal_address": data["legal_address"],
+                        "contact_name": data["contact_name"],
+                        "contact_email": data["contact_email"],
+                        "contact_phone": data["contact_phone"],
+                    },
+                )
+                organization.name = data["organization_name"]
+                organization.legal_address = data["legal_address"]
+                organization.contact_name = data["contact_name"]
+                organization.contact_email = data["contact_email"]
+                organization.contact_phone = data["contact_phone"]
+                organization.is_active = True
+                organization.save()
+
+                order = CorporateOrder.objects.create(
+                    organization=organization,
+                    course=course_obj,
+                    requested_by=request.user if request.user.is_authenticated else None,
+                    seats_purchased=data["seats"],
+                    base_unit_price=course_obj.final_price or 0,
+                    unit_price=course_obj.final_price or 0,
+                    total_amount=0,
+                    notes=data.get("note", ""),
+                )
+
+            _send_corporate_order_link(request, order)
+            messages.success(
+                request,
+                "Корпоративная заявка создана. Ссылка на кабинет заказчика отправлена на указанный email."
+            )
+            return redirect("corporate_order_portal", token=order.manage_token)
+    else:
+        form = CorporateOrderRequestForm(initial=initial)
+
+    tiers = [
+        {"min": 1, "max": 4, "discount": 0},
+        {"min": 5, "max": 9, "discount": 3},
+        {"min": 10, "max": 14, "discount": 7},
+        {"min": 15, "max": 19, "discount": 10},
+        {"min": 20, "max": 29, "discount": 13},
+        {"min": 30, "max": 49, "discount": 17},
+        {"min": 50, "max": None, "discount": 18},
+    ]
+    return render(request, "corporate/order_request.html", {
+        "course": course_obj,
+        "form": form,
+        "tiers": tiers,
+    })
+
+
+def corporate_order_portal(request, token):
+    order = get_object_or_404(
+        CorporateOrder.objects.select_related("organization", "course"),
+        manage_token=token,
+    )
+
+    if request.method == "POST" and request.POST.get("action") == "revoke":
+        invitation = get_object_or_404(
+            CorporateInvitation,
+            pk=request.POST.get("invitation_id"),
+            order=order,
+        )
+        if invitation.status == CorporateInvitation.PENDING:
+            invitation.status = CorporateInvitation.REVOKED
+            invitation.save(update_fields=["status", "updated_at"])
+            messages.success(request, "Приглашение отозвано, место снова доступно.")
+        else:
+            messages.error(request, "Отозвать можно только неактивированное приглашение.")
+        return redirect("corporate_order_portal", token=order.manage_token)
+
+    form = CorporateParticipantsForm(order=order)
+    if request.method == "POST" and request.POST.get("action") != "revoke":
+        form = CorporateParticipantsForm(request.POST, order=order)
+        if order.status != CorporateOrder.PAID:
+            messages.error(request, "Распределять места можно после подтверждения оплаты.")
+        elif form.is_valid():
+            created = []
+            try:
+                with transaction.atomic():
+                    locked_order = CorporateOrder.objects.select_for_update().get(pk=order.pk)
+                    participants = form.cleaned_data["participants"]
+
+                    used = locked_order.invitations.exclude(
+                        status=CorporateInvitation.REVOKED
+                    ).count()
+                    if used + len(participants) > locked_order.seats_purchased:
+                        raise ValidationError(
+                            f"Недостаточно свободных мест. Осталось: {locked_order.seats_purchased - used}."
+                        )
+
+                    for participant in participants:
+                        invitation = CorporateInvitation.objects.filter(
+                            order=locked_order,
+                            email=participant["email"],
+                            status=CorporateInvitation.REVOKED,
+                        ).first()
+
+                        if invitation:
+                            invitation.first_name = participant["first_name"]
+                            invitation.last_name = participant["last_name"]
+                            invitation.status = CorporateInvitation.PENDING
+                            invitation.user = None
+                            invitation.activated_at = None
+                            invitation.token = uuid.uuid4()
+                            invitation.save()
+                        else:
+                            invitation = CorporateInvitation.objects.create(
+                                order=locked_order,
+                                **participant,
+                            )
+                        created.append(invitation)
+            except ValidationError as exc:
+                messages.error(request, "; ".join(exc.messages))
+            else:
+                for invitation in created:
+                    _send_corporate_invitation(request, invitation)
+                messages.success(
+                    request,
+                    f"Создано приглашений: {len(created)}. Каждому слушателю отправлена персональная ссылка."
+                )
+                return redirect("corporate_order_portal", token=order.manage_token)
+
+    invitations = list(
+        order.invitations.select_related("user", "enrollment").order_by("created_at")
+    )
+    for invitation in invitations:
+        invitation.share_url = request.build_absolute_uri(
+            reverse("corporate_invitation_accept", args=[invitation.token])
+        )
+
+    manage_url = request.build_absolute_uri(
+        reverse("corporate_order_portal", args=[order.manage_token])
+    )
+    email_delivery_configured = bool(
+        getattr(settings, "EMAIL_HOST_USER", "")
+        and getattr(settings, "EMAIL_HOST_PASSWORD", "")
+    )
+
+    return render(request, "corporate/order_portal.html", {
+        "order": order,
+        "invitations": invitations,
+        "form": form,
+        "manage_url": manage_url,
+        "email_delivery_configured": email_delivery_configured,
+    })
+
+
+def corporate_invitation_accept(request, token):
+    invitation = get_object_or_404(
+        CorporateInvitation.objects.select_related(
+            "order__organization",
+            "order__course",
+            "user",
+        ),
+        token=token,
+    )
+
+    if invitation.status == CorporateInvitation.REVOKED:
+        return render(request, "corporate/invitation.html", {
+            "invitation": invitation,
+            "revoked": True,
+        })
+
+    if not request.user.is_authenticated:
+        next_url = request.path
+        return render(request, "corporate/invitation.html", {
+            "invitation": invitation,
+            "next": next_url,
+        })
+
+    email_matches = (
+        (request.user.email or "").strip().lower()
+        == invitation.email.strip().lower()
+    )
+
+    if request.method == "POST" and email_matches:
+        try:
+            with transaction.atomic():
+                locked = CorporateInvitation.objects.select_for_update().select_related(
+                    "order__organization",
+                    "order__course",
+                ).get(pk=invitation.pk)
+                enrollment = locked.activate_for(request.user)
+
+                profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                if not profile.company:
+                    profile.company = locked.order.organization.name
+                    profile.save(update_fields=["company", "updated_at"])
+        except ValidationError as exc:
+            messages.error(request, "; ".join(exc.messages))
+        else:
+            messages.success(
+                request,
+                f"Корпоративный доступ активирован. Оплачивать курс повторно не нужно."
+            )
+            return redirect("course_learn", course_slug=enrollment.course.slug)
+
+    return render(request, "corporate/invitation.html", {
+        "invitation": invitation,
+        "email_matches": email_matches,
+        "already_activated": (
+            invitation.status == CorporateInvitation.ACTIVATED
+            and invitation.user_id == request.user.id
+        ),
+    })
+
 
 def checkout(request, slug):
     return create_payment(request, slug)
@@ -1004,24 +1593,49 @@ def create_payment(request, slug):
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
-        
-        amount = course.discount_price or course.price or 0
-        payment = Payment.objects.create(
+
+        if Enrollment.objects.filter(
             user=request.user,
             course=course,
-            amount=amount,
-            status="pending",
-            kaspi_invoice_id=f"QR{int(timezone.now().timestamp())}",
-        )
+            is_deleted=False,
+        ).exists():
+            messages.info(request, "Доступ к этому курсу у вас уже есть.")
+            return redirect("course_learn", course_slug=course.slug)
+
+        amount = course.discount_price or course.price or 0
+        if amount <= 0:
+            Enrollment.objects.get_or_create(user=request.user, course=course)
+            return redirect("course_learn", course_slug=course.slug)
+
+        payment = Payment.objects.filter(
+            user=request.user,
+            course=course,
+            status=Payment.PENDING,
+            is_deleted=False,
+        ).order_by("-created_at").first()
+
+        if payment is None:
+            payment = Payment.objects.create(
+                user=request.user,
+                course=course,
+                amount=amount,
+                status=Payment.PENDING,
+                kaspi_invoice_id=f"QR-{uuid.uuid4().hex[:16].upper()}",
+            )
+        elif payment.amount != amount:
+            payment.amount = amount
+            payment.save(update_fields=["amount", "updated_at"])
         
-        return render(request, "payments/payment_page.html", {
-            "course": {
-                'title': course.title,
-                'slug': course.slug,
-            },
+        return render(request, "payment/payment_page.html", {
+            "course": course,
             "amount": amount,
             "kaspi_url": getattr(settings, "KASPI_PAYMENT_URL", ""),
             "payment": payment,
+            "last_payment": payment,
+            "automatic_payment_enabled": bool(
+                getattr(settings, "KASPI_WEBHOOK_SECRET", "")
+                or getattr(settings, "KASPI_SECRET", "")
+            ),
         })
         
     except Course.DoesNotExist:
@@ -1037,44 +1651,52 @@ def create_payment(request, slug):
         return redirect("course_detail", slug=slug)
 
 def checkout_confirm(request, slug):
+    if request.method != "POST":
+        return redirect("checkout", slug=slug)
     return payment_claim(request, slug)
+
 
 @login_required
 def payment_claim(request, slug):
     try:
-        course = Course.objects.filter(slug=slug).only('id', 'title', 'slug').order_by('id').first()
+        course = Course.objects.filter(
+            slug=slug,
+            status=Course.PUBLISHED,
+            is_deleted=False,
+        ).only("id", "title", "slug").order_by("id").first()
         if not course:
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
 
         payment = Payment.objects.filter(
-            user=request.user, 
-            course=course
-        ).order_by("-id").first()
-        
+            user=request.user,
+            course=course,
+            is_deleted=False,
+        ).order_by("-created_at").first()
+
         if not payment:
-            messages.error(request, "Платеж не найден")
+            messages.error(request, "Платёж не найден")
             return redirect("course_detail", slug=slug)
 
-        if request.method == "POST" and request.FILES.get("receipt"):
-            if hasattr(payment, "receipt"):
-                payment.receipt = request.FILES["receipt"]
-                payment.save(update_fields=["receipt"])
-                messages.success(request, "Чек успешно загружен, ожидайте подтверждения")
-                return redirect("payment_thanks", slug=slug)
-            messages.error(request, "В модели Payment не предусмотрено поле для чека")
+        if payment.status == Payment.SUCCESS:
+            return redirect("course_learn", course_slug=course.slug)
 
-        return render(request, "payments/payment_claim.html", {
-            "course": {
-                'title': course.title,
-                'slug': course.slug,
-            },
-            "payment": payment,
-        })
-        
-    except Course.DoesNotExist:
-        messages.error(request, "Курс не найден")
-        return redirect("courses_list")
+        receipt = request.FILES.get("receipt")
+        if not receipt:
+            messages.info(
+                request,
+                "Если платёж ещё не подтвердился автоматически, приложите чек из Kaspi."
+            )
+            return redirect("checkout", slug=slug)
+
+        payment.receipt = receipt
+        payment.save(update_fields=["receipt", "updated_at"])
+        messages.success(
+            request,
+            "Чек загружен. После подтверждения платежа доступ откроется автоматически."
+        )
+        return redirect("payment_thanks", slug=slug)
+
     except DatabaseError as e:
         logger.error(f"Database error confirming payment {slug}: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
@@ -1087,6 +1709,81 @@ def payment_claim(request, slug):
 def payment_webhook(request):
     return kaspi_webhook(request)
 
+
+@login_required
+def payment_status(request, payment_id):
+    payment = get_object_or_404(
+        Payment.objects.select_related("course"),
+        id=payment_id,
+        user=request.user,
+        is_deleted=False,
+    )
+    has_access = Enrollment.objects.filter(
+        user=request.user,
+        course=payment.course,
+        is_deleted=False,
+    ).exists()
+
+    return JsonResponse({
+        "status": payment.status,
+        "paid": payment.status == Payment.SUCCESS,
+        "has_access": has_access,
+        "learn_url": (
+            reverse("course_learn", args=[payment.course.slug])
+            if has_access else ""
+        ),
+    })
+
+
+@csrf_exempt
+def certificate_registry_callback(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    expected_token = getattr(settings, "CERTIFICATE_REGISTRY_TOKEN", "") or ""
+    received_token = str(data.get("token") or "")
+    if not expected_token or not hmac.compare_digest(received_token, expected_token):
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    request_id = str(data.get("local_request_id") or "").strip()
+    if not request_id.isdigit():
+        return JsonResponse({"error": "Invalid local_request_id"}, status=400)
+
+    cert_request = CertificateRequest.objects.filter(pk=int(request_id)).first()
+    if not cert_request:
+        return JsonResponse({"error": "Certificate request not found"}, status=404)
+
+    status = str(data.get("status") or "").strip().lower()
+    if status == "issued":
+        cert_request.status = CertificateRequest.ISSUED
+        cert_request.external_number = str(data.get("certificate_number") or "").strip()
+        cert_request.pdf_url = str(data.get("pdf_url") or "").strip()
+        cert_request.verify_url = str(data.get("verify_url") or "").strip()
+        cert_request.issued_at = timezone.now()
+        cert_request.sync_error = ""
+    elif status == "rejected":
+        cert_request.status = CertificateRequest.REJECTED
+        cert_request.sync_error = str(data.get("error") or "Заявка отклонена реестром.")
+    else:
+        cert_request.status = CertificateRequest.PENDING
+
+    cert_request.save(update_fields=[
+        "status",
+        "external_number",
+        "pdf_url",
+        "verify_url",
+        "issued_at",
+        "sync_error",
+        "updated_at",
+    ])
+
+    return JsonResponse({"ok": True, "local_request_id": request_id})
+
 @login_required
 def payment_thanks(request, slug):
     try:
@@ -1095,7 +1792,7 @@ def payment_thanks(request, slug):
             messages.error(request, "Курс не найден")
             return redirect("courses_list")
             
-        return render(request, "payments/payment_thanks.html", {
+        return render(request, "payment/payment_thanks.html", {
             "course": {
                 'title': course.title,
                 'slug': course.slug,
@@ -1112,50 +1809,53 @@ def payment_thanks(request, slug):
 @login_required
 def my_courses(request):
     try:
-        enrollments = Enrollment.objects.filter(
-            user=request.user
-        ).select_related("course").only(
-            'id', 'completed', 'progress', 'created_at',
-            'course_id', 'course__title', 'course__slug', 'course__short_description'
-        ).order_by('-created_at')
-        
-        courses_with_images = []
+        enrollments = list(
+            Enrollment.objects.filter(
+                user=request.user,
+                is_deleted=False,
+            ).select_related(
+                "course",
+                "course__category",
+                "course__instructor",
+            ).order_by("-created_at")
+        )
+
+        progress_map = {}
         for enrollment in enrollments:
-            courses_with_images.append({
-                'id': enrollment.course.id,
-                'title': enrollment.course.title,
-                'slug': enrollment.course.slug,
-                'short_description': enrollment.course.short_description[:100] if enrollment.course.short_description else '',
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{enrollment.course.slug}/",
-                'enrollment': {
-                    'completed': enrollment.completed,
-                    'progress': enrollment.progress,
-                    'created_at': enrollment.created_at,
-                },
-            })
-        
-        in_progress = [c for c in courses_with_images if not c["enrollment"]['completed']]
-        completed = [c for c in courses_with_images if c["enrollment"]['completed']]
-        
+            required_blocks = LessonBlock.objects.filter(
+                lesson__module__course=enrollment.course,
+                is_required=True,
+                is_deleted=False,
+            )
+            required_count = required_blocks.count()
+            completed_count = BlockProgress.objects.filter(
+                user=request.user,
+                block__in=required_blocks,
+                is_completed=True,
+            ).count()
+            progress_map[enrollment.course_id] = (
+                round((completed_count / required_count) * 100)
+                if required_count else 0
+            )
+
         return render(request, "courses/my_courses.html", {
-            "in_progress": in_progress,
-            "completed": completed,
+            "enrollments": enrollments,
+            "progress_map": progress_map,
         })
-        
+
     except DatabaseError as e:
         logger.error(f"Database error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Временные проблемы с базой данных")
         return render(request, "courses/my_courses.html", {
-            "in_progress": [],
-            "completed": [],
+            "enrollments": [],
+            "progress_map": {},
         })
     except Exception as e:
         logger.error(f"Error loading my courses: {str(e)}", exc_info=True)
         messages.error(request, "Произошла ошибка при загрузке курсов")
         return render(request, "courses/my_courses.html", {
-            "in_progress": [],
-            "completed": [],
+            "enrollments": [],
+            "progress_map": {},
         })
 
 @login_required
@@ -1164,8 +1864,9 @@ def dashboard(request):
         user = request.user
         
         my_courses_qs = Course.objects.filter(
-            students__id=user.id
-        ).only('id', 'title', 'slug', 'created_at')[:10]
+            enrollments__user=user,
+            enrollments__is_deleted=False,
+        ).distinct().only('id', 'title', 'slug', 'created_at')[:10]
         
         my_courses = []
         for course in my_courses_qs:
@@ -1226,6 +1927,96 @@ def dashboard(request):
 
 def learning_dashboard(request):
     return dashboard(request)
+
+
+@login_required
+def certificate_options(request, course_slug):
+    course_obj = get_object_or_404(Course, slug=course_slug, is_deleted=False)
+    enrollment = get_object_or_404(
+        Enrollment,
+        user=request.user,
+        course=course_obj,
+        is_deleted=False,
+    )
+
+    if not enrollment.completed or not enrollment.completed_at:
+        messages.error(request, "Сертификат станет доступен после завершения курса.")
+        return redirect("my_courses")
+
+    existing_request = CertificateRequest.objects.filter(enrollment=enrollment).first()
+    probe = existing_request or CertificateRequest(
+        enrollment=enrollment,
+        user=request.user,
+        course=course_obj,
+        period_mode=CertificateRequest.WITHOUT_PERIOD,
+    )
+
+    min_days = probe.minimum_training_days
+    actual_days = probe.actual_training_days
+    period_allowed = probe.period_is_allowed
+    period_eligible_date = probe.period_eligible_date
+    start_date = enrollment.enrolled_at.date()
+    completion_date = enrollment.completed_at.date()
+    certificate_period_end = probe.certificate_period_end
+
+    if request.method == "POST":
+        mode = request.POST.get("period_mode", CertificateRequest.WITHOUT_PERIOD)
+        if mode not in {CertificateRequest.WITH_PERIOD, CertificateRequest.WITHOUT_PERIOD}:
+            mode = CertificateRequest.WITHOUT_PERIOD
+
+        if mode == CertificateRequest.WITH_PERIOD and not period_allowed:
+            messages.error(
+                request,
+                f"Период обучения пока нельзя указать: для курса объёмом {course_obj.duration_hours or 0} "
+                f"академических часов требуется не менее {min_days} календарных дней с даты регистрации. "
+                f"Сертификат с периодом будет доступен {period_eligible_date:%d.%m.%Y}. "
+                f"Сейчас можно выбрать сертификат без периода."
+            )
+        else:
+            cert_request, _ = CertificateRequest.objects.update_or_create(
+                enrollment=enrollment,
+                defaults={
+                    "user": request.user,
+                    "course": course_obj,
+                    "period_mode": mode,
+                    "status": CertificateRequest.PENDING,
+                },
+            )
+            cert_request.save()
+            try:
+                sync_certificate_request(cert_request)
+                messages.success(
+                    request,
+                    "Заявка на сертификат автоматически передана в реестр SkillsSpire. "
+                    "Повторно вводить ФИО, курс, часы и даты не требуется."
+                )
+            except CertificateRegistryError as exc:
+                cert_request.sync_error = str(exc)
+                cert_request.save(update_fields=["sync_error", "updated_at"])
+                logger.warning(
+                    "Certificate registry sync failed for request %s: %s",
+                    cert_request.pk,
+                    exc,
+                )
+                messages.info(
+                    request,
+                    "Выбор сертификата сохранён. Автоматическая передача в реестр пока не настроена; "
+                    "заявка не потеряна и может быть отправлена после подключения реестра."
+                )
+            return redirect("certificate_options", course_slug=course_slug)
+
+    return render(request, "certificates/options.html", {
+        "course": course_obj,
+        "enrollment": enrollment,
+        "certificate_request": existing_request,
+        "min_days": min_days,
+        "actual_days": actual_days,
+        "period_allowed": period_allowed,
+        "period_eligible_date": period_eligible_date,
+        "certificate_period_end": certificate_period_end,
+        "start_date": start_date,
+        "completion_date": completion_date,
+    })
 
 @login_required
 def profile_settings(request):

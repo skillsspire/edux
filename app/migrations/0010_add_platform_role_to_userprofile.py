@@ -1,4 +1,4 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -7,20 +7,7 @@ class Migration(migrations.Migration):
         ('app', '0009_remove_article_author_alter_material_slug'),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name='userprofile',
-            name='platform_role',
-            field=models.CharField(
-                max_length=20,
-                choices=[
-                    ('student', 'Студент'),
-                    ('support', 'Поддержка'),
-                    ('content', 'Контент-менеджер'),
-                    ('platform_admin', 'Администратор платформы'),
-                ],
-                default='student',
-                help_text='Глобальная роль на платформе',
-            ),
-        ),
-    ]
+    # UserProfile.platform_role is already present in the repository's
+    # 0001_initial migration. The historical AddField would therefore
+    # duplicate the column on a clean PostgreSQL database.
+    operations = []

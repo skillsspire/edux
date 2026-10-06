@@ -1,182 +1,320 @@
 {% extends "base.html" %}
-{% load static humanize %}
+{% load static %}
 
-{% block title %}{{ course.title }} — SkillsSpire{% endblock %}
+{% block title %}{{ lesson.title }} — {{ course.title }} — SkillsSpire{% endblock %}
 
 {% block content %}
+<style>
+.learning-shell{max-width:1180px;margin:32px auto;padding:0 20px}
+.learning-top{display:flex;gap:24px;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.learning-title{max-width:820px}
+.learning-title .eyebrow{font-size:14px;color:#5f6b7a;margin-bottom:8px}
+.learning-title h1{margin:0 0 10px;font-size:34px;line-height:1.2}
+.progress-card{min-width:220px;background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:16px}
+.progress-track{height:8px;background:#eef2f7;border-radius:999px;overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;background:#01349D;border-radius:999px}
+.course-complete-banner{display:flex;justify-content:space-between;gap:18px;align-items:center;background:#eef8f1;border:1px solid #c9e8d3;border-radius:16px;padding:18px 20px;margin-bottom:22px}
+.course-complete-banner[hidden]{display:none}
+.course-complete-banner strong{display:block;font-size:18px;margin-bottom:4px}
+.course-complete-banner a{display:inline-block;text-decoration:none;background:#01349D;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;white-space:nowrap}
+.lesson-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px}
+.lesson-main{min-width:0}
+.lesson-sidebar{position:sticky;top:92px;align-self:start;background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:16px}
+.lesson-sidebar a{display:block;padding:10px 12px;border-radius:10px;text-decoration:none;color:inherit}
+.lesson-sidebar a.current{background:#eef4ff;font-weight:600;color:#01349D}
+.lesson-block{background:#fff;border:1px solid #e5e9f2;border-radius:18px;padding:24px;margin-bottom:18px}
+.lesson-block h2,.lesson-block h3{margin-top:0}
+.block-meta{font-size:13px;color:#6b7280;margin-bottom:14px}
+.block-complete{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:10px 14px;border:0;border-radius:10px;background:#01349D;color:#fff;cursor:pointer}
+.block-complete[disabled]{opacity:.55;cursor:default}
+.block-done{font-size:14px;color:#18794e;font-weight:600;margin-top:14px}
+.quiz-question{padding:16px 0;border-top:1px solid #edf0f4}
+.quiz-question:first-of-type{border-top:0}
+.quiz-option{display:flex;gap:10px;align-items:flex-start;margin:8px 0}
+.quiz-result{margin-top:16px;padding:14px;border-radius:12px;background:#f5f7fb}
+.quiz-result.pass{background:#eef8f1}
+.quiz-result.fail{background:#fff5f2}
+.quiz-feedback-list{margin:12px 0 0;padding-left:20px}
+.quiz-feedback-list li{margin:8px 0;line-height:1.45}
+.practical-form{margin-top:18px;padding-top:18px;border-top:1px solid #edf0f4}
+.practical-form label{display:block;font-weight:600;margin-bottom:8px}
+.practical-form textarea{width:100%;min-height:130px;padding:12px;border:1px solid #ccd5e0;border-radius:10px;resize:vertical;font:inherit}
+.practical-result{margin-top:10px;font-size:14px;color:#18794e;font-weight:600}
+.lesson-nav{display:flex;justify-content:space-between;gap:16px;margin-top:28px}
+.lesson-nav a{padding:12px 16px;border:1px solid #d9e1ec;border-radius:10px;text-decoration:none}
+@media(max-width:900px){.learning-top{display:block}.progress-card{margin-top:16px}.lesson-grid{grid-template-columns:1fr}.lesson-sidebar{position:static;order:-1}}
+</style>
 
-<section class="course-hero modern-hero">
-    <div class="container hero-inner">
-
-        <div class="hero-left">
-            <span class="course-badge">{{ course.category.name }}</span>
-            <h1>{{ course.title }}</h1>
-            <p>{{ course.short_description }}</p>
-
-            <ul class="hero-features">
-                <li>🎓 Сертификат</li>
-                <li>📱 Онлайн доступ 24/7</li>
-                {% if course.duration_hours %}<li>⏰ {{ course.duration_hours }} часов</li>{% endif %}
-            </ul>
-
-            <div class="hero-actions">
-
-                {% if has_access %}
-                    <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary">
-                        Перейти к обучению
-                    </a>
-
-                {% else %}
-
-                    {% if course.price == 0 %}
-                        <form action="{% url 'enroll_course' course.slug %}" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary">Записаться бесплатно</button>
-                        </form>
-
-                    {% else %}
-                        <a href="{% url 'create_payment' course.slug %}" class="btn btn-primary">
-                            Оплатить и начать
-                        </a>
-                    {% endif %}
-
-                {% endif %}
-
-                <a href="#program" class="btn btn-outline">Программа</a>
-            </div>
+<div class="learning-shell">
+    <div id="course-complete-banner" class="course-complete-banner"{% if not course_completed %} hidden{% endif %}>
+        <div>
+            <strong>Курс завершён</strong>
+            Все обязательные материалы, практические задания и тесты выполнены.
         </div>
-
-        <div class="hero-right">
-            <div class="course-price-card">
-
-                {% if course.discount_price %}
-                    <p class="old-price">{{ course.price|floatformat:0|intcomma }} ₸</p>
-                    <p class="new-price">{{ course.discount_price|floatformat:0|intcomma }} ₸</p>
-                {% else %}
-                    <p class="new-price">
-                        {% if course.price == 0 %}Бесплатно{% else %}{{ course.price|floatformat:0|intcomma }} ₸{% endif %}
-                    </p>
-                {% endif %}
-
-                {% if has_access %}
-                    <a href="{% url 'lesson_detail' course.slug first_lesson.slug %}" class="btn btn-primary btn-full">
-                        Перейти к обучению
-                    </a>
-                {% else %}
-                    {% if course.price == 0 %}
-                        <form action="{% url 'enroll_course' course.slug %}" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-full">Записаться бесплатно</button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'create_payment' course.slug %}" class="btn btn-primary btn-full">
-                            Оплатить курс
-                        </a>
-                    {% endif %}
-                {% endif %}
-
-                <form action="{% url 'toggle_wishlist' course.slug %}" method="post" class="mt-2">
-                    {% csrf_token %}
-                    <button class="btn btn-outline btn-full">
-                        ♡ В избранное
-                    </button>
-                </form>
-
-            </div>
-        </div>
-
+        {% if course.certificate %}
+            <a id="certificate-link" href="{% url 'certificate_options' course.slug %}">Перейти к сертификату</a>
+        {% endif %}
     </div>
-</section>
 
-
-<section class="section course-about">
-    <div class="container about-grid">
-        <div class="about-text">
-            <h2>О курсе</h2>
-            <p>{{ course.description|safe|default:"Описание скоро появится." }}</p>
-
-            <ul>
-                <li>📘 {{ lessons|length }} уроков</li>
-                <li>♾️ Пожизненный доступ</li>
-                <li>🎓 Сертификат по окончании</li>
-            </ul>
+    <div class="learning-top">
+        <div class="learning-title">
+            <div class="eyebrow">{{ lesson.module.title }} · {{ course.title }}</div>
+            <h1>{{ lesson.title }}</h1>
+            {% if lesson.description %}<p>{{ lesson.description }}</p>{% endif %}
         </div>
-
-        <div class="about-img">
-            <img src="{{ course.display_image_url|default:'/static/img/default.jpg' }}" alt="{{ course.title }}">
+        <div class="progress-card">
+            <strong>Прогресс курса: {{ course_progress }}%</strong>
+            <div class="progress-track" aria-hidden="true">
+                <div class="progress-fill" style="width:{{ course_progress }}%"></div>
+            </div>
+            {% if quiz_count %}
+                <div class="course-score-summary">
+                    Средний лучший результат тестов: <strong>{{ cumulative_score }}%</strong>
+                    {% if cumulative_score < 80 %}<br>Для завершения курса требуется не менее 80%.{% endif %}
+                </div>
+            {% endif %}
         </div>
     </div>
-</section>
 
+    <div class="lesson-grid">
+        <main class="lesson-main">
+            {% for block in blocks %}
+                <section class="lesson-block" id="block-{{ block.id }}">
+                    {% if block.title %}<h2>{{ block.title }}</h2>{% endif %}
+                    {% if block.estimated_minutes %}<div class="block-meta">Ориентировочно {{ block.estimated_minutes }} мин.</div>{% endif %}
 
-<section id="program" class="section program-section">
-    <div class="container">
-        <h2 class="text-center mb-3">Программа курса</h2>
+                    {% if block.block_type == "text" %}
+                        <div class="lesson-text">{{ block.content|safe }}</div>
 
-        {% if lessons %}
-            <div class="lessons-list">
+                    {% elif block.block_type == "video" and block.video_url %}
+                        <p><a href="{{ block.video_url }}" target="_blank" rel="noopener">Открыть видеоматериал</a></p>
 
-                {% for lesson in lessons %}
-                <div class="lesson-item">
-                    <div class="lesson-info">
-                        <h3>{{ lesson.title }}</h3>
-                        {% if lesson.duration_minutes %}
-                        <p>{{ lesson.duration_minutes }} мин</p>
+                    {% elif block.block_type == "file" and block.file %}
+                        <p><a href="{{ block.file.url }}">Скачать материал</a></p>
+
+                    {% elif block.block_type == "embed" and block.embed_url %}
+                        <div style="aspect-ratio:16/9">
+                            <iframe src="{{ block.embed_url }}" style="width:100%;height:100%;border:0" loading="lazy"></iframe>
+                        </div>
+
+                    {% elif block.block_type == "assignment" %}
+                        {% if block.description %}<p>{{ block.description|linebreaks }}</p>{% endif %}
+                        {% if block.assignment %}
+                            <h3>{{ block.assignment.title }}</h3>
+                            <div>{{ block.assignment.description|linebreaks }}</div>
                         {% endif %}
-                    </div>
 
-                    {% if has_access %}
-                        <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="btn btn-outline">
-                            ▶ Смотреть
-                        </a>
-                    {% else %}
-                        <button class="btn btn-outline" disabled>🔒 Недоступно</button>
+                    {% elif block.block_type == "quiz" and block.quiz %}
+                        <div class="block-meta">
+                            Проходной результат: {{ block.quiz.passing_score }}%.
+                            {% if block.quiz.unlimited_attempts %}Попытки не ограничены.{% else %}Доступно попыток: {{ block.quiz.attempts_allowed }}.{% endif %}
+                            {% if block.best_score %} Лучший результат: {{ block.best_score }}%.{% endif %}
+                        </div>
+
+                        <form class="quiz-form" data-quiz-id="{{ block.quiz.id }}" data-submit-url="{% url 'submit_quiz' block.quiz.id %}">
+                            {% csrf_token %}
+                            {% for question in block.quiz.questions.all %}
+                                <div class="quiz-question">
+                                    <p><strong>{{ forloop.counter }}. {{ question.text }}</strong></p>
+                                    {% if question.question_type == "multiple" %}
+                                        {% for answer in question.answers.all %}
+                                            <label class="quiz-option">
+                                                <input type="checkbox" name="question_{{ question.id }}" value="{{ answer.id }}">
+                                                <span>{{ answer.text }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    {% elif question.question_type == "text" %}
+                                        <input type="text" name="question_{{ question.id }}" style="width:100%;padding:10px;border:1px solid #ccd5e0;border-radius:8px">
+                                    {% else %}
+                                        {% for answer in question.answers.all %}
+                                            <label class="quiz-option">
+                                                <input type="radio" name="question_{{ question.id }}" value="{{ answer.id }}">
+                                                <span>{{ answer.text }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                            <button type="submit" class="block-complete">Проверить тест</button>
+                            <div class="quiz-result" hidden></div>
+                        </form>
+                    {% endif %}
+
+                    {% if block.block_type == "assignment" %}
+                        <form class="practical-form" data-submit-url="{% url 'submit_practical_response' block.id %}">
+                            {% csrf_token %}
+                            <label for="practical-{{ block.id }}">
+                                Ваш ответ{% if block.is_required %} — обязательная часть темы{% endif %}
+                            </label>
+                            <textarea id="practical-{{ block.id }}" name="text" placeholder="Запишите решение, выводы или результат выполнения задания.">{{ block.practical_response.text|default:"" }}</textarea>
+                            <button type="submit" class="block-complete">
+                                {% if block.practical_response %}Сохранить изменения{% else %}Отправить ответ{% endif %}
+                            </button>
+                            <div class="practical-result"{% if not block.user_progress.is_completed %} hidden{% endif %}>
+                                ✓ Ответ сохранён{% if block.is_required %}, задание выполнено{% endif %}
+                            </div>
+                        </form>
+                    {% elif block.block_type != "quiz" %}
+                        {% if block.user_progress.is_completed %}
+                            <div class="block-done">✓ Блок завершён</div>
+                        {% else %}
+                            <button class="block-complete complete-block" data-url="{% url 'complete_block' block.id %}">Отметить как изученное</button>
+                            <div class="block-done" hidden>✓ Блок завершён</div>
+                        {% endif %}
+                    {% endif %}
+                </section>
+            {% empty %}
+                <section class="lesson-block">
+                    <p>Материалы этой темы пока не опубликованы.</p>
+                </section>
+            {% endfor %}
+
+            <nav class="lesson-nav">
+                <div>
+                    {% if prev_lesson %}
+                        <a href="{% url 'lesson_view' course.slug prev_lesson.slug %}">← {{ prev_lesson.title }}</a>
                     {% endif %}
                 </div>
+                <div>
+                    {% if next_lesson %}
+                        <a href="{% url 'lesson_view' course.slug next_lesson.slug %}">{{ next_lesson.title }} →</a>
+                    {% endif %}
+                </div>
+            </nav>
+        </main>
+
+        <aside class="lesson-sidebar">
+            <strong>Темы курса</strong>
+            <div style="margin-top:10px">
+                {% for item in lesson.module.course.modules.all %}
+                    <div style="margin:12px 0 6px;font-size:13px;color:#6b7280">{{ item.title }}</div>
+                    {% for lesson_item in item.lessons.all %}
+                        {% if lesson_item.is_active and not lesson_item.is_deleted %}
+                            <a href="{% url 'lesson_view' course.slug lesson_item.slug %}" class="{% if lesson_item.id == lesson.id %}current{% endif %}">
+                                {{ lesson_item.title }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
                 {% endfor %}
-
             </div>
-
-        {% else %}
-            <p class="text-center text-muted">Программа появится позже.</p>
-        {% endif %}
+        </aside>
     </div>
-</section>
+</div>
 
+<script>
+(function(){
+    function csrfToken(form){
+        const input = form.querySelector('input[name="csrfmiddlewaretoken"]');
+        return input ? input.value : '';
+    }
 
-<section class="section instructor-section">
-    <div class="container text-center">
-        <h2>Инструктор</h2>
+    function showCourseCompletion(data){
+        if (!data || !data.course_completed) return;
+        const banner = document.getElementById('course-complete-banner');
+        if (banner) banner.hidden = false;
+        const link = document.getElementById('certificate-link');
+        if (link && data.certificate_url) link.href = data.certificate_url;
+        const progressText = document.querySelector('.progress-card strong');
+        if (progressText) progressText.textContent = 'Прогресс курса: 100%';
+        const progressFill = document.querySelector('.progress-fill');
+        if (progressFill) progressFill.style.width = '100%';
+    }
 
-        <div class="instructor-card">
-            <img src="{{ teacher_profile.display_avatar_url }}" alt="{{ teacher.get_full_name }}">
-            <h3>{{ teacher.get_full_name }}</h3>
-            <p class="text-secondary">{{ teacher_profile.specialization|default:"Эксперт" }}</p>
-            <p>{{ teacher_profile.bio|truncatewords:30 }}</p>
-        </div>
+    document.querySelectorAll('.complete-block').forEach(function(button){
+        button.addEventListener('click', async function(){
+            button.disabled = true;
+            try {
+                const response = await fetch(button.dataset.url, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Не удалось сохранить прогресс');
+                button.hidden = true;
+                const done = button.parentElement.querySelector('.block-done');
+                if (done) done.hidden = false;
+                showCourseCompletion(data);
+            } catch (error) {
+                alert(error.message);
+                button.disabled = false;
+            }
+        });
+    });
 
-    </div>
-</section>
+    document.querySelectorAll('.practical-form').forEach(function(form){
+        form.addEventListener('submit', async function(event){
+            event.preventDefault();
+            const submit = form.querySelector('button[type="submit"]');
+            const result = form.querySelector('.practical-result');
+            submit.disabled = true;
+            try {
+                const response = await fetch(form.dataset.submitUrl, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {'X-CSRFToken': csrfToken(form)}
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Не удалось сохранить ответ');
+                result.hidden = false;
+                result.textContent = '✓ Ответ сохранён';
+                submit.textContent = 'Сохранить изменения';
+                showCourseCompletion(data);
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    });
 
+    document.querySelectorAll('.quiz-form').forEach(function(form){
+        form.addEventListener('submit', async function(event){
+            event.preventDefault();
+            const result = form.querySelector('.quiz-result');
+            const submit = form.querySelector('button[type="submit"]');
+            submit.disabled = true;
+            try {
+                const response = await fetch(form.dataset.submitUrl, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {'X-CSRFToken': csrfToken(form)}
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Не удалось проверить тест');
 
-<section class="testimonials-section">
-    <div class="container">
-        <h2 class="text-center mb-3">Отзывы студентов</h2>
+                result.hidden = false;
+                result.className = 'quiz-result ' + (data.passed ? 'pass' : 'fail');
+                const summary = data.passed
+                    ? 'Тест пройден: ' + data.score + '%. Лучший результат: ' + data.best_score + '%.'
+                    : 'Результат: ' + data.score + '%. Для прохождения нужно не менее ' + data.passing_score + '%. Лучший результат: ' + data.best_score + '%. Можно попробовать ещё раз.';
 
-        {% if reviews %}
-        <div class="testimonials-grid">
-            {% for r in reviews %}
-            <div class="testimonial-card">
-                <p>“{{ r.comment|truncatewords:35 }}”</p>
-                <p class="text-sm text-secondary">— {{ r.name|default:"Аноним" }}, {{ r.created_at|date:"d M Y" }}</p>
-            </div>
-            {% endfor %}
-        </div>
+                result.textContent = summary;
 
-        {% else %}
-            <p class="text-center text-muted">Отзывов пока нет.</p>
-        {% endif %}
-    </div>
-</section>
-
+                if (Array.isArray(data.feedback) && data.feedback.length) {
+                    const list = document.createElement('ol');
+                    list.className = 'quiz-feedback-list';
+                    data.feedback.forEach(function(item) {
+                        const li = document.createElement('li');
+                        if (item.correct) {
+                            li.textContent = 'Верно. ' + (item.explanation || '');
+                        } else {
+                            const correct = (item.correct_answers || []).join(', ');
+                            li.textContent = 'Неверно. Правильный ответ: ' + correct + '. ' + (item.explanation || '');
+                        }
+                        list.appendChild(li);
+                    });
+                    result.appendChild(list);
+                }
+                showCourseCompletion(data);
+            } catch (error) {
+                result.hidden = false;
+                result.className = 'quiz-result fail';
+                result.textContent = error.message;
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

@@ -1,9 +1,15 @@
 from django.contrib import admin
+from django.conf import settings
 from django.contrib.auth.models import User, Group
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.html import format_html
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.urls import reverse
 from datetime import timedelta
+
+from .certificate_sync import CertificateRegistryError, sync_certificate_request
 
 from .models import (
     Category,
@@ -20,11 +26,13 @@ from .models import (
     UserProfile,
     Module,
     LessonBlock,
-    Quiz, Question, Answer, Assignment, Submission, Certificate,
+    PracticalResponse,
+    Quiz, Question, Answer, QuizAttempt, Assignment, Submission, Certificate, CertificateRequest,
     Lead, Interaction, Segment, SupportTicket, FAQ,
     Plan, Subscription, Refund, Mailing,
     CourseStaff, AuditLog,
-    ContactMessage
+    ContactMessage,
+    Organization, CorporateOrder, CorporateInvitation
 )
 
 # 🔥 СТАНДАРТНЫЕ МОДЕЛИ DJANGO
@@ -32,7 +40,7 @@ admin.site.unregister(User)
 admin.site.unregister(Group)
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(DjangoUserAdmin):
     list_display = ['username', 'email', 'full_name', 'is_staff', 'is_active', 'date_joined']
     list_filter = ['is_staff', 'is_superuser', 'is_active', 'date_joined']
     search_fields = ['username', 'email', 'first_name', 'last_name']
@@ -139,13 +147,28 @@ class LessonAdmin(admin.ModelAdmin):
         return obj.blocks.count()
 
 # 💰 ФИНАНСЫ (только для superusers)
+@admin.action(description="Подтвердить оплату и открыть доступ")
+def mark_payments_success(modeladmin, request, queryset):
+    count = 0
+    for payment in queryset.select_related("user", "course"):
+        if payment.status != Payment.SUCCESS:
+            payment.status = Payment.SUCCESS
+            payment.save()
+            count += 1
+    modeladmin.message_user(
+        request,
+        f"Оплата подтверждена, доступ открыт: {count}."
+    )
+
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'amount', 'status', 'type', 'created_at', 'revenue_impact']
+    list_display = ['user', 'course', 'amount', 'status', 'type', 'receipt', 'created_at', 'revenue_impact']
     list_filter = ['status', 'type', 'created_at']
-    search_fields = ['user__username', 'course__title', 'kaspi_invoice_id', 'payment_id']
+    search_fields = ['user__username', 'user__email', 'course__title', 'kaspi_invoice_id', 'payment_id']
     readonly_fields = ['created_at', 'updated_at', 'payment_id', 'idempotency_key']
     ordering = ['-created_at']
+    actions = [mark_payments_success]
     
     def revenue_impact(self, obj):
         if obj.status == 'success':
@@ -155,10 +178,17 @@ class PaymentAdmin(admin.ModelAdmin):
 # 📊 ОБУЧЕНИЕ (LMS)
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'course', 'completed', 'progress', 'created_at']
+    list_display = ['user', 'course', 'access_source', 'completed', 'progress', 'created_at']
     list_filter = ['completed', 'course', 'created_at']
-    search_fields = ['user__username', 'course__title']
+    search_fields = ['user__username', 'user__email', 'course__title', 'corporate_invitation__order__organization__name']
     readonly_fields = ['created_at', 'progress']
+    list_select_related = ['user', 'course', 'corporate_invitation__order__organization']
+
+    def access_source(self, obj):
+        if obj.corporate_invitation_id:
+            return f"Организация: {obj.corporate_invitation.order.organization.name}"
+        return "Индивидуально"
+    access_source.short_description = "Источник доступа"
     
     def progress(self, obj):
         # Теперь считаем прогресс по блокам, а не по урокам
@@ -178,6 +208,114 @@ class EnrollmentAdmin(admin.ModelAdmin):
         ).count()
         
         return f"{round((completed_blocks/total_blocks*100), 1)}%"
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'bin', 'contact_name', 'contact_email', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'bin', 'contact_name', 'contact_email']
+
+
+class CorporateInvitationInline(admin.TabularInline):
+    model = CorporateInvitation
+    extra = 0
+    fields = ['last_name', 'first_name', 'email', 'status', 'user', 'activated_at']
+    readonly_fields = ['activated_at']
+    show_change_link = True
+
+
+@admin.action(description="Отметить выбранные корпоративные заказы как оплаченные")
+def mark_corporate_paid(modeladmin, request, queryset):
+    count = 0
+    for order in queryset.select_related("organization", "course"):
+        if order.status != CorporateOrder.CANCELLED:
+            order.status = CorporateOrder.PAID
+            order.save()
+            count += 1
+
+            manage_url = request.build_absolute_uri(
+                reverse("corporate_order_portal", args=[order.manage_token])
+            )
+            send_mail(
+                subject=f"SkillsSpire: оплата заказа {order.order_number} подтверждена",
+                message=(
+                    f"Здравствуйте, {order.organization.contact_name}!\n\n"
+                    f"Оплата корпоративного заказа {order.order_number} подтверждена.\n"
+                    f"Курс: «{order.course.title}».\n"
+                    f"Доступно мест: {order.seats_purchased}.\n\n"
+                    "Теперь вы можете распределить места между сотрудниками:\n"
+                    f"{manage_url}\n\nSkillsSpire"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[order.organization.contact_email],
+                fail_silently=True,
+            )
+    modeladmin.message_user(request, f"Оплата подтверждена для заказов: {count}.")
+
+
+@admin.action(description="Отметить: счёт выставлен")
+def mark_corporate_invoiced(modeladmin, request, queryset):
+    count = queryset.exclude(status=CorporateOrder.CANCELLED).update(status=CorporateOrder.INVOICED)
+    modeladmin.message_user(request, f"Статус «Счёт выставлен» установлен для заказов: {count}.")
+
+
+@admin.register(CorporateOrder)
+class CorporateOrderAdmin(admin.ModelAdmin):
+    list_display = [
+        'order_number', 'organization', 'course', 'seats_purchased',
+        'used_seats_display', 'discount_percent', 'total_amount', 'status', 'paid_at'
+    ]
+    list_filter = ['status', 'course', 'created_at']
+    search_fields = [
+        'order_number', 'organization__name', 'organization__bin',
+        'organization__contact_email', 'course__title'
+    ]
+    readonly_fields = [
+        'order_number', 'manage_token', 'base_unit_price', 'discount_percent',
+        'unit_price', 'total_amount', 'paid_at', 'created_at', 'updated_at'
+    ]
+    autocomplete_fields = ['organization', 'course', 'requested_by']
+    actions = [mark_corporate_paid, mark_corporate_invoiced]
+    inlines = [CorporateInvitationInline]
+
+    def used_seats_display(self, obj):
+        return f"{obj.used_seats}/{obj.seats_purchased}"
+    used_seats_display.short_description = "Места"
+
+
+@admin.register(CorporateInvitation)
+class CorporateInvitationAdmin(admin.ModelAdmin):
+    list_display = ['email', 'full_name', 'organization_name', 'course_name', 'status', 'user', 'activated_at']
+    list_filter = ['status', 'order__course', 'created_at']
+    search_fields = ['email', 'first_name', 'last_name', 'order__organization__name', 'order__order_number']
+    readonly_fields = ['token', 'activated_at', 'created_at', 'updated_at']
+    autocomplete_fields = ['order', 'user']
+
+    def full_name(self, obj):
+        return f"{obj.last_name} {obj.first_name}"
+    full_name.short_description = "Слушатель"
+
+    def organization_name(self, obj):
+        return obj.order.organization.name
+    organization_name.short_description = "Организация"
+
+    def course_name(self, obj):
+        return obj.order.course.title
+    course_name.short_description = "Курс"
+
+
+@admin.register(PracticalResponse)
+class PracticalResponseAdmin(admin.ModelAdmin):
+    list_display = ['user', 'block', 'course_name', 'updated_at']
+    list_filter = ['block__lesson__module__course', 'updated_at']
+    search_fields = ['user__username', 'user__email', 'block__title', 'text']
+    readonly_fields = ['created_at', 'updated_at']
+    list_select_related = ['user', 'block__lesson__module__course']
+
+    def course_name(self, obj):
+        return obj.block.lesson.module.course.title
+    course_name.short_description = "Курс"
+
 
 @admin.register(BlockProgress)
 class BlockProgressAdmin(admin.ModelAdmin):
@@ -365,6 +503,14 @@ class AnswerAdmin(admin.ModelAdmin):
     search_fields = ['text', 'question__text']
     ordering = ['question', 'order']
 
+@admin.register(QuizAttempt)
+class QuizAttemptAdmin(admin.ModelAdmin):
+    list_display = ['user', 'quiz', 'attempt_number', 'score_percent', 'passed', 'completed_at']
+    list_filter = ['passed', 'quiz__lesson__module__course', 'completed_at']
+    search_fields = ['user__username', 'user__email', 'quiz__title']
+    readonly_fields = ['attempt_number', 'score_percent', 'points_earned', 'points_total', 'passed', 'answers', 'completed_at', 'created_at', 'updated_at']
+    ordering = ['-completed_at']
+
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'due_date', 'max_points', 'is_active']
@@ -410,6 +556,32 @@ class CertificateAdmin(admin.ModelAdmin):
     list_filter = ['is_revoked', 'course', 'issued_at']
     search_fields = ['user__username', 'course__title', 'certificate_id']
     readonly_fields = ['certificate_id', 'issued_at']
+
+@admin.action(description="Передать выбранные заявки в реестр сертификатов")
+def sync_certificate_requests(modeladmin, request, queryset):
+    success = 0
+    failed = 0
+    for cert_request in queryset.select_related("user", "course", "enrollment"):
+        try:
+            sync_certificate_request(cert_request)
+            success += 1
+        except CertificateRegistryError as exc:
+            cert_request.sync_error = str(exc)
+            cert_request.save(update_fields=["sync_error", "updated_at"])
+            failed += 1
+    modeladmin.message_user(
+        request,
+        f"Передано в реестр: {success}. Ошибок: {failed}."
+    )
+
+
+@admin.register(CertificateRequest)
+class CertificateRequestAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'period_mode', 'period_start', 'period_end', 'status', 'external_number', 'synced_at', 'created_at']
+    list_filter = ['status', 'period_mode', 'course', 'created_at']
+    search_fields = ['user__username', 'user__email', 'course__title', 'external_number', 'external_request_id']
+    readonly_fields = ['user', 'course', 'period_start', 'period_end', 'external_request_id', 'synced_at', 'sync_error', 'created_at', 'updated_at']
+    actions = [sync_certificate_requests]
 
 @admin.register(Interaction)
 class InteractionAdmin(admin.ModelAdmin):

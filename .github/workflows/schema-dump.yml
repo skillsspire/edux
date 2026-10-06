@@ -1,0 +1,104 @@
+name: Build PostgreSQL Schema
+
+on:
+  push:
+    branches:
+      - inclusive-course-integration
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: schema_build
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d schema_build"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: "schema-build-only-key"
+      EMAIL_BACKEND: "django.core.mail.backends.locmem.EmailBackend"
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:5432/schema_build"
+      DATABASE_SSL_REQUIRE: "False"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply all Django migrations
+        run: python manage.py migrate --noinput
+
+      - name: Seed SkillsSpire course draft
+        run: python manage.py seed_inclusive_course
+
+      - name: Build clean PostgreSQL bootstrap SQL
+        run: |
+          pg_dump "$DATABASE_URL" \
+            --schema-only \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            > schema.raw.sql
+
+          pg_dump "$DATABASE_URL" \
+            --data-only \
+            --column-inserts \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            > data.raw.sql
+
+          sed -e '/^\\/d' \
+              -e '/^CREATE SCHEMA public;/d' \
+              -e '/^ALTER SCHEMA public OWNER TO /d' \
+              schema.raw.sql > django_bootstrap.sql
+
+          printf '\n\n-- Seed data and Django migration history --\n' >> django_bootstrap.sql
+          sed -e '/^\\/d' data.raw.sql >> django_bootstrap.sql
+
+          test -s django_bootstrap.sql
+          grep -q 'CREATE TABLE public.django_migrations' django_bootstrap.sql
+          grep -q 'inclusive-higher-education' django_bootstrap.sql
+
+      - name: Validate bootstrap in a second PostgreSQL database
+        run: |
+          PGPASSWORD=postgres createdb -h 127.0.0.1 -U postgres restore_test
+          PGPASSWORD=postgres psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -U postgres -d restore_test \
+            -f django_bootstrap.sql >/dev/null
+          PGPASSWORD=postgres psql -At \
+            -h 127.0.0.1 -U postgres -d restore_test \
+            -c "select count(*) from app_course where slug='inclusive-higher-education';" \
+            | grep -qx '1'
+
+      - name: Upload bootstrap artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: django-postgres-bootstrap
+          path: django_bootstrap.sql
+          if-no-files-found: error
