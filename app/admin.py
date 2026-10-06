@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.conf import settings
 from django.contrib.auth.models import User, Group
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.html import format_html
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
@@ -39,7 +40,7 @@ admin.site.unregister(User)
 admin.site.unregister(Group)
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(DjangoUserAdmin):
     list_display = ['username', 'email', 'full_name', 'is_staff', 'is_active', 'date_joined']
     list_filter = ['is_staff', 'is_superuser', 'is_active', 'date_joined']
     search_fields = ['username', 'email', 'first_name', 'last_name']
