@@ -222,6 +222,30 @@ class PublicPageSmokeTests(TestCase):
         )
 
 
+    def test_dashboard_lists_enrolled_course(self):
+        user = User.objects.create_user(
+            username="dashboard-user",
+            email="dashboard@example.kz",
+            password="test-password",
+        )
+        Enrollment.objects.create(
+            user=user,
+            course=self.course,
+            completed=True,
+            completed_at=timezone.now(),
+        )
+        self.client.force_login(user)
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.course.title)
+        self.assertEqual(response.context["total_courses"], 1)
+        self.assertEqual(response.context["active_courses"], 0)
+        self.assertEqual(response.context["completed_courses"], 1)
+        self.assertEqual(len(response.context["enrollments"]), 1)
+
+
 class CorporateAccessTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(
