@@ -1860,69 +1860,116 @@ def my_courses(request):
 
 @login_required
 def dashboard(request):
+    empty_context = {
+        "total_courses": 0,
+        "active_courses": 0,
+        "completed_courses": 0,
+        "total_lessons": 0,
+        "completed_lessons": 0,
+        "overall_progress": 0,
+        "enrollments": [],
+        "recent_activities": [],
+    }
+
     try:
         user = request.user
-        
-        my_courses_qs = Course.objects.filter(
-            enrollments__user=user,
-            enrollments__is_deleted=False,
-        ).distinct().only('id', 'title', 'slug', 'created_at')[:10]
-        
-        my_courses = []
-        for course in my_courses_qs:
-            my_courses.append({
-                'id': course.id,
-                'title': course.title,
-                'slug': course.slug,
-                'image_url': f"{settings.STATIC_URL}img/courses/course-placeholder.jpg",
-                'url': f"/courses/{course.slug}/",
-                'created_at': course.created_at,
-            })
-        
-        total_courses = len(my_courses)
-        recent_courses = sorted(my_courses, key=lambda x: x['created_at'], reverse=True)[:5]
+        enrollments = list(
+            Enrollment.objects.filter(
+                user=user,
+                is_deleted=False,
+            ).select_related(
+                "course",
+                "course__category",
+            ).order_by("-created_at")[:10]
+        )
 
-        completed_courses = Enrollment.objects.filter(
-            user_id=user.id, 
-            completed=True
-        ).count()
+        course_ids = [enrollment.course_id for enrollment in enrollments]
 
-        try:
-            progress_qs = BlockProgress.objects.filter(user=user)
-            total_blocks = progress_qs.count()
-            completed_blocks = progress_qs.filter(is_completed=True).count()
-        except Exception:
-            total_blocks = 0
-            completed_blocks = 0
+        required_blocks = list(
+            LessonBlock.objects.filter(
+                lesson__module__course_id__in=course_ids,
+                lesson__is_active=True,
+                lesson__is_deleted=False,
+                is_required=True,
+                is_deleted=False,
+            ).values("id", "lesson_id", "lesson__module__course_id")
+        ) if course_ids else []
+
+        required_block_ids = [block["id"] for block in required_blocks]
+        completed_block_ids = set(
+            BlockProgress.objects.filter(
+                user=user,
+                block_id__in=required_block_ids,
+                is_completed=True,
+            ).values_list("block_id", flat=True)
+        ) if required_block_ids else set()
+
+        totals_by_course = {}
+        completed_by_course = {}
+        blocks_by_lesson = {}
+
+        for block in required_blocks:
+            course_id = block["lesson__module__course_id"]
+            totals_by_course[course_id] = totals_by_course.get(course_id, 0) + 1
+            if block["id"] in completed_block_ids:
+                completed_by_course[course_id] = completed_by_course.get(course_id, 0) + 1
+            blocks_by_lesson.setdefault(block["lesson_id"], set()).add(block["id"])
+
+        for enrollment in enrollments:
+            total_required = totals_by_course.get(enrollment.course_id, 0)
+            completed_required = completed_by_course.get(enrollment.course_id, 0)
+            enrollment.progress = (
+                100
+                if enrollment.completed
+                else round((completed_required / total_required) * 100)
+                if total_required
+                else 0
+            )
+
+        total_courses = len(enrollments)
+        active_courses = sum(1 for enrollment in enrollments if not enrollment.completed)
+        completed_courses = sum(1 for enrollment in enrollments if enrollment.completed)
+
+        total_lessons = (
+            Lesson.objects.filter(
+                module__course_id__in=course_ids,
+                is_active=True,
+                is_deleted=False,
+            ).count()
+            if course_ids
+            else 0
+        )
+        completed_lessons = sum(
+            1
+            for block_ids in blocks_by_lesson.values()
+            if block_ids and block_ids.issubset(completed_block_ids)
+        )
+
+        overall_progress = (
+            round(sum(enrollment.progress for enrollment in enrollments) / total_courses)
+            if total_courses
+            else 0
+        )
 
         context = {
             "total_courses": total_courses,
+            "active_courses": active_courses,
             "completed_courses": completed_courses,
-            "total_blocks": total_blocks,
-            "completed_blocks": completed_blocks,
-            "recent_courses": recent_courses,
+            "total_lessons": total_lessons,
+            "completed_lessons": completed_lessons,
+            "overall_progress": overall_progress,
+            "enrollments": enrollments,
+            "recent_activities": [],
         }
-        
+
     except DatabaseError as e:
         logger.error(f"Database error loading dashboard: {str(e)}", exc_info=True)
-        context = {
-            "total_courses": 0,
-            "completed_courses": 0,
-            "total_blocks": 0,
-            "completed_blocks": 0,
-            "recent_courses": [],
-        }
+        context = empty_context
         messages.error(request, "Временные проблемы с базой данных")
     except Exception as e:
         logger.error(f"Error loading dashboard: {str(e)}", exc_info=True)
-        context = {
-            "total_courses": 0,
-            "completed_courses": 0,
-            "total_blocks": 0,
-            "completed_blocks": 0,
-            "recent_courses": [],
-        }
-    
+        context = empty_context
+
     return render(request, "users/dashboard.html", context)
 
 def learning_dashboard(request):
