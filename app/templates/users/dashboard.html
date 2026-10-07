@@ -55,9 +55,9 @@
 
                     <!-- Картинка курса -->
                     {% if c.thumbnail and c.thumbnail.name %}
-                        <img src="{{ c.thumbnail.url }}" class="course-card-img" alt="{{ c.title }}">
+                        <img src="{{ c.thumbnail.url }}" class="course-card-img" alt="{{ c.title }}" onerror="this.onerror=null;this.src='{% static 'img/courses/default.jpg' %}';">
                     {% elif c.image and c.image.name %}
-                        <img src="{{ c.image.url }}" class="course-card-img" alt="{{ c.title }}">
+                        <img src="{{ c.image.url }}" class="course-card-img" alt="{{ c.title }}" onerror="this.onerror=null;this.src='{% static 'img/courses/default.jpg' %}';">
                     {% else %}
                         <img src="{% static 'img/courses/default.jpg' %}" class="course-card-img" alt="{{ c.title }}">
                     {% endif %}
